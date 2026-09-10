@@ -22,7 +22,9 @@ Built **phase by phase** (spec §63).
 - **Phase 0 — Bootstrap:** complete.
 - **Phase 1 — Auth + DB:** login works; `profiles` + RLS applied.
 - **Phase 2 — Gmail OAuth:** Connect / callback / status / disconnect, encrypted refresh tokens,
-  and automatic `MailPilot/*` labels. Scanning mail is **not** implemented yet (later phases).
+  and automatic `MailPilot/*` labels.
+- **Phase 3 — Parser:** MIME parser, attachment metadata (no binary), thread context with
+  INBOUND/OUTBOUND direction. Scanning and AI classification are **not** implemented yet.
 
 Phase 2 requires Google OAuth credentials in `.env.local` and the `0002_gmail_connections.sql`
 migration applied to your Supabase project.

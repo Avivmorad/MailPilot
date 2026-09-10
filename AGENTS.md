@@ -12,9 +12,8 @@ Owner-level product decisions that refine it live at
 overlay wins. Treat both as the source of truth. Implement phase-by-phase (see spec §63); do not
 invent different behavior without a documented reason.
 
-**Current status:** Phase 0 complete; Phase 1 login works; Phase 2 Gmail OAuth in progress
-(Connect / disconnect). Apply `supabase/migrations/0002_gmail_connections.sql` before testing a
-real Gmail connection.
+**Current status:** Phase 0–2 working (login + Connect Gmail). Phase 3 Gmail parser/thread
+context is in progress (MIME parse, direction, bounded thread prompt). No inbox scan yet.
 
 ## Repository rules
 

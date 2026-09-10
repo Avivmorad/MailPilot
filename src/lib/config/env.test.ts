@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  getContextLimits,
   isGmailConfigured,
   parseClientEnv,
   parseGmailEnv,
@@ -91,5 +92,14 @@ describe("parseClientEnv", () => {
     expect(() =>
       parseClientEnv({ NEXT_PUBLIC_SUPABASE_URL: "https://example.supabase.co" }),
     ).toThrowError();
+  });
+});
+
+describe("getContextLimits", () => {
+  it("uses spec defaults when unset", () => {
+    const limits = getContextLimits({});
+    expect(limits.MAX_THREAD_MESSAGES).toBe(6);
+    expect(limits.MAX_MESSAGE_CHARS).toBe(12000);
+    expect(limits.MAX_THREAD_CHARS).toBe(35000);
   });
 });

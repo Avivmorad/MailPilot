@@ -1,9 +1,15 @@
 import { redirect } from "next/navigation";
 
 import { GmailConnectionCard } from "@/components/gmail/gmail-connection-card";
-import { Logo } from "@/components/brand/logo";
-import { Button } from "@/components/ui/button";
+import { AppShell } from "@/components/layout/app-shell";
+import { PageHeader } from "@/components/layout/page-header";
+import { AppHeader } from "@/components/nav/app-header";
+import { ScanHistoryList } from "@/components/scans/scan-history-list";
+import { ScanPreferencesForm } from "@/components/settings/scan-preferences-form";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getGmailStatusForUser } from "@/lib/gmail/connections";
+import { getScanRunsForUser } from "@/lib/scans/manual";
+import { getScanPreferences } from "@/lib/settings/preferences";
 import { getSessionUser } from "@/lib/supabase/auth";
 
 export const dynamic = "force-dynamic";
@@ -19,30 +25,43 @@ export default async function SettingsPage({
   }
 
   const params = await searchParams;
-  const gmailStatus = await getGmailStatusForUser(user.id);
+  const [gmailStatus, preferences, scans] = await Promise.all([
+    getGmailStatusForUser(user.id),
+    getScanPreferences(user.id),
+    getScanRunsForUser(user.id, 10),
+  ]);
 
   return (
-    <div className="flex min-h-full flex-col">
-      <header className="border-border/60 border-b">
-        <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-4">
-          <Logo />
-          <div className="flex items-center gap-3">
-            <a href="/dashboard" className="text-muted-foreground text-sm hover:underline">
-              Dashboard
-            </a>
-            <form action="/auth/signout" method="post">
-              <Button type="submit" variant="outline" size="sm">
-                Sign out
-              </Button>
-            </form>
-          </div>
-        </div>
-      </header>
-
-      <main className="mx-auto w-full max-w-xl flex-1 px-6 py-10">
-        <h1 className="mb-6 text-2xl font-semibold tracking-tight">Settings</h1>
-        <GmailConnectionCard status={gmailStatus} gmailFlash={params.gmail} reason={params.reason} />
-      </main>
-    </div>
+    <AppShell header={<AppHeader email={user.email} current="settings" />} width="narrow">
+      <PageHeader
+        title="Settings"
+        description="Connect Gmail, set the daily scan time (default 08:00 Asia/Jerusalem), and review scan history."
+      />
+      <GmailConnectionCard status={gmailStatus} gmailFlash={params.gmail} reason={params.reason} />
+      <ScanPreferencesForm dailyScanTime={preferences.dailyScanTime} timezone={preferences.timezone} />
+      <ScanHistoryList
+        scans={scans.map((scan) => ({
+          id: String(scan.id),
+          status: String(scan.status),
+          trigger_type: String(scan.trigger_type),
+          started_at: (scan.started_at as string | null) ?? null,
+          finished_at: (scan.finished_at as string | null) ?? null,
+          messages_processed: Number(scan.messages_processed ?? 0),
+          threads_analyzed: Number(scan.threads_analyzed ?? 0),
+        }))}
+      />
+      <Card>
+        <CardHeader>
+          <CardTitle>Digest</CardTitle>
+          <CardDescription>
+            After each successful scan, MailPilot stores an in-app digest of period counts and top
+            open tasks. Sending that digest by email is not in the MVP.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="text-muted-foreground text-sm">
+          History is on the Digests page. Open tasks stay on Mail.
+        </CardContent>
+      </Card>
+    </AppShell>
   );
 }

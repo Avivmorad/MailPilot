@@ -15,6 +15,7 @@ export interface ActionRecord {
   source: string;
   manualOverride: boolean;
   completedAt: string | null;
+  snoozedUntil: string | null;
 }
 
 function titleFor(analysis: ThreadAnalysis): string {
@@ -37,6 +38,7 @@ function fromAnalysis(
     source: "AI",
     manualOverride: false,
     completedAt: null,
+    snoozedUntil: extras.snoozedUntil ?? null,
     ...extras,
   };
 }
@@ -50,8 +52,17 @@ export function reconcileActionItem(input: {
   existing: ActionRecord | null;
   latestDirection: MessageDirection | null;
   latestMessageAt: string | null;
+  now?: Date;
 }): ActionRecord | null {
   const { analysis, existing, latestDirection, latestMessageAt } = input;
+  const nowMs = (input.now ?? new Date()).getTime();
+
+  if (existing?.status === "SNOOZED" && existing.snoozedUntil) {
+    const until = Date.parse(existing.snoozedUntil);
+    if (Number.isFinite(until) && until > nowMs) {
+      return existing;
+    }
+  }
 
   if (
     existing?.manualOverride &&
@@ -100,9 +111,17 @@ export function reconcileActionItem(input: {
   }
 
   if (existing && (analysis.status === "informational" || analysis.status === "ignore")) {
+    if (existing.manualOverride) {
+      return existing;
+    }
+    if (existing.status === "COMPLETED") {
+      return existing;
+    }
     return {
       ...existing,
-      status: existing.manualOverride ? existing.status : existing.status === "COMPLETED" ? "COMPLETED" : existing.status,
+      status: "COMPLETED",
+      completedAt: existing.completedAt ?? latestMessageAt,
+      waitingFor: null,
     };
   }
 

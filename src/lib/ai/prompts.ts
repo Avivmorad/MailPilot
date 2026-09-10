@@ -1,13 +1,13 @@
 import type { ThreadAnalysisInput } from "@/lib/ai/types";
 
-export const TRIAGE_PROMPT_VERSION = "mailpilot-triage-v1";
+export const TRIAGE_PROMPT_VERSION = "mailpilot-triage-v7";
 
 export const UNTRUSTED_THREAD_START = "-----BEGIN UNTRUSTED EMAIL THREAD-----";
 export const UNTRUSTED_THREAD_END = "-----END UNTRUSTED EMAIL THREAD-----";
 
 /**
  * Base system prompt from docs/PROJECT_SPEC.md §13, plus product overlays
- * (Hebrew display text, untrusted email wrapping).
+ * (English display text, untrusted email wrapping).
  */
 export const TRIAGE_SYSTEM_PROMPT = `You are an email triage engine.
 
@@ -45,10 +45,18 @@ Core rules:
 17. Account/security messages can be high importance when they indicate a real security or access issue.
 18. A marketing message with fake urgency is not urgent.
 19. If uncertain whether an action is actually required, prefer informational unless there is concrete evidence of a required next step.
-20. Return only the structured output.
+20. One-time authentication is not an action: OTP / verification codes, magic links, and "verify this email address" links are ignore, never action_required.
+21. Security Open: new/unrecognized device login, Google security alert, expired API key or personal access token, password reset, locked or compromised account, unauthorized charge, and "Secure your account now" with no dismiss-if-you path. OTP / magic links / email verification stay ignore (rule 20).
+22. Money: paid receipts, refunds issued, and routine payment confirmations are ignore. Unpaid invoices, failed charges, remaining balance, and "update payment or we cut service" are action_required / pay until THAT thread says paid.
+23. Classify by the remaining action and who owns it. An automated sender alone must not cause an actionable request to be ignored. OTP / magic links / email verification stay ignore (rule 20).
+24. Open only for a durable next step the user still owns: a person or system asking the user to grant access, approve, sign, submit, or answer; a bounce for mail the user sent; a check-in still needed; interview scheduling, an assessment, or missing application documents; parcel collection, address correction, or customs information; a meeting the user must accept/decline or a request to choose/confirm a new time; a document comment that explicitly asks the user to act.
+25. Informational: lab results or "document ready in the portal"; Drive/Docs/Dropbox "shared a document with you" or other access-granted notices (no review/sign/approve/comment-to-act request); routine tracking / shipment out for delivery; itinerary, boarding pass, confirmed appointment; a confirmed meeting reschedule or cancellation with no new time to choose; useful mail that assigns work only to another person. Being CC'd does not create a task unless the user also has an explicit action.
+26. Ignore: job alerts, webinar/mass calendar invites, receipt-only application acknowledgments, paid receipts, bot mail with no user-owned action, surveys, and promos.
+27. If the user's last meaningful message asked someone for something and there is no substantive reply yet, status is waiting. Out-of-office replies and support-ticket acknowledgments are not resolution and must stay waiting. Use category account for security/session, finance for money, shopping for orders/receipts of goods, travel for trips.
+28. Return only the structured output.
 
 Language:
-- Write summary and short_display_title in Hebrew.
+- Write all user-facing text fields in English: summary, short_display_title, action_summary, action_reason, importance_reason, waiting_for, deadline_text, sender_name, and organization.
 - Keep enum field values in English exactly as defined by the schema.
 
 Untrusted content:

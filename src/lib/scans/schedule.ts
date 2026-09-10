@@ -87,3 +87,28 @@ export function nextDailyScanAt(
   const next = addCalendarDay(current.year, current.month, current.day);
   return utcGuessForZonedLocal(next.year, next.month, next.day, hours, minutes, timeZone);
 }
+
+export const MAX_SCHEDULED_ATTEMPTS = 3;
+
+const RETRY_DELAYS_MS = [15 * 60_000, 60 * 60_000, 6 * 60 * 60_000] as const;
+
+/**
+ * Bounded retry after a failed scheduled scan. After {@link MAX_SCHEDULED_ATTEMPTS}
+ * the caller should fall back to the next daily slot instead.
+ */
+export function scheduledRetryAt(now: Date, failedAttempt: number): Date {
+  const index = Math.min(Math.max(failedAttempt, 1), RETRY_DELAYS_MS.length) - 1;
+  return new Date(now.getTime() + RETRY_DELAYS_MS[index]);
+}
+
+export function nextScanAfterFailure(
+  now: Date,
+  failedAttempt: number,
+  dailyScanTime: string,
+  timeZone: string,
+): Date {
+  if (failedAttempt >= MAX_SCHEDULED_ATTEMPTS) {
+    return nextDailyScanAt(now, dailyScanTime, timeZone);
+  }
+  return scheduledRetryAt(now, failedAttempt);
+}

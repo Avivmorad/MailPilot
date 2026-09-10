@@ -1,5 +1,6 @@
 import type { ThreadAnalysis } from "@/lib/ai/schemas";
 import type { ActionRecord } from "@/lib/actions/reconcile-action";
+import type { HistoryListResult } from "@/lib/gmail/history";
 import type { MailPilotLogicalLabel } from "@/lib/gmail/constants";
 import type { ParsedGmailMessage } from "@/lib/gmail/parser";
 import type { InitialLookbackDays } from "@/lib/scans/lookback";
@@ -45,6 +46,7 @@ export function countersFromAnalyses(analyses: ThreadAnalysis[]): Omit<
 export interface StoredThreadRow {
   id: string;
   lastAnalyzedMessageId: string | null;
+  promptVersion: string | null;
   analysis: ThreadAnalysis | null;
 }
 
@@ -55,8 +57,17 @@ export interface ScanSettings {
   dailyScanTime: string | null;
 }
 
+export type ScanTriggerType = "INITIAL" | "MANUAL" | "RECOVERY" | "SCHEDULED";
+export type ScanDiscoveryMode = "INITIAL" | "INCREMENTAL" | "RECOVERY";
+
+export interface ConnectionScanState {
+  historyId: string | null;
+  lastSuccessfulScanAt: string | null;
+}
+
 export interface ScanGmailPort {
   listMessageRefs(query: string): Promise<Array<{ id: string; threadId: string }>>;
+  listHistoryChanges(startHistoryId: string): Promise<HistoryListResult>;
   fetchThread(threadId: string): Promise<ParsedGmailMessage[]>;
   getProfileHistoryId(): Promise<string | null>;
   loadLabelMap(): Promise<Map<MailPilotLogicalLabel, string>>;
@@ -69,7 +80,7 @@ export interface ScanStorePort {
   insertScanRun(input: {
     userId: string;
     connectionId: string;
-    triggerType: "INITIAL" | "MANUAL";
+    triggerType: ScanTriggerType;
     windowStart: string;
     windowEnd: string;
   }): Promise<string>;
@@ -77,12 +88,15 @@ export interface ScanStorePort {
     scanId: string,
     patch: Partial<ScanCounters> & {
       status: "RUNNING" | "SUCCESS" | "PARTIAL" | "FAILED";
+      threadsDiscovered?: number;
+      threadsChecked?: number;
       finishedAt?: string;
       errorCode?: string | null;
       errorMessage?: string | null;
     },
   ): Promise<void>;
   getSettings(userId: string): Promise<ScanSettings>;
+  getConnectionScanState(connectionId: string): Promise<ConnectionScanState>;
   upsertThread(input: {
     userId: string;
     connectionId: string;
@@ -122,4 +136,5 @@ export interface ScanRunResult {
   status: "SUCCESS" | "PARTIAL" | "FAILED";
   counters: ScanCounters;
   lookbackDays: InitialLookbackDays;
+  mode: ScanDiscoveryMode;
 }

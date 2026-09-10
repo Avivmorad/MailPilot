@@ -129,6 +129,275 @@ describe("postProcessThreadAnalysis", () => {
     expect(processed.status).toBe("action_required");
     expect(processed.importance).toBe("high");
   });
+
+  it("ignores Link verification codes", () => {
+    const processed = postProcessThreadAnalysis(
+      analysis({
+        status: "action_required",
+        requires_action: true,
+        action_summary: "Enter the code",
+        summary: "Your Link verification code: 866 465",
+      }),
+      { latestSubject: "Your Link verification code: 866 465" },
+    );
+    expect(processed.status).toBe("ignore");
+    expect(processed.requires_action).toBe(false);
+  });
+
+  it("downgrades OTP mail so it is never an open task", () => {
+    const processed = postProcessThreadAnalysis(
+      analysis({
+        status: "action_required",
+        requires_action: true,
+        action_type: "other",
+        action_summary: "הזן את הקוד",
+        short_display_title: "קוד אימות",
+        summary: "הזן את קוד האימות 5827 באתר ג'ובנט",
+      }),
+      { latestSubject: "קוד אימות" },
+    );
+    expect(processed.status).toBe("ignore");
+    expect(processed.requires_action).toBe(false);
+  });
+
+  it("keeps login and Google security alerts as Open", () => {
+    const processed = postProcessThreadAnalysis(
+      analysis({
+        status: "informational",
+        requires_action: false,
+        importance: "medium",
+        category: "notification",
+        summary: "Google security alert: new device login",
+      }),
+    );
+    expect(processed.status).toBe("action_required");
+    expect(processed.category).toBe("account");
+    expect(processed.requires_action).toBe(true);
+  });
+
+  it("opens expired API keys and tokens", () => {
+    const groq = postProcessThreadAnalysis(
+      analysis({
+        status: "informational",
+        requires_action: false,
+        summary: "Your Groq API key has expired",
+      }),
+    );
+    expect(groq.status).toBe("action_required");
+    expect(groq.requires_action).toBe(true);
+
+    const github = postProcessThreadAnalysis(
+      analysis({
+        status: "informational",
+        requires_action: false,
+        summary: "Your GitHub personal access token expired",
+      }),
+    );
+    expect(github.status).toBe("action_required");
+  });
+
+  it("opens a deadline that still needs a next step", () => {
+    const processed = postProcessThreadAnalysis(
+      analysis({
+        status: "informational",
+        requires_action: false,
+        summary: "Migrate off the old AI tooling before Friday",
+        deadline: "2026-09-18",
+      }),
+    );
+    expect(processed.status).toBe("action_required");
+    expect(processed.requires_action).toBe(true);
+  });
+
+  it("ignores marketing and paid receipts", () => {
+    const promo = postProcessThreadAnalysis(
+      analysis({
+        status: "informational",
+        summary: "20% off this weekend. Unsubscribe below.",
+      }),
+    );
+    expect(promo.status).toBe("ignore");
+    expect(promo.requires_action).toBe(false);
+
+    const receipt = postProcessThreadAnalysis(
+      analysis({
+        status: "informational",
+        summary: "Your payment was successful. Receipt attached.",
+      }),
+    );
+    expect(receipt.status).toBe("ignore");
+  });
+
+  it("keeps new-sign-in mail as an open task", () => {
+    const processed = postProcessThreadAnalysis(
+      analysis({
+        status: "informational",
+        requires_action: false,
+        importance: "high",
+        category: "account",
+        summary: "כניסה חדשה ב-Windows. אם הכניסה בוצעה על ידך, אין צורך לעשות דבר.",
+      }),
+    );
+    expect(processed.status).toBe("action_required");
+    expect(processed.requires_action).toBe(true);
+  });
+
+  it("keeps a provider-blocked login as Open", () => {
+    const processed = postProcessThreadAnalysis(
+      analysis({
+        status: "informational",
+        requires_action: false,
+        importance: "high",
+        category: "account",
+        summary: "התראת אבטחה קריטית: חסמנו ניסיון כניסה לחשבון שלך.",
+      }),
+    );
+    expect(processed.status).toBe("action_required");
+    expect(processed.requires_action).toBe(true);
+  });
+
+  it("keeps secure-now mail as an open task when there is no dismiss-if-you path", () => {
+    const processed = postProcessThreadAnalysis(
+      analysis({
+        status: "action_required",
+        requires_action: true,
+        importance: "high",
+        category: "account",
+        action_type: "review",
+        action_summary: "אבטח את החשבון",
+        summary: "Unusual sign-in detected. Secure your account now.",
+      }),
+    );
+    expect(processed.status).toBe("action_required");
+    expect(processed.requires_action).toBe(true);
+  });
+
+  it("downgrades a document-share notice from waiting to informational", () => {
+    const processed = postProcessThreadAnalysis(
+      analysis({
+        status: "waiting",
+        waiting_for: "Ada",
+        requires_action: false,
+        action_type: "none",
+        summary: "Ada shared a document with you",
+        short_display_title: "Document shared",
+      }),
+      { latestSubject: "Ada shared a document" },
+    );
+    expect(processed.status).toBe("informational");
+    expect(processed.waiting_for).toBeNull();
+    expect(processed.requires_action).toBe(false);
+  });
+
+  it("keeps application follow-up and automated signature requests as open tasks", () => {
+    const interview = postProcessThreadAnalysis(
+      analysis({
+        status: "ignore",
+        summary: "Please send interview availability for Monday",
+        short_display_title: "Interview",
+      }),
+    );
+    expect(interview.status).toBe("action_required");
+    expect(interview.requires_action).toBe(true);
+
+    const signature = postProcessThreadAnalysis(
+      analysis({
+        status: "ignore",
+        summary: "DocuSign: signature requested on the NDA",
+        short_display_title: "Sign NDA",
+      }),
+    );
+    expect(signature.status).toBe("action_required");
+    expect(signature.action_type).toBe("sign");
+  });
+
+  it("ignores receipt-only application acks and summarizes routine tracking", () => {
+    const ack = postProcessThreadAnalysis(
+      analysis({
+        status: "action_required",
+        requires_action: true,
+        action_type: "review",
+        action_summary: "Review the application",
+        summary: "Thank you for your application. We received it.",
+      }),
+    );
+    expect(ack.status).toBe("ignore");
+    expect(ack.requires_action).toBe(false);
+
+    const tracking = postProcessThreadAnalysis(
+      analysis({
+        status: "action_required",
+        requires_action: true,
+        action_type: "review",
+        action_summary: "Track the package",
+        summary: "Your package is out for delivery. Tracking update.",
+      }),
+    );
+    expect(tracking.status).toBe("informational");
+    expect(tracking.requires_action).toBe(false);
+  });
+
+  it("opens delivery and meeting-time asks; summarizes confirmed cancellations", () => {
+    const customs = postProcessThreadAnalysis(
+      analysis({
+        status: "informational",
+        summary: "Provide customs information for this shipment",
+      }),
+    );
+    expect(customs.status).toBe("action_required");
+
+    const pickTime = postProcessThreadAnalysis(
+      analysis({
+        status: "informational",
+        summary: "The 2pm slot fell through. Please pick a new time.",
+      }),
+    );
+    expect(pickTime.status).toBe("action_required");
+
+    const cancelled = postProcessThreadAnalysis(
+      analysis({
+        status: "action_required",
+        requires_action: true,
+        action_type: "schedule",
+        action_summary: "Handle the cancellation",
+        summary: "This event has been cancelled",
+      }),
+    );
+    expect(cancelled.status).toBe("informational");
+  });
+
+  it("preserves waiting on out-of-office and ticket acknowledgments", () => {
+    const ooo = postProcessThreadAnalysis(
+      analysis({
+        status: "resolved",
+        summary: "Automatic reply: I am out of the office until Monday",
+      }),
+    );
+    expect(ooo.status).toBe("waiting");
+    expect(ooo.waiting_for).toBe("the other party");
+
+    const ticket = postProcessThreadAnalysis(
+      analysis({
+        status: "informational",
+        summary: "Ticket 1842 has been created. We received your request.",
+      }),
+    );
+    expect(ticket.status).toBe("waiting");
+  });
+
+  it("does not create a task when work is assigned only to someone else", () => {
+    const processed = postProcessThreadAnalysis(
+      analysis({
+        status: "action_required",
+        requires_action: true,
+        action_type: "review",
+        action_summary: "Review the checklist",
+        summary: "Assigned to Jordan to complete the checklist",
+      }),
+    );
+    expect(processed.status).toBe("informational");
+    expect(processed.requires_action).toBe(false);
+  });
 });
 
 describe("confidenceBand", () => {

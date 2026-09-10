@@ -1,18 +1,20 @@
 import { z } from "zod";
 
 import { createEmailTriageProvider } from "@/lib/ai/client";
-import { isGeminiConfigured, isGmailConfigured } from "@/lib/config/env";
+import { getGeminiEnv, isGeminiConfigured, isGmailConfigured } from "@/lib/config/env";
 import { createGmailApiForUser } from "@/lib/gmail/client";
 import { GmailConnectError } from "@/lib/gmail/oauth";
+import { GMAIL_QUOTA_USER_MESSAGE, isGmailQuotaError } from "@/lib/gmail/retry";
 import { createGmailScanPort } from "@/lib/scans/gmail-port";
 import {
   DEFAULT_LOOKBACK_DAYS,
   INITIAL_LOOKBACK_DAYS,
   type InitialLookbackDays,
 } from "@/lib/scans/lookback";
-import { processInitialScan } from "@/lib/scans/process-scan";
+import { isMissingScanSchemaError, SCAN_SCHEMA_MISSING_MESSAGE } from "@/lib/scans/errors";
+import { openGmailScan, executeGmailScan } from "@/lib/scans/process-scan";
 import { createSupabaseScanStore } from "@/lib/scans/store";
-import { getGeminiEnv } from "@/lib/config/env";
+import { persistDigestAfterScan } from "@/lib/digest/build-digest";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { ScanRunResult } from "@/lib/scans/types";
 
@@ -25,6 +27,9 @@ export const manualScanRequestSchema = z.object({
     )
     .default(DEFAULT_LOOKBACK_DAYS),
 });
+
+const SCAN_RUN_SELECT =
+  "id, status, trigger_type, window_start, window_end, started_at, finished_at, messages_discovered, messages_processed, threads_analyzed, threads_discovered, threads_checked, important_count, action_count, reply_count, waiting_count, informational_count, ignored_count, error_code, error_message";
 
 const RATE_LIMIT_MS = 15_000;
 
@@ -39,10 +44,10 @@ export class ScanRequestError extends Error {
   }
 }
 
-export async function startManualInitialScan(
+export async function beginManualInitialScan(
   userId: string,
   lookbackDays: InitialLookbackDays = DEFAULT_LOOKBACK_DAYS,
-): Promise<ScanRunResult> {
+): Promise<{ scanId: string; execute: () => Promise<ScanRunResult> }> {
   if (!isGmailConfigured()) {
     throw new ScanRequestError(503, "gmail_not_configured", "Gmail OAuth is not configured.");
   }
@@ -76,33 +81,64 @@ export async function startManualInitialScan(
 
   const triggerType = existing?.last_successful_scan_at ? "MANUAL" : "INITIAL";
 
-  try {
-    return await processInitialScan({
-      userId,
-      connectionId: connection.connectionId,
-      gmailEmail: connection.gmailEmail,
-      lookbackDays,
-      triggerType,
-      gmail: createGmailScanPort(connection.gmail, connection.connectionId),
-      store,
-      provider: createEmailTriageProvider(),
-      modelName: getGeminiEnv().GEMINI_MODEL,
-    });
-  } catch (error) {
-    if (error instanceof Error && error.message === "SCAN_IN_PROGRESS") {
-      throw new ScanRequestError(409, "scan_in_progress", "A scan is already running for this Gmail account.");
-    }
-    throw error;
+  const prepared = await openGmailScan({
+    userId,
+    connectionId: connection.connectionId,
+    gmailEmail: connection.gmailEmail,
+    lookbackDays,
+    triggerType,
+    forceLookback: true,
+    gmail: createGmailScanPort(connection.gmail, connection.connectionId),
+    store,
+    provider: createEmailTriageProvider(),
+    modelName: getGeminiEnv().GEMINI_MODEL,
+  }).catch(remapScanStartError);
+
+  return {
+    scanId: prepared.scanId,
+    execute: async () => {
+      const result = await executeGmailScan(prepared);
+      if (result.status === "SUCCESS" || result.status === "PARTIAL") {
+        try {
+          await persistDigestAfterScan({ userId, scanId: prepared.scanId });
+        } catch (error) {
+          console.error("[digest]", {
+            scanId: prepared.scanId,
+            error: error instanceof Error ? error.message : "digest_failed",
+          });
+        }
+      }
+      return result;
+    },
+  };
+}
+
+export async function startManualInitialScan(
+  userId: string,
+  lookbackDays: InitialLookbackDays = DEFAULT_LOOKBACK_DAYS,
+): Promise<ScanRunResult> {
+  const job = await beginManualInitialScan(userId, lookbackDays);
+  return job.execute();
+}
+
+function remapScanStartError(error: unknown): never {
+  if (error instanceof Error && error.message === "SCAN_IN_PROGRESS") {
+    throw new ScanRequestError(409, "scan_in_progress", "A scan is already running for this Gmail account.");
   }
+  if (isGmailQuotaError(error)) {
+    throw new ScanRequestError(429, "gmail_quota", GMAIL_QUOTA_USER_MESSAGE);
+  }
+  if (isMissingScanSchemaError(error)) {
+    throw new ScanRequestError(503, "scan_schema_missing", SCAN_SCHEMA_MISSING_MESSAGE);
+  }
+  throw error;
 }
 
 export async function getScanRunForUser(userId: string, scanId: string) {
   const db = createAdminClient();
   const { data, error } = await db
     .from("scan_runs")
-    .select(
-      "id, status, trigger_type, window_start, window_end, started_at, finished_at, messages_discovered, messages_processed, threads_analyzed, important_count, action_count, reply_count, waiting_count, informational_count, ignored_count, error_code",
-    )
+    .select(SCAN_RUN_SELECT)
     .eq("id", scanId)
     .eq("user_id", userId)
     .maybeSingle();
@@ -112,13 +148,25 @@ export async function getScanRunForUser(userId: string, scanId: string) {
   return data;
 }
 
+export async function getScanRunsForUser(userId: string, limit = 10) {
+  const db = createAdminClient();
+  const { data, error } = await db
+    .from("scan_runs")
+    .select(SCAN_RUN_SELECT)
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) {
+    return [];
+  }
+  return data ?? [];
+}
+
 export async function getLatestScanRunForUser(userId: string) {
   const db = createAdminClient();
   const { data, error } = await db
     .from("scan_runs")
-    .select(
-      "id, status, trigger_type, window_start, window_end, started_at, finished_at, messages_discovered, messages_processed, threads_analyzed, important_count, action_count, reply_count, waiting_count, informational_count, ignored_count, error_code",
-    )
+    .select(SCAN_RUN_SELECT)
     .eq("user_id", userId)
     .order("created_at", { ascending: false })
     .limit(1)
@@ -141,6 +189,7 @@ export async function getInboxCountsForUser(userId: string) {
       important: 0,
       needAction: 0,
       waiting: 0,
+      ignored: 0,
     };
   }
   return {
@@ -148,5 +197,6 @@ export async function getInboxCountsForUser(userId: string) {
     important: data.filter((row) => row.importance === "high").length,
     needAction: data.filter((row) => row.requires_action === true).length,
     waiting: data.filter((row) => row.status === "waiting").length,
+    ignored: data.filter((row) => row.status === "ignore").length,
   };
 }

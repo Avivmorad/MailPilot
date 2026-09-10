@@ -30,7 +30,9 @@ const contextLimitsSchema = z.object({
   MAX_THREAD_MESSAGES: z.coerce.number().int().positive().default(6),
   MAX_MESSAGE_CHARS: z.coerce.number().int().positive().default(12000),
   MAX_THREAD_CHARS: z.coerce.number().int().positive().default(35000),
-  AI_MAX_CONCURRENCY: z.coerce.number().int().positive().default(5),
+  AI_MAX_CONCURRENCY: z.coerce.number().int().positive().default(2),
+  /** Local budget under Google's typical 15,000 units/user/minute. */
+  GMAIL_QUOTA_UNITS_PER_MINUTE: z.coerce.number().int().positive().default(12_000),
 });
 
 export type ContextLimits = z.infer<typeof contextLimitsSchema>;
@@ -101,6 +103,10 @@ export function isGmailConfigured(source: Record<string, unknown> = process.env)
 
 export function isGeminiConfigured(source: Record<string, unknown> = process.env): boolean {
   return geminiEnvSchema.safeParse(source).success;
+}
+
+export function isCronConfigured(source: Record<string, unknown> = process.env): boolean {
+  return z.string().min(1).safeParse(source.CRON_SECRET).success;
 }
 
 export function getClientEnv(): ClientEnv {

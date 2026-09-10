@@ -3,27 +3,35 @@ import { TRIAGE_PROMPT_VERSION } from "@/lib/ai/prompts";
 import { threadAnalysisSchema, type ThreadAnalysis } from "@/lib/ai/schemas";
 import { threadAnalysisInputFromContext } from "@/lib/ai/types";
 import { reconcileActionItem } from "@/lib/actions/reconcile-action";
-import { getContextLimits } from "@/lib/config/env";
+import { getContextLimits, type ContextLimits } from "@/lib/config/env";
 import { classifyDirection, parseAddressList, parseEmailAddress } from "@/lib/gmail/addresses";
 import type { MailPilotLogicalLabel } from "@/lib/gmail/constants";
 import { labelDiff, logicalLabelsForAnalysis } from "@/lib/gmail/label-plan";
 import type { ParsedGmailMessage } from "@/lib/gmail/parser";
+import { GMAIL_QUOTA_USER_MESSAGE, isGmailQuotaError } from "@/lib/gmail/retry";
 import { buildThreadContext } from "@/lib/gmail/thread-context";
 import { messageContentHash } from "@/lib/scans/content-hash";
 import {
   buildInitialScanQuery,
+  buildOverlapScanQuery,
   DEFAULT_LOOKBACK_DAYS,
+  overlapWindowStart,
   scanWindow,
   type InitialLookbackDays,
 } from "@/lib/scans/lookback";
+import { plannedDiscoveryMode } from "@/lib/scans/mode";
 import { mapPool } from "@/lib/scans/pool";
 import { nextDailyScanAt } from "@/lib/scans/schedule";
 import {
   countersFromAnalyses,
   EMPTY_SCAN_COUNTERS,
+  type ConnectionScanState,
+  type ScanDiscoveryMode,
   type ScanGmailPort,
   type ScanRunResult,
+  type ScanSettings,
   type ScanStorePort,
+  type ScanTriggerType,
   type StoredThreadRow,
 } from "@/lib/scans/types";
 
@@ -66,6 +74,18 @@ function mailpilotIdsOnMessage(
   return labelIds.filter((id) => ours.has(id));
 }
 
+export function shouldReuseStoredAnalysis(
+  existing: StoredThreadRow | null,
+  latestMessageId: string,
+  promptVersion: string,
+): boolean {
+  return (
+    existing?.lastAnalyzedMessageId != null &&
+    existing.lastAnalyzedMessageId === latestMessageId &&
+    existing.promptVersion === promptVersion
+  );
+}
+
 export function analysisFromStoredThread(row: StoredThreadRow): ThreadAnalysis | null {
   if (!row.analysis) {
     return null;
@@ -74,27 +94,101 @@ export function analysisFromStoredThread(row: StoredThreadRow): ThreadAnalysis |
   return parsed.success ? parsed.data : null;
 }
 
-export async function processInitialScan(input: {
+async function discoverChangedMessages(input: {
+  gmail: ScanGmailPort;
+  lookbackDays: InitialLookbackDays;
+  now: Date;
+  state: ConnectionScanState;
+  forceLookback?: boolean;
+}): Promise<{
+  mode: ScanDiscoveryMode;
+  refs: Array<{ id: string; threadId: string }>;
+  windowStart: Date;
+  windowEnd: Date;
+}> {
+  const planned = plannedDiscoveryMode(input.state, { forceLookback: input.forceLookback });
+  const windowEnd = input.now;
+
+  if (planned === "INCREMENTAL" && input.state.historyId) {
+    const history = await input.gmail.listHistoryChanges(input.state.historyId);
+    if (history.ok) {
+      const lastSuccess = input.state.lastSuccessfulScanAt
+        ? new Date(input.state.lastSuccessfulScanAt)
+        : windowEnd;
+      return {
+        mode: "INCREMENTAL",
+        refs: history.refs,
+        windowStart: lastSuccess,
+        windowEnd,
+      };
+    }
+  }
+
+  if (planned === "INCREMENTAL" || planned === "RECOVERY") {
+    const lastSuccess = input.state.lastSuccessfulScanAt
+      ? new Date(input.state.lastSuccessfulScanAt)
+      : windowEnd;
+    return {
+      mode: "RECOVERY",
+      refs: await input.gmail.listMessageRefs(buildOverlapScanQuery(lastSuccess, input.now)),
+      windowStart: overlapWindowStart(lastSuccess, input.now),
+      windowEnd,
+    };
+  }
+
+  const window = scanWindow(input.lookbackDays, input.now);
+  return {
+    mode: "INITIAL",
+    refs: await input.gmail.listMessageRefs(buildInitialScanQuery(input.lookbackDays)),
+    windowStart: window.windowStart,
+    windowEnd: window.windowEnd,
+  };
+}
+
+export type ProcessGmailScanInput = {
   userId: string;
   connectionId: string;
   gmailEmail: string;
   lookbackDays?: InitialLookbackDays;
-  triggerType?: "INITIAL" | "MANUAL";
+  triggerType?: ScanTriggerType;
+  forceLookback?: boolean;
   now?: Date;
   gmail: ScanGmailPort;
   store: ScanStorePort;
   analyze?: typeof tryAnalyzeThread;
   provider: EmailTriageProvider;
   modelName: string;
-}): Promise<ScanRunResult> {
+};
+
+export async function processGmailScan(input: ProcessGmailScanInput): Promise<ScanRunResult> {
+  return processInitialScan(input);
+}
+
+export type PreparedGmailScan = {
+  scanId: string;
+  lookbackDays: InitialLookbackDays;
+  now: Date;
+  analyze: typeof tryAnalyzeThread;
+  modelName: string;
+  provider: EmailTriageProvider;
+  limits: ContextLimits;
+  state: ConnectionScanState;
+  settings: ScanSettings;
+  userEmails: string[];
+  userId: string;
+  connectionId: string;
+  gmail: ScanGmailPort;
+  store: ScanStorePort;
+  forceLookback?: boolean;
+};
+
+export async function openGmailScan(input: ProcessGmailScanInput): Promise<PreparedGmailScan> {
   const lookbackDays = input.lookbackDays ?? DEFAULT_LOOKBACK_DAYS;
   const now = input.now ?? new Date();
-  const triggerType = input.triggerType ?? "INITIAL";
   const analyze = input.analyze ?? tryAnalyzeThread;
   const modelName = input.modelName;
   const provider = input.provider;
   const limits = getContextLimits();
-  const { windowStart, windowEnd } = scanWindow(lookbackDays, now);
 
   const running = await input.store.findRunningScan(input.connectionId);
   if (running?.startedAt) {
@@ -107,30 +201,118 @@ export async function processInitialScan(input: {
     await input.store.failScan(running.id, "stale_lease", "Previous scan lease expired");
   }
 
+  const state = await input.store.getConnectionScanState(input.connectionId);
+  const planned = plannedDiscoveryMode(state, { forceLookback: input.forceLookback });
+  const triggerType: ScanTriggerType =
+    planned === "RECOVERY" ? "RECOVERY" : (input.triggerType ?? (planned === "INITIAL" ? "INITIAL" : "MANUAL"));
+  const plannedWindow =
+    planned === "INITIAL"
+      ? scanWindow(lookbackDays, now)
+      : {
+          windowStart: state.lastSuccessfulScanAt
+            ? overlapWindowStart(new Date(state.lastSuccessfulScanAt), now)
+            : now,
+          windowEnd: now,
+        };
+
   const scanId = await input.store.insertScanRun({
     userId: input.userId,
     connectionId: input.connectionId,
     triggerType,
-    windowStart: windowStart.toISOString(),
-    windowEnd: windowEnd.toISOString(),
+    windowStart: plannedWindow.windowStart.toISOString(),
+    windowEnd: plannedWindow.windowEnd.toISOString(),
   });
 
   const settings = await input.store.getSettings(input.userId);
-  const userEmails = [input.gmailEmail];
-  const query = buildInitialScanQuery(lookbackDays);
+  return {
+    scanId,
+    lookbackDays,
+    now,
+    analyze,
+    modelName,
+    provider,
+    limits,
+    state,
+    settings,
+    userEmails: [input.gmailEmail],
+    userId: input.userId,
+    connectionId: input.connectionId,
+    gmail: input.gmail,
+    store: input.store,
+    forceLookback: input.forceLookback,
+  };
+}
+
+/** @deprecated Use processGmailScan. Kept as the Phase 5 entry name. */
+export async function processInitialScan(input: ProcessGmailScanInput): Promise<ScanRunResult> {
+  return executeGmailScan(await openGmailScan(input));
+}
+
+export async function executeGmailScan(prepared: PreparedGmailScan): Promise<ScanRunResult> {
+  const {
+    scanId,
+    lookbackDays,
+    now,
+    analyze,
+    modelName,
+    provider,
+    limits,
+    state,
+    settings,
+    userEmails,
+    userId,
+    connectionId,
+    gmail,
+    store,
+    forceLookback,
+  } = prepared;
 
   try {
-    const refs = await input.gmail.listMessageRefs(query);
+    const discovery = await discoverChangedMessages({
+      gmail,
+      lookbackDays,
+      now,
+      state,
+      forceLookback,
+    });
+    const refs = discovery.refs;
     const threadIds = uniqueThreadIds(refs);
-    const labelMap = await input.gmail.loadLabelMap();
     const analyses: ThreadAnalysis[] = [];
     let threadsAnalyzed = 0;
+    let threadsChecked = 0;
     let threadFailures = 0;
     let messagesProcessed = 0;
+    let progressWrites = Promise.resolve();
+    const labelMap = threadIds.length > 0 ? await gmail.loadLabelMap() : new Map<MailPilotLogicalLabel, string>();
+
+    await store.updateScanRun(scanId, {
+      status: "RUNNING",
+      messagesDiscovered: refs.length,
+      threadsDiscovered: threadIds.length,
+      threadsChecked: 0,
+    });
+
+    const persistProgress = () => {
+      const checked = threadsChecked;
+      const processed = messagesProcessed;
+      progressWrites = progressWrites.then(async () => {
+        try {
+          await store.updateScanRun(scanId, {
+            status: "RUNNING",
+            messagesDiscovered: refs.length,
+            messagesProcessed: processed,
+            threadsDiscovered: threadIds.length,
+            threadsChecked: checked,
+          });
+        } catch {
+          // Live progress is best-effort; the final write still records totals.
+        }
+      });
+    };
 
     await mapPool(threadIds, limits.AI_MAX_CONCURRENCY, async (gmailThreadId) => {
       try {
-        const messages = await input.gmail.fetchThread(gmailThreadId);
+        const messages = await gmail.fetchThread(gmailThreadId);
         if (messages.length === 0) {
           return;
         }
@@ -141,14 +323,13 @@ export async function processInitialScan(input: {
         if (!latest) {
           return;
         }
-        const existing = await input.store.getThread(input.connectionId, gmailThreadId);
+        const existing = await store.getThread(connectionId, gmailThreadId);
         const context = buildThreadContext(chronological, userEmails);
         const latestDirection = context.messages.at(-1)?.direction ?? "UNKNOWN";
         const latestAt = receivedAtIso(latest.internalDate);
 
         let analysis = existing ? analysisFromStoredThread(existing) : null;
-        const unchanged =
-          existing?.lastAnalyzedMessageId != null && existing.lastAnalyzedMessageId === latest.gmailMessageId;
+        const unchanged = shouldReuseStoredAnalysis(existing, latest.gmailMessageId, TRIAGE_PROMPT_VERSION);
 
         if (!unchanged) {
           const outcome = await analyze(
@@ -160,9 +341,9 @@ export async function processInitialScan(input: {
           );
           if (!outcome.ok) {
             threadFailures += 1;
-            const threadId = await input.store.upsertThread({
-              userId: input.userId,
-              connectionId: input.connectionId,
+            const threadId = await store.upsertThread({
+              userId,
+              connectionId,
               gmailThreadId,
               subject: latest.subject,
               participants: participantsOf(chronological),
@@ -175,9 +356,9 @@ export async function processInitialScan(input: {
             });
             for (const message of chronological) {
               const from = parseEmailAddress(message.from);
-              await input.store.upsertMessage({
-                userId: input.userId,
-                connectionId: input.connectionId,
+              await store.upsertMessage({
+                userId,
+                connectionId,
                 threadId,
                 message,
                 direction: classifyDirection({
@@ -197,9 +378,9 @@ export async function processInitialScan(input: {
           threadsAnalyzed += 1;
         }
 
-        const threadId = await input.store.upsertThread({
-          userId: input.userId,
-          connectionId: input.connectionId,
+        const threadId = await store.upsertThread({
+          userId,
+          connectionId,
           gmailThreadId,
           subject: latest.subject,
           participants: participantsOf(chronological),
@@ -213,9 +394,9 @@ export async function processInitialScan(input: {
 
         for (const message of chronological) {
           const from = parseEmailAddress(message.from);
-          await input.store.upsertMessage({
-            userId: input.userId,
-            connectionId: input.connectionId,
+          await store.upsertMessage({
+            userId,
+            connectionId,
             threadId,
             message,
             direction: classifyDirection({
@@ -232,7 +413,7 @@ export async function processInitialScan(input: {
 
         if (analysis) {
           analyses.push(analysis);
-          const existingAction = await input.store.getAction(threadId);
+          const existingAction = await store.getAction(threadId);
           const nextAction = reconcileActionItem({
             analysis,
             existing: existingAction,
@@ -240,7 +421,7 @@ export async function processInitialScan(input: {
             latestMessageAt: latestAt,
           });
           if (nextAction) {
-            await input.store.upsertAction(input.userId, threadId, nextAction);
+            await store.upsertAction(userId, threadId, nextAction);
           }
 
           const desiredLogical = logicalLabelsForAnalysis(analysis);
@@ -249,12 +430,16 @@ export async function processInitialScan(input: {
             .filter((id): id is string => typeof id === "string");
           const currentIds = mailpilotIdsOnMessage(latest.labelIds, labelMap);
           const diff = labelDiff(currentIds, desiredIds);
-          await input.gmail.modifyThreadLabels(gmailThreadId, diff.addLabelIds, diff.removeLabelIds);
+          await gmail.modifyThreadLabels(gmailThreadId, diff.addLabelIds, diff.removeLabelIds);
         }
       } catch {
         threadFailures += 1;
+      } finally {
+        threadsChecked += 1;
+        persistProgress();
       }
     });
+    await progressWrites;
 
     const tallies = countersFromAnalyses(analyses);
     const counters = {
@@ -266,33 +451,39 @@ export async function processInitialScan(input: {
     };
     const status = threadFailures > 0 ? "PARTIAL" : "SUCCESS";
     const finishedAt = new Date().toISOString();
-    await input.store.updateScanRun(scanId, { ...counters, status, finishedAt });
+    await store.updateScanRun(scanId, {
+      ...counters,
+      status,
+      finishedAt,
+      threadsDiscovered: threadIds.length,
+      threadsChecked,
+    });
 
-    const historyId = await input.gmail.getProfileHistoryId();
+    const historyId = await gmail.getProfileHistoryId();
     const nextScanAt = nextDailyScanAt(
       now,
       settings.dailyScanTime ?? "08:00",
       settings.timezone || "Asia/Jerusalem",
     );
-    await input.store.updateConnectionScan({
-      connectionId: input.connectionId,
+    await store.updateConnectionScan({
+      connectionId,
       historyId,
       lastSuccessfulScanAt: finishedAt,
       lastAttemptedScanAt: finishedAt,
       nextScanAt: nextScanAt.toISOString(),
     });
 
-    return { scanId, status, counters, lookbackDays };
+    return { scanId, status, counters, lookbackDays, mode: discovery.mode };
   } catch (error) {
-    const message = error instanceof Error ? error.message : "scan_failed";
-    await input.store.updateScanRun(scanId, {
+    const quota = isGmailQuotaError(error);
+    await store.updateScanRun(scanId, {
       status: "FAILED",
       finishedAt: new Date().toISOString(),
-      errorCode: "scan_failed",
-      errorMessage: message,
+      errorCode: quota ? "gmail_quota" : "scan_failed",
+      errorMessage: quota ? GMAIL_QUOTA_USER_MESSAGE : error instanceof Error ? error.message : "scan_failed",
     });
-    await input.store.updateConnectionScan({
-      connectionId: input.connectionId,
+    await store.updateConnectionScan({
+      connectionId,
       historyId: null,
       lastAttemptedScanAt: new Date().toISOString(),
       nextScanAt: null,
@@ -300,3 +491,4 @@ export async function processInitialScan(input: {
     throw error;
   }
 }
+

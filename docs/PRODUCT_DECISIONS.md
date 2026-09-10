@@ -16,9 +16,9 @@ must follow these.
 | Users                | Multi-user architecture; test with a single user for now  |
 | Automatic scan       | Once daily at **08:00**                                   |
 | Timezone             | **Asia/Jerusalem**                                        |
-| Initial scan window  | **Last 7 days**                                           |
+| Initial scan window  | Choose **1 / 2 / 3 / 4 days, 1 / 2 / 3 weeks, or 1 month** (default **7 days**) |
 | Subsequent scans     | Only changes since the last successful scan (incremental) |
-| Summary language     | **Hebrew**                                                |
+| Summary language     | **English**                                               |
 | Presentation         | Dashboard **and** an email digest                         |
 | Email body retention | Do **not** persist full email bodies long-term            |
 | Sending replies      | The system **never** sends replies on the user's behalf   |
@@ -27,12 +27,23 @@ These map onto the spec as follows:
 
 - Daily 08:00 + Asia/Jerusalem → `user_triage_settings.daily_scan_time = '08:00'`,
   `timezone = 'Asia/Jerusalem'`, `scan_interval_minutes = null` (spec §8, §16.4).
-- Last 7 days → `initial_lookback_days = 7` (spec §16.4).
+- Last 7 days default; manual Scan now can use 1, 2, 3, 4, 7, 14, 21, or 30 days
+  (`initial_lookback_days` / Gmail `newer_than`, spec §7.1 / §16.4).
+- Manual Scan now shows a live progress bar (conversations checked / total and percent).
+  Totals are unique Gmail threads in the window, stored on `scan_runs.threads_discovered`
+  and `scan_runs.threads_checked`.
+- Gmail calls use a rolling one-minute unit budget (default 12,000 of Google's ~15,000
+  units/user/minute). When the budget is full the scan pauses until the oldest units
+  expire, then continues. Scan now returns immediately and keeps running in the background.
 - Incremental since last success → Gmail History API incremental sync (spec §7.2).
-- Hebrew summaries → the AI summary/`short_display_title` fields are produced in Hebrew; the
+- English summaries → the AI summary/`short_display_title` fields are produced in English; the
   structured enum values (status/importance/etc.) stay in English as defined by the schema (spec §12).
 - No long-term body storage → privacy-first default already in spec §2.5 / §16.6.
 - Never auto-send → spec §3 "not in MVP" and §68.5.
+- In-app digest (Phase 9) is generated after each successful or partial scan
+  when `digest_enabled` is true (default). Counts come from stored messages and
+  threads for the scan window. Top actions are unique by thread. Sending the
+  digest by email is still a future extension (spec §72).
 
 ## Gmail labels
 
@@ -83,3 +94,90 @@ Implementation:
   (spec §60 swap point).
 - Domain code must not import `@google/genai` outside `src/lib/ai/client.ts`.
 - Gmail labels are applied only after validated analysis (spec §68.8).
+
+## Inbox summary vs open tasks
+
+The dashboard is an overview (scan status and counts). Mail lists live on **Mail** tabs
+and stay two separate products (they must not be the same list):
+
+1. **Inbox summary** (Summary tab) — leftover useful FYI only (`informational` / `resolved`).
+   **Never** `ignore` and never open/waiting tasks.
+2. **Open tasks** (Open tab) — a real next step, including security events and expired credentials.
+3. **Ignored** — OTP/verification, marketing, job alerts, receipts, and routine automated notices.
+
+Placement priority:
+
+1. OTP, verification code, marketing, job alert, receipt, routine confirmation, or automated FYI → `ignore`, unless the mail explicitly requires action.
+2. Unrecognized/new-device login, security alert, expired API key/token, deadline, required payment, check-in, or explicit action → `action_required`.
+3. Otherwise → `informational`.
+4. Status is never empty. `requires_action` is true only for Open.
+
+Mail tabs are derived from this single `status` (plus action workflow for waiting/completed/snoozed). A thread ID cannot appear in both Summary and Ignored.
+
+## Open-task topics
+
+Within Open (and in the summary), group threads under:
+
+| Topic      | Label      | Typical mail                                      |
+| ---------- | ---------- | ------------------------------------------------- |
+| `security` | Security   | Account / login / session (not OTPs)              |
+| `payments` | Payments   | Charges, invoices, receipts                       |
+| `general`  | General    | Everything else that is still a real task or FYI  |
+
+Mapping from spec `category`: `account` → security; `finance` / `shopping` → payments;
+otherwise general. Similar notices sit together under the same topic in the summary; they
+are not merged into a single Gmail thread.
+
+## Placement map
+
+Decide **Open** only when the user still has a durable next step; **Waiting** when they
+already did their step; **Summary** when the mail is useful FYI; **Ignore** for noise.
+Never persist full email bodies. `action_items` rows exist only for Open (`OPEN`) and
+Waiting (`WAITING`).
+
+**Precedence:** classify by the remaining action and who owns it. An automated sender
+alone must not cause an actionable request to be ignored. OTP, magic links, and
+“verify this email address” stay Ignore (see Security).
+
+### Security
+
+| Case | Where | `status` / action |
+| ---- | ----- | ----------------- |
+| OTP, magic link, confirm-email, “Link verification code” | Ignore | `ignore` |
+| New / unrecognized device login, Google security alert | Open | `action_required` / `review` |
+| Expired API key, personal access token, or similar credential | Open | `action_required` / `review` |
+| Provider already blocked the login | Open | `action_required` / `review` |
+| Security copy about a **different** account (this mailbox is only recovery) | Ignore | `ignore` |
+| Password reset, locked/compromised account, unauthorized charge | Open | `action_required` / `review` |
+
+### Payments
+
+| Case | Where | `status` / action |
+| ---- | ----- | ----------------- |
+| Paid receipt, refund issued, tax/VAT PDF ready to download | Ignore | `ignore` |
+| Bank/account update with no unpaid amount | Ignore | `ignore` |
+| Upcoming renewal or trial started, no charge due | Ignore | `ignore` |
+| Unpaid invoice, failed charge, remaining balance, fine to pay | Open until **that thread** says paid | `action_required` / `pay` |
+| Card expired / update payment or service stops | Open | `action_required` / `pay` |
+| Marketing that looks like a credit alert | Ignore | `ignore` |
+
+### General
+
+| Case | Where | `status` / action |
+| ---- | ----- | ----------------- |
+| Person or automated mail asks the user to grant access, approve, sign, submit, or answer | Open | matching `action_type` |
+| Signature request, approval request, or document comment that explicitly asks the user to act | Open | `sign` / `approve` / `reply` |
+| Bounce for mail the user sent | Open | `review` |
+| Meeting the user must accept/decline, or a request to choose/confirm a new time | Open | `schedule` |
+| Interview scheduling, assessment, or request for missing application documents | Open | `schedule` / `submit` |
+| Parcel collection, address correction, or customs-information request | Open | `follow_up` / `submit` |
+| Check-in still needed | Open | `submit` |
+| User already asked/sent/signed; no reply yet | Waiting | `waiting` |
+| Out-of-office reply or support-ticket acknowledgment while that request is unanswered | Waiting | `waiting` (not resolved) |
+| Webinar / mass calendar invite | Ignore | `ignore` |
+| Confirmed meeting reschedule or cancellation (no new time to choose) | Summary | `informational` |
+| Lab results or “document ready in the portal” | Summary | `informational` |
+| Drive/Docs/Dropbox “shared a document/file with you” (access granted) | Summary | `informational` |
+| Routine tracking / shipment out for delivery, itinerary, boarding pass, confirmed appointment | Summary | `informational` |
+| Useful mail that assigns work only to someone else; being CC’d is not a task | Summary | `informational` |
+| Job alerts, receipt-only application acknowledgments, bot mail with no user action, surveys, promos | Ignore | `ignore` |

@@ -28,10 +28,18 @@ Built **phase by phase** (spec §63).
 - **Phase 4 — AI triage:** Gemini structured JSON (`GEMINI_API_KEY` / `GEMINI_MODEL`),
   Zod schema, deterministic post-processing, prompt-injection wrapping, and eval
   fixtures.
-- **Phase 5 — Initial scan:** dashboard **Scan now** (24h / 3 days / 7 days,
-  default 7), Gmail list + thread analysis, idempotent DB upserts, action and
+- **Phase 5 — Initial scan:** dashboard **Scan now** (lookback up to a month),
+  Gmail list + thread analysis, idempotent DB upserts, action and
   MailPilot label reconciliation, and inbox counters. Failed AI does not apply
-  labels. Daily incremental scan is still Phase 8.
+  labels.
+- **Phase 6–7 — Dashboard + incremental sync:** Mail tabs, thread actions,
+  History API with stale-history recovery.
+- **Phase 8 — Daily scheduled scan:** global cron dispatcher, job lease, bounded
+  retry, scan preferences, and scan history. Default 08:00 Asia/Jerusalem.
+  Apply `0007_scan_scheduling.sql`.
+- **Phase 9 — Digest:** in-app digest after each successful/partial scan
+  (period counts from the DB, unique top open tasks, history on `/digests`).
+  Apply `0006_digest_reports.sql`. Email delivery is not in the MVP.
 
 Phase 2 requires Google OAuth credentials in `.env.local` and the `0002_gmail_connections.sql`
 migration applied to your Supabase project. Phase 5 also needs
@@ -140,9 +148,12 @@ code they cover as `*.test.ts(x)`. Phase 4 eval fixtures live in `tests/fixtures
 
 ## Cron configuration
 
-A single global dispatcher endpoint (`POST /api/cron/scan-dispatcher`, added in Phase 8) selects
-due Gmail connections and processes them. It is protected by `CRON_SECRET` and must never be
-publicly executable. On Vercel, schedule it via `vercel.json` cron.
+A single global dispatcher (`GET`/`POST` `/api/cron/scan-dispatcher`) selects due Gmail
+connections (`next_scan_at <= now()`), claims them with a job lease, and runs incremental
+scans. It is protected by `CRON_SECRET` (`Authorization: Bearer …` or `x-cron-secret`) and
+must never be publicly executable. `vercel.json` schedules it hourly so daily 08:00
+Asia/Jerusalem (and bounded retries) are picked up. Apply `0007_scan_scheduling.sql` before
+relying on scheduled scans.
 
 ## Deployment
 

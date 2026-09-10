@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
 import { Logo } from "@/components/brand/logo";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
@@ -58,14 +59,15 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-full flex-1 flex-col items-center justify-center px-6 py-16">
+    <div className="bg-muted/30 relative flex min-h-full flex-1 flex-col items-center justify-center px-6 py-16">
+      <ThemeToggle className="absolute top-4 right-4" />
       <div className="mb-8">
         <Link href="/" aria-label="Back to home">
           <Logo />
         </Link>
       </div>
 
-      <Card className="w-full max-w-sm">
+      <Card className="w-full max-w-sm shadow-sm">
         <CardHeader>
           <CardTitle>{mode === "signin" ? "Sign in" : "Create your account"}</CardTitle>
           <CardDescription>
@@ -114,7 +116,7 @@ export default function LoginPage() {
                 {error}
               </p>
             ) : null}
-            {notice ? <p className="text-sm text-emerald-600">{notice}</p> : null}
+            {notice ? <p className="text-sm text-emerald-700 dark:text-emerald-400">{notice}</p> : null}
 
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Please wait…" : mode === "signin" ? "Sign in" : "Sign up"}

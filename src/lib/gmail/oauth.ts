@@ -4,6 +4,8 @@ import { google } from "googleapis";
 
 import { getGmailEnv } from "@/lib/config/env";
 import { GMAIL_MODIFY_SCOPE } from "@/lib/gmail/constants";
+import { GMAIL_UNITS } from "@/lib/gmail/quota";
+import { withGmailRetry } from "@/lib/gmail/retry";
 import { timingSafeStringEqual } from "@/lib/security/encryption";
 
 export class GmailConnectError extends Error {
@@ -85,7 +87,9 @@ export async function fetchGmailIdentity(
 
   const gmail = google.gmail({ version: "v1", auth: client });
   try {
-    const profile = await gmail.users.getProfile({ userId: "me" });
+    const profile = await withGmailRetry(() => gmail.users.getProfile({ userId: "me" }), {
+      units: GMAIL_UNITS.getProfile,
+    });
     const email = profile.data.emailAddress;
     if (!email) {
       throw new GmailConnectError("gmail_profile", "Gmail profile did not include an email address");

@@ -58,9 +58,9 @@
     "subject": "Security alert: new sign-in from an unrecognized device",
     "sender_type": "security",
     "email_body": "We detected a sign-in from a new device in a location you don't usually use. If this wasn't you, secure your account now.",
-    "expected_importance": "high",
-    "expected_action": "review",
-    "expected_summary": "התראת אבטחה על כניסה ממכשיר לא מזוהה — יש לבדוק ולאבטח את החשבון."
+    "expected_importance": "medium",
+    "expected_action": "none",
+    "expected_summary": "התראת כניסה ממכשיר לא מזוהה — לידיעה באבטחה, לא משימה פתוחה אלא אם נדרש איפוס סיסמה."
   },
   {
     "id": "case_008_routine_login_notice",

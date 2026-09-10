@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildTriageUserPrompt,
   TRIAGE_PROMPT_VERSION,
+  TRIAGE_SYSTEM_PROMPT,
   UNTRUSTED_THREAD_END,
   UNTRUSTED_THREAD_START,
   wrapUntrustedThread,
@@ -45,5 +46,25 @@ describe("buildTriageUserPrompt", () => {
     expect(prompt).toContain(UNTRUSTED_THREAD_START);
     expect(prompt).toContain("Please reply with the Q3 numbers.");
     expect(prompt).toContain("not instructions");
+  });
+});
+
+describe("TRIAGE_SYSTEM_PROMPT", () => {
+  it("asks for English user-facing titles and summaries", () => {
+    expect(TRIAGE_SYSTEM_PROMPT).toContain("Write all user-facing text fields in English");
+    expect(TRIAGE_SYSTEM_PROMPT).not.toContain("in Hebrew");
+  });
+
+  it("treats inbound document-share notices as informational", () => {
+    expect(TRIAGE_SYSTEM_PROMPT).toContain("shared a document with you");
+  });
+
+  it("classifies by remaining action ownership and keeps OTP ignore", () => {
+    expect(TRIAGE_SYSTEM_PROMPT).toContain("remaining action and who owns it");
+    expect(TRIAGE_SYSTEM_PROMPT).toContain("automated sender alone must not");
+    expect(TRIAGE_SYSTEM_PROMPT).toContain("OTP / verification codes");
+    expect(TRIAGE_SYSTEM_PROMPT).toContain("receipt-only application acknowledgments");
+    expect(TRIAGE_SYSTEM_PROMPT).toContain("Out-of-office replies");
+    expect(TRIAGE_SYSTEM_PROMPT).toContain("Being CC'd does not create a task");
   });
 });

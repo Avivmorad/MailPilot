@@ -12,6 +12,8 @@ import {
   revokeRefreshToken,
 } from "@/lib/gmail/oauth";
 import { decryptSecret, encryptSecret } from "@/lib/security/encryption";
+import { nextDailyScanAt } from "@/lib/scans/schedule";
+import { getScanPreferences } from "@/lib/settings/preferences";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 interface ConnectionRow {
@@ -145,6 +147,26 @@ export async function completeGmailOAuth(userId: string, code: string): Promise<
   }
 
   const row = data as ConnectionRow;
+
+  if (!row.next_scan_at) {
+    try {
+      const preferences = await getScanPreferences(userId);
+      const nextScanAt = nextDailyScanAt(
+        new Date(),
+        preferences.dailyScanTime,
+        preferences.timezone,
+      ).toISOString();
+      const { error: scheduleError } = await db
+        .from("gmail_connections")
+        .update({ next_scan_at: nextScanAt })
+        .eq("id", row.id);
+      if (!scheduleError) {
+        row.next_scan_at = nextScanAt;
+      }
+    } catch {
+      // Connection is valid; the next successful scan will set next_scan_at.
+    }
+  }
 
   try {
     await ensureManagedLabels(row.id, tokens.accessToken, tokens.refreshToken);

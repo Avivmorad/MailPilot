@@ -1,9 +1,32 @@
+import { after } from "next/server";
 import { NextResponse } from "next/server";
 
 import { getSessionUser } from "@/lib/supabase/auth";
-import { manualScanRequestSchema, ScanRequestError, startManualInitialScan } from "@/lib/scans/manual";
+import {
+  beginManualInitialScan,
+  getLatestScanRunForUser,
+  getScanRunsForUser,
+  manualScanRequestSchema,
+  ScanRequestError,
+} from "@/lib/scans/manual";
+import { runScanInBackground } from "@/lib/scans/runtime";
 
-export const maxDuration = 300;
+export const maxDuration = 800;
+
+export async function GET() {
+  const user = await getSessionUser();
+  if (!user) {
+    return NextResponse.json({ error: "not_signed_in" }, { status: 401 });
+  }
+  const [scan, items] = await Promise.all([
+    getLatestScanRunForUser(user.id),
+    getScanRunsForUser(user.id, 10),
+  ]);
+  return NextResponse.json(
+    { scan, items },
+    { headers: { "Cache-Control": "no-store" } },
+  );
+}
 
 export async function POST(request: Request) {
   const user = await getSessionUser();
@@ -23,12 +46,17 @@ export async function POST(request: Request) {
   }
 
   try {
-    const result = await startManualInitialScan(user.id, parsed.data.lookbackDays);
-    return NextResponse.json(result);
+    const job = await beginManualInitialScan(user.id, parsed.data.lookbackDays);
+    const running = runScanInBackground(job.scanId, job.execute);
+    after(async () => {
+      await running;
+    });
+    return NextResponse.json({ scanId: job.scanId, status: "RUNNING" }, { status: 202 });
   } catch (error) {
     if (error instanceof ScanRequestError) {
       return NextResponse.json({ error: error.code, message: error.message }, { status: error.status });
     }
-    return NextResponse.json({ error: "scan_failed" }, { status: 500 });
+    const message = error instanceof Error ? error.message : "Scan failed.";
+    return NextResponse.json({ error: "scan_failed", message }, { status: 500 });
   }
 }

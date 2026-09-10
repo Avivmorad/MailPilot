@@ -7,6 +7,7 @@ export interface ThreadMessageContext {
   direction: MessageDirection;
   from: string | null;
   to: string | null;
+  cc: string | null;
   date: string | null;
   subject: string | null;
   body: string;
@@ -57,6 +58,7 @@ export function buildThreadContext(
       direction: classifyDirection({ from, to, cc, userEmails }),
       from: message.from,
       to: message.to,
+      cc: message.cc,
       date: toIso(message.internalDate),
       subject: message.subject,
       body: truncate(message.plainText, limits.MAX_MESSAGE_CHARS),
@@ -70,6 +72,7 @@ export function buildThreadContext(
       `Direction: ${message.direction}`,
       `From: ${message.from ?? ""}`,
       `To: ${message.to ?? ""}`,
+      `Cc: ${message.cc ?? ""}`,
       `Date: ${message.date ?? ""}`,
       `Subject: ${message.subject ?? ""}`,
       "",

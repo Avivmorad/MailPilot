@@ -25,6 +25,14 @@ function flashMessage(gmail: string | undefined, reason: string | undefined): {
     missing_code: "Google did not return an authorization code. Please try again.",
     no_refresh_token:
       "Google did not return a refresh token. Remove MailPilot from your Google account permissions and connect again.",
+    gmail_api:
+      "Gmail API is not enabled (or profile lookup failed). In Google Cloud enable Gmail API, wait a minute, then try Connect Gmail again.",
+    gmail_profile: "Google did not return a Gmail address for this account.",
+    persist:
+      "Could not save the Gmail connection. Apply supabase/migrations/0002_gmail_connections.sql in the SQL Editor, then try again.",
+    encryption_key:
+      "TOKEN_ENCRYPTION_KEY is invalid. It must be 64 hex characters from `openssl rand -hex 32`. Update .env.local and restart.",
+    token_exchange: "Google token exchange failed. Try Connect Gmail again.",
     connect_failed: "Gmail could not be connected. Please try again.",
     disconnect_failed: "Gmail could not be disconnected. Please try again.",
     invalid_request: "The Gmail callback was invalid. Please try again.",
@@ -37,6 +45,13 @@ function flashMessage(gmail: string | undefined, reason: string | undefined): {
 }
 
 function statusCopy(status: GmailStatusPayload): { title: string; body: string } {
+  if (status.loadError) {
+    return {
+      title: "Could not load Gmail status",
+      body: status.loadError,
+    };
+  }
+
   if (!status.configured) {
     return {
       title: "Gmail is not configured yet",
@@ -87,7 +102,7 @@ export function GmailConnectionCard({
   const isActive = connection?.status === "CONNECTED";
   const needsReconnect =
     connection?.status === "REAUTH_REQUIRED" || connection?.status === "ERROR";
-  const canConnect = status.configured;
+  const canConnect = status.configured && !status.loadError;
 
   return (
     <Card>

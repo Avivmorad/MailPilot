@@ -6,6 +6,16 @@ import { getGmailEnv } from "@/lib/config/env";
 import { GMAIL_MODIFY_SCOPE } from "@/lib/gmail/constants";
 import { timingSafeStringEqual } from "@/lib/security/encryption";
 
+export class GmailConnectError extends Error {
+  constructor(
+    readonly reason: string,
+    message: string,
+  ) {
+    super(message);
+    this.name = "GmailConnectError";
+  }
+}
+
 export function createOAuth2Client() {
   const env = getGmailEnv();
   return new google.auth.OAuth2(env.GOOGLE_CLIENT_ID, env.GOOGLE_CLIENT_SECRET, env.GOOGLE_REDIRECT_URI);
@@ -41,20 +51,31 @@ export interface GoogleTokenSet {
 
 export async function exchangeAuthorizationCode(code: string): Promise<GoogleTokenSet> {
   const client = createOAuth2Client();
-  const { tokens } = await client.getToken(code);
-  if (!tokens.access_token) {
-    throw new Error("Google token exchange returned no access token");
+  try {
+    const { tokens } = await client.getToken(code);
+    if (!tokens.access_token) {
+      throw new GmailConnectError("token_exchange", "Google token exchange returned no access token");
+    }
+    if (!tokens.refresh_token) {
+      throw new GmailConnectError("no_refresh_token", "NO_REFRESH_TOKEN");
+    }
+    return {
+      accessToken: tokens.access_token,
+      refreshToken: tokens.refresh_token,
+      expiryDate: tokens.expiry_date ?? null,
+    };
+  } catch (err) {
+    if (err instanceof GmailConnectError) {
+      throw err;
+    }
+    throw new GmailConnectError("token_exchange", "Google token exchange failed");
   }
-  if (!tokens.refresh_token) {
-    throw new Error("NO_REFRESH_TOKEN");
-  }
-  return {
-    accessToken: tokens.access_token,
-    refreshToken: tokens.refresh_token,
-    expiryDate: tokens.expiry_date ?? null,
-  };
 }
 
+/**
+ * Identity comes from the Gmail API (covered by gmail.modify).
+ * We do not call oauth2.userinfo — that requires extra scopes the spec forbids.
+ */
 export async function fetchGmailIdentity(
   accessToken: string,
   refreshToken: string,
@@ -63,22 +84,35 @@ export async function fetchGmailIdentity(
   client.setCredentials({ access_token: accessToken, refresh_token: refreshToken });
 
   const gmail = google.gmail({ version: "v1", auth: client });
-  const profile = await gmail.users.getProfile({ userId: "me" });
-  const email = profile.data.emailAddress;
-  if (!email) {
-    throw new Error("Gmail profile did not include an email address");
+  try {
+    const profile = await gmail.users.getProfile({ userId: "me" });
+    const email = profile.data.emailAddress;
+    if (!email) {
+      throw new GmailConnectError("gmail_profile", "Gmail profile did not include an email address");
+    }
+    return { email, googleAccountId: null };
+  } catch (err) {
+    if (err instanceof GmailConnectError) {
+      throw err;
+    }
+    const status = googleErrorStatus(err);
+    console.error("[gmail.connect]", { step: "profile", status });
+    throw new GmailConnectError(
+      "gmail_api",
+      "Gmail API profile lookup failed. Enable the Gmail API in Google Cloud.",
+    );
   }
-
-  const oauth2 = google.oauth2({ version: "v2", auth: client });
-  const info = await oauth2.userinfo.get();
-
-  return {
-    email,
-    googleAccountId: info.data.id ?? null,
-  };
 }
 
 export async function revokeRefreshToken(refreshToken: string): Promise<void> {
   const client = createOAuth2Client();
   await client.revokeToken(refreshToken);
+}
+
+function googleErrorStatus(err: unknown): number | null {
+  if (typeof err === "object" && err !== null && "status" in err) {
+    const status = (err as { status?: unknown }).status;
+    return typeof status === "number" ? status : null;
+  }
+  return null;
 }

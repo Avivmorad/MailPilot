@@ -107,3 +107,9 @@ create policy "gmail_labels_select_own"
         and c.user_id = auth.uid()
     )
   );
+
+grant all on table public.gmail_connections to service_role;
+grant all on table public.gmail_labels to service_role;
+
+-- Reload PostgREST so the new tables are visible immediately.
+notify pgrst, 'reload schema';

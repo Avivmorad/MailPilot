@@ -35,4 +35,6 @@ export interface GmailConnectionPublic {
 export interface GmailStatusPayload {
   configured: boolean;
   connection: GmailConnectionPublic | null;
+  /** User-safe explanation when status could not be loaded. Never includes secrets. */
+  loadError: string | null;
 }

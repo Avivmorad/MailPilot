@@ -8,6 +8,7 @@ import { ensureManagedLabels } from "@/lib/gmail/labels";
 import {
   exchangeAuthorizationCode,
   fetchGmailIdentity,
+  GmailConnectError,
   revokeRefreshToken,
 } from "@/lib/gmail/oauth";
 import { decryptSecret, encryptSecret } from "@/lib/security/encryption";
@@ -34,41 +35,93 @@ export function toPublicConnection(row: ConnectionRow): GmailConnectionPublic {
   };
 }
 
+/**
+ * Map a PostgREST/Postgres error to copy that is safe to show in the UI.
+ * Does not include tokens, email bodies, or raw connection strings.
+ */
+export function gmailStatusErrorMessage(error: {
+  code?: string | null;
+  message?: string | null;
+}): string {
+  const code = error.code ?? "";
+  const message = error.message ?? "";
+  if (
+    code === "PGRST205" ||
+    code === "42P01" ||
+    (/gmail_connections/i.test(message) && /does not exist|schema cache|could not find/i.test(message))
+  ) {
+    return "The gmail_connections table is missing. Apply supabase/migrations/0002_gmail_connections.sql in the Supabase SQL Editor, then reload.";
+  }
+  if (code === "42501" || /permission denied/i.test(message)) {
+    return "Database permission denied for Gmail connections. Re-run 0002_gmail_connections.sql in the SQL Editor.";
+  }
+  if (code === "PGRST301" || /jwt|invalid api key|invalid authentication/i.test(message)) {
+    return "Supabase rejected the server key. Check SUPABASE_SERVICE_ROLE_KEY in .env.local and restart the dev server.";
+  }
+  return "Could not load Gmail connection status from the database.";
+}
+
 export async function getGmailStatusForUser(userId: string): Promise<GmailStatusPayload> {
   const configured = isGmailConfigured();
   if (!configured) {
-    return { configured: false, connection: null };
+    return { configured: false, connection: null, loadError: null };
   }
 
-  const db = createAdminClient();
-  const { data, error } = await db
-    .from("gmail_connections")
-    .select("id, user_id, gmail_email, google_account_id, status, last_successful_scan_at, next_scan_at")
-    .eq("user_id", userId)
-    .order("updated_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  try {
+    const db = createAdminClient();
+    const { data, error } = await db
+      .from("gmail_connections")
+      .select("id, user_id, gmail_email, google_account_id, status, last_successful_scan_at, next_scan_at")
+      .eq("user_id", userId)
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
-  if (error) {
-    throw new Error("Failed to load Gmail connection status");
+    if (error) {
+      console.error("[gmail.status]", { code: error.code, message: error.message });
+      return {
+        configured: true,
+        connection: null,
+        loadError: gmailStatusErrorMessage(error),
+      };
+    }
+
+    return {
+      configured: true,
+      connection: data ? toPublicConnection(data as ConnectionRow) : null,
+      loadError: null,
+    };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "unknown";
+    console.error("[gmail.status]", { message });
+    return {
+      configured: true,
+      connection: null,
+      loadError: "Could not load Gmail connection status from the database.",
+    };
   }
-
-  return {
-    configured: true,
-    connection: data ? toPublicConnection(data as ConnectionRow) : null,
-  };
 }
 
 export async function completeGmailOAuth(userId: string, code: string): Promise<GmailConnectionPublic> {
   const env = getGmailEnv();
   const tokens = await exchangeAuthorizationCode(code);
   const identity = await fetchGmailIdentity(tokens.accessToken, tokens.refreshToken);
-  const encryptedRefreshToken = encryptSecret(tokens.refreshToken, env.TOKEN_ENCRYPTION_KEY);
+
+  let encryptedRefreshToken: string;
+  try {
+    encryptedRefreshToken = encryptSecret(tokens.refreshToken, env.TOKEN_ENCRYPTION_KEY);
+  } catch {
+    throw new GmailConnectError(
+      "encryption_key",
+      "TOKEN_ENCRYPTION_KEY must be a 32-byte key (openssl rand -hex 32)",
+    );
+  }
 
   const db = createAdminClient();
   const { error: profileError } = await db.from("profiles").upsert({ id: userId }, { onConflict: "id" });
   if (profileError) {
-    throw new Error("Failed to persist Gmail connection");
+    console.error("[gmail.connect]", { step: "profile", code: profileError.code, message: profileError.message });
+    throw new GmailConnectError("persist", "Failed to persist profile for Gmail connection");
   }
 
   const { data, error } = await db
@@ -87,7 +140,8 @@ export async function completeGmailOAuth(userId: string, code: string): Promise<
     .single();
 
   if (error || !data) {
-    throw new Error("Failed to persist Gmail connection");
+    console.error("[gmail.connect]", { step: "connection", code: error?.code, message: error?.message });
+    throw new GmailConnectError("persist", "Failed to persist Gmail connection");
   }
 
   const row = data as ConnectionRow;
@@ -96,7 +150,6 @@ export async function completeGmailOAuth(userId: string, code: string): Promise<
     await ensureManagedLabels(row.id, tokens.accessToken, tokens.refreshToken);
   } catch {
     // Connection is still valid; labels can be reconciled on the next scan.
-    // Do not log token or email body content.
   }
 
   return toPublicConnection(row);

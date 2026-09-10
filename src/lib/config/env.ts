@@ -26,15 +26,20 @@ const gmailEnvSchema = supabaseAdminSchema.extend({
   TOKEN_ENCRYPTION_KEY: z.string().min(1),
 });
 
-const serverEnvSchema = gmailEnvSchema.extend({
-  OPENAI_API_KEY: z.string().min(1),
-  OPENAI_MODEL: z.string().min(1),
-  CRON_SECRET: z.string().min(1),
+const contextLimitsSchema = z.object({
   MAX_THREAD_MESSAGES: z.coerce.number().int().positive().default(6),
   MAX_MESSAGE_CHARS: z.coerce.number().int().positive().default(12000),
   MAX_THREAD_CHARS: z.coerce.number().int().positive().default(35000),
   AI_MAX_CONCURRENCY: z.coerce.number().int().positive().default(5),
 });
+
+export type ContextLimits = z.infer<typeof contextLimitsSchema>;
+
+const serverEnvSchema = gmailEnvSchema.extend({
+  OPENAI_API_KEY: z.string().min(1),
+  OPENAI_MODEL: z.string().min(1),
+  CRON_SECRET: z.string().min(1),
+}).merge(contextLimitsSchema);
 
 export type ClientEnv = z.infer<typeof supabasePublicSchema>;
 export type SupabaseAdminEnv = z.infer<typeof supabaseAdminSchema>;
@@ -105,6 +110,10 @@ export function getGmailEnv(): GmailEnv {
     cachedGmailEnv = parseGmailEnv();
   }
   return cachedGmailEnv;
+}
+
+export function getContextLimits(source: Record<string, unknown> = process.env): ContextLimits {
+  return contextLimitsSchema.parse(source);
 }
 
 export function getServerEnv(): ServerEnv {

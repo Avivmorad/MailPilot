@@ -4,7 +4,7 @@ import { z } from "zod";
 
 import { completeGmailOAuth, gmailCallbackErrorRedirect } from "@/lib/gmail/connections";
 import { GMAIL_OAUTH_STATE_COOKIE } from "@/lib/gmail/constants";
-import { isValidOAuthState } from "@/lib/gmail/oauth";
+import { GmailConnectError, isValidOAuthState } from "@/lib/gmail/oauth";
 import { getSessionUser } from "@/lib/supabase/auth";
 
 const callbackQuerySchema = z.object({
@@ -51,6 +51,9 @@ export async function GET(request: Request) {
   try {
     await completeGmailOAuth(user.id, code);
   } catch (err) {
+    if (err instanceof GmailConnectError) {
+      return NextResponse.redirect(gmailCallbackErrorRedirect(origin, err.reason));
+    }
     const message = err instanceof Error ? err.message : "";
     if (message === "NO_REFRESH_TOKEN") {
       return NextResponse.redirect(gmailCallbackErrorRedirect(origin, "no_refresh_token"));

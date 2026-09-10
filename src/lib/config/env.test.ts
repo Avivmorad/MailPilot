@@ -1,6 +1,43 @@
 import { describe, expect, it } from "vitest";
 
-import { parseClientEnv, parseServerEnv } from "@/lib/config/env";
+import {
+  isGmailConfigured,
+  parseClientEnv,
+  parseGmailEnv,
+  parseServerEnv,
+} from "@/lib/config/env";
+
+describe("parseGmailEnv", () => {
+  it("succeeds without OpenAI or cron secrets", () => {
+    const env = parseGmailEnv({
+      NEXT_PUBLIC_SUPABASE_URL: "https://example.supabase.co",
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: "anon-key",
+      SUPABASE_SERVICE_ROLE_KEY: "service-role-key",
+      GOOGLE_CLIENT_ID: "client-id",
+      GOOGLE_CLIENT_SECRET: "client-secret",
+      GOOGLE_REDIRECT_URI: "http://localhost:3000/api/gmail/callback",
+      TOKEN_ENCRYPTION_KEY: "0".repeat(64),
+    });
+
+    expect(env.GOOGLE_CLIENT_ID).toBe("client-id");
+  });
+
+  it("throws when Google secrets are missing", () => {
+    expect(() =>
+      parseGmailEnv({
+        NEXT_PUBLIC_SUPABASE_URL: "https://example.supabase.co",
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: "anon-key",
+        SUPABASE_SERVICE_ROLE_KEY: "service-role-key",
+      }),
+    ).toThrowError(/Gmail OAuth/);
+  });
+});
+
+describe("isGmailConfigured", () => {
+  it("is false when Google keys are empty", () => {
+    expect(isGmailConfigured({})).toBe(false);
+  });
+});
 
 const validServerEnv = {
   NEXT_PUBLIC_SUPABASE_URL: "https://example.supabase.co",

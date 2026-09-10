@@ -1,6 +1,6 @@
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 
-import { getServerEnv } from "@/lib/config/env";
+import { getSupabaseAdminEnv } from "@/lib/config/env";
 
 /**
  * Create a privileged Supabase client using the service role key. This bypasses
@@ -8,7 +8,7 @@ import { getServerEnv } from "@/lib/config/env";
  * (background scans, cron jobs). Never import this into client code.
  */
 export function createAdminClient() {
-  const env = getServerEnv();
+  const env = getSupabaseAdminEnv();
 
   return createSupabaseClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
     auth: {

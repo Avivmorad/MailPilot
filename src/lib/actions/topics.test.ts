@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { groupByTopic, topicForItem } from "@/lib/actions/topics";
+import { ACTION_TOPIC_LABELS, groupByTopic, topicForItem } from "@/lib/actions/topics";
 
 describe("topicForItem", () => {
   it("maps account to security and finance to payments", () => {
@@ -21,5 +21,15 @@ describe("groupByTopic", () => {
     ]);
     expect(grouped.map((group) => group.topic)).toEqual(["security", "payments"]);
     expect(grouped[0]?.items).toHaveLength(2);
+  });
+});
+
+describe("ACTION_TOPIC_LABELS", () => {
+  it("uses English headings in the product UI", () => {
+    expect(ACTION_TOPIC_LABELS).toEqual({
+      security: "Security",
+      payments: "Payments",
+      general: "General",
+    });
   });
 });

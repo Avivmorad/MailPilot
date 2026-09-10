@@ -138,15 +138,15 @@ export function InitialScanCard({
       <CardHeader>
         <CardTitle>{incremental ? "Scan inbox" : "Initial scan"}</CardTitle>
         <CardDescription>
-          Choose how far back to read. Unchanged threads are not sent to AI again. If Gmail hits its
-          per-minute limit the scan pauses for about a minute, then continues.
+          Choose how far back to read. Unchanged threads are skipped. If Gmail hits its per-minute
+          limit, the scan pauses for about a minute, then continues.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <label className="block text-sm">
-          <span className="text-muted-foreground mb-1 block">Lookback</span>
+          <span className="text-muted-foreground mb-1.5 block">Lookback window</span>
           <select
-            className="border-input bg-background h-8 rounded-lg border px-2 text-sm"
+            className="border-input bg-background h-9 w-full max-w-xs rounded-lg border px-3 text-sm"
             value={lookbackDays}
             disabled={!connected || busy}
             onChange={(event) => setLookbackDays(Number(event.target.value) as InitialLookbackDays)}
@@ -162,7 +162,7 @@ export function InitialScanCard({
           <ScanProgressBar threadsChecked={bar.threadsChecked} threadsDiscovered={bar.threadsDiscovered} />
         ) : null}
         <Button type="button" disabled={!connected || busy} onClick={() => void runScan()}>
-          {busy ? "Scanning…" : "Scan now"}
+          {busy ? "Scanning…" : incremental ? "Scan new mail" : "Scan now"}
         </Button>
         {message ? (
           <p className={error ? "text-destructive text-sm" : "text-sm"}>{message}</p>

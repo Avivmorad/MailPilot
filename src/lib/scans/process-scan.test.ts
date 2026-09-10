@@ -2,11 +2,12 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { ActionRecord } from "@/lib/actions/reconcile-action";
 import type { EmailTriageProvider } from "@/lib/ai/analyze-thread";
+import { TRIAGE_PROMPT_VERSION } from "@/lib/ai/prompts";
 import { threadAnalysisSchema, type ThreadAnalysis } from "@/lib/ai/schemas";
 import type { MailPilotLogicalLabel } from "@/lib/gmail/constants";
 import type { ParsedGmailMessage } from "@/lib/gmail/parser";
-import { processInitialScan } from "@/lib/scans/process-scan";
 import type { InitialLookbackDays } from "@/lib/scans/lookback";
+import { processInitialScan, shouldReuseStoredAnalysis } from "@/lib/scans/process-scan";
 import type { ScanGmailPort, ScanSettings, ScanStorePort, StoredThreadRow } from "@/lib/scans/types";
 
 function validAnalysis(overrides: Partial<ThreadAnalysis> = {}): ThreadAnalysis {
@@ -159,6 +160,7 @@ function createMemoryStore(): ScanStorePort & {
         gmailThreadId: input.gmailThreadId,
         subject: input.subject,
         lastAnalyzedMessageId: input.lastAnalyzedMessageId,
+        promptVersion: input.promptVersion,
         analysis: input.analysis,
       });
       return id;
@@ -460,5 +462,20 @@ describe("processInitialScan", () => {
     expect(store.progressChecks[0]).toBe(0);
     expect(store.progressChecks).toContain(1);
     expect(store.progressChecks.at(-1)).toBe(2);
+  });
+});
+
+describe("shouldReuseStoredAnalysis", () => {
+  it("reuses analysis only when the latest message and prompt version both match", () => {
+    const row = {
+      id: "thread-1",
+      lastAnalyzedMessageId: "m1",
+      promptVersion: TRIAGE_PROMPT_VERSION,
+      analysis: null,
+    };
+    expect(shouldReuseStoredAnalysis(row, "m1", TRIAGE_PROMPT_VERSION)).toBe(true);
+    expect(shouldReuseStoredAnalysis(row, "m1", "mailpilot-triage-v3")).toBe(false);
+    expect(shouldReuseStoredAnalysis(row, "m2", TRIAGE_PROMPT_VERSION)).toBe(false);
+    expect(shouldReuseStoredAnalysis(null, "m1", "mailpilot-triage-v4")).toBe(false);
   });
 });

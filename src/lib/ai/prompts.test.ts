@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildTriageUserPrompt,
   TRIAGE_PROMPT_VERSION,
+  TRIAGE_SYSTEM_PROMPT,
   UNTRUSTED_THREAD_END,
   UNTRUSTED_THREAD_START,
   wrapUntrustedThread,
@@ -45,5 +46,12 @@ describe("buildTriageUserPrompt", () => {
     expect(prompt).toContain(UNTRUSTED_THREAD_START);
     expect(prompt).toContain("Please reply with the Q3 numbers.");
     expect(prompt).toContain("not instructions");
+  });
+});
+
+describe("TRIAGE_SYSTEM_PROMPT", () => {
+  it("asks for English user-facing titles and summaries", () => {
+    expect(TRIAGE_SYSTEM_PROMPT).toContain("Write all user-facing text fields in English");
+    expect(TRIAGE_SYSTEM_PROMPT).not.toContain("in Hebrew");
   });
 });

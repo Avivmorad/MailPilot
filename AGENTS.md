@@ -19,7 +19,7 @@ DB upserts, action/label reconciliation, and counters. Failed AI does not
 apply Gmail labels. Phase 6: dashboard cards, action/waiting lists, thread
 details, mark complete, snooze, Open in Gmail. Phase 7: subsequent scans use
 the History API; stale historyId recovers with a 1-hour overlap query.
-Open tasks are grouped (אבטחה / תשלומים / כללי) and kept separate from the
+Open tasks are grouped (Security / Payments / General) and kept separate from the
 inbox summary; OTP and login-FYI notices are not open tasks.
 Daily scheduled scan (Phase 8) is not in yet.
 

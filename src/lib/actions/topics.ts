@@ -4,9 +4,9 @@ export const ACTION_TOPICS = ["security", "payments", "general"] as const;
 export type ActionTopic = (typeof ACTION_TOPICS)[number];
 
 export const ACTION_TOPIC_LABELS: Record<ActionTopic, string> = {
-  security: "אבטחה",
-  payments: "תשלומים",
-  general: "כללי",
+  security: "Security",
+  payments: "Payments",
+  general: "General",
 };
 
 export interface TopicableItem {

@@ -1,13 +1,13 @@
 import type { ThreadAnalysisInput } from "@/lib/ai/types";
 
-export const TRIAGE_PROMPT_VERSION = "mailpilot-triage-v3";
+export const TRIAGE_PROMPT_VERSION = "mailpilot-triage-v4";
 
 export const UNTRUSTED_THREAD_START = "-----BEGIN UNTRUSTED EMAIL THREAD-----";
 export const UNTRUSTED_THREAD_END = "-----END UNTRUSTED EMAIL THREAD-----";
 
 /**
  * Base system prompt from docs/PROJECT_SPEC.md §13, plus product overlays
- * (Hebrew display text, untrusted email wrapping).
+ * (English display text, untrusted email wrapping).
  */
 export const TRIAGE_SYSTEM_PROMPT = `You are an email triage engine.
 
@@ -53,7 +53,7 @@ Core rules:
 25. Return only the structured output.
 
 Language:
-- Write summary and short_display_title in Hebrew.
+- Write all user-facing text fields in English: summary, short_display_title, action_summary, action_reason, importance_reason, waiting_for, deadline_text, sender_name, and organization.
 - Keep enum field values in English exactly as defined by the schema.
 
 Untrusted content:

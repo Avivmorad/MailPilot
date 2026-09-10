@@ -1,36 +1,59 @@
-import { ACTION_TOPIC_LABELS, groupByTopic } from "@/lib/actions/topics";
+import Link from "next/link";
+
+import { EmptyState } from "@/components/layout/empty-state";
+import { CollapsibleTopicGroups } from "@/components/layout/collapsible-topic-groups";
+import { MetaBadge } from "@/components/ui/meta-badge";
+import { groupByTopic } from "@/lib/actions/topics";
 import type { RecentThreadRow } from "@/lib/threads/queries";
-import { formatDateTime } from "@/lib/ui/format";
+import { formatRelativeTime } from "@/lib/ui/format";
 
 export function InboxSummary({ threads }: { threads: RecentThreadRow[] }) {
   if (threads.length === 0) {
-    return <p className="text-muted-foreground text-sm">No classified mail yet.</p>;
+    return (
+      <EmptyState
+        title="No classified mail yet"
+        description="Run a scan to see a topic-grouped digest of what arrived — including FYI notices."
+      />
+    );
   }
   const groups = groupByTopic(threads);
   return (
-    <div className="space-y-5">
-      {groups.map((group) => (
-        <section key={group.topic}>
-          <h3 className="text-muted-foreground mb-2 text-sm font-medium">
-            {ACTION_TOPIC_LABELS[group.topic]}
-          </h3>
-          <ul className="space-y-2">
+    <CollapsibleTopicGroups
+      storageKey="inbox-summary"
+      variant="panel"
+      groups={groups.map((group) => ({
+        topic: group.topic,
+        count: group.items.length,
+        body: (
+          <ul className="divide-y">
             {group.items.map((thread) => (
               <li key={thread.id}>
-                <a href={`/thread/${thread.id}`} className="hover:underline" dir="auto">
-                  {thread.shortDisplayTitle ?? thread.summary ?? "Thread"}
-                </a>
-                {thread.summary && thread.shortDisplayTitle ? (
-                  <p className="text-muted-foreground text-sm" dir="auto">
-                    {thread.summary}
-                  </p>
-                ) : null}
-                <p className="text-muted-foreground text-xs">{formatDateTime(thread.latestMessageAt)}</p>
+                <Link
+                  href={`/thread/${thread.id}`}
+                  className="hover:bg-muted/50 block px-4 py-3 transition-colors"
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <p className="text-foreground font-semibold leading-snug tracking-tight" dir="auto">
+                      {thread.shortDisplayTitle ?? thread.summary ?? "Thread"}
+                    </p>
+                    <div className="flex shrink-0 items-center gap-2">
+                      {thread.status ? <MetaBadge kind="status" value={thread.status} /> : null}
+                      <span className="text-muted-foreground text-xs">
+                        {formatRelativeTime(thread.latestMessageAt)}
+                      </span>
+                    </div>
+                  </div>
+                  {thread.summary && thread.shortDisplayTitle ? (
+                    <p className="text-muted-foreground mt-1 line-clamp-2 text-sm leading-relaxed" dir="auto">
+                      {thread.summary}
+                    </p>
+                  ) : null}
+                </Link>
               </li>
             ))}
           </ul>
-        </section>
-      ))}
-    </div>
+        ),
+      }))}
+    />
   );
 }

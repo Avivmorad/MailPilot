@@ -46,6 +46,7 @@ export function countersFromAnalyses(analyses: ThreadAnalysis[]): Omit<
 export interface StoredThreadRow {
   id: string;
   lastAnalyzedMessageId: string | null;
+  promptVersion: string | null;
   analysis: ThreadAnalysis | null;
 }
 

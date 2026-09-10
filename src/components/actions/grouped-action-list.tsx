@@ -1,24 +1,38 @@
 import { ActionItemCard } from "@/components/actions/action-item-card";
+import { EmptyState } from "@/components/layout/empty-state";
+import { CollapsibleTopicGroups } from "@/components/layout/collapsible-topic-groups";
 import type { ActionListItem } from "@/lib/actions/queries";
-import { ACTION_TOPIC_LABELS, groupByTopic } from "@/lib/actions/topics";
+import { groupByTopic } from "@/lib/actions/topics";
 
-export function GroupedActionList({ items }: { items: ActionListItem[] }) {
+export function GroupedActionList({
+  items,
+  storageKey = "open-tasks",
+  emptyTitle = "No open tasks",
+  emptyDescription = "When a thread still needs a real next step, it will show up here — grouped by topic.",
+}: {
+  items: ActionListItem[];
+  storageKey?: string;
+  emptyTitle?: string;
+  emptyDescription?: string;
+}) {
   if (items.length === 0) {
-    return <p className="text-muted-foreground text-sm">No open tasks.</p>;
+    return <EmptyState title={emptyTitle} description={emptyDescription} />;
   }
   const groups = groupByTopic(items);
   return (
-    <div className="space-y-6">
-      {groups.map((group) => (
-        <section key={group.topic} className="space-y-3">
-          <h3 className="text-muted-foreground text-sm font-medium tracking-wide">
-            {ACTION_TOPIC_LABELS[group.topic]}
-          </h3>
-          {group.items.map((item) => (
-            <ActionItemCard key={item.id} item={item} />
-          ))}
-        </section>
-      ))}
-    </div>
+    <CollapsibleTopicGroups
+      storageKey={storageKey}
+      groups={groups.map((group) => ({
+        topic: group.topic,
+        count: group.items.length,
+        body: (
+          <div className="space-y-3">
+            {group.items.map((item) => (
+              <ActionItemCard key={item.id} item={item} />
+            ))}
+          </div>
+        ),
+      }))}
+    />
   );
 }

@@ -29,8 +29,11 @@ export function ThreadFeedback({ threadId }: { threadId: string }) {
   }
 
   return (
-    <div className="space-y-2">
-      <p className="text-muted-foreground text-sm">This classification is wrong?</p>
+    <div className="bg-card ring-foreground/10 space-y-3 rounded-xl p-4 ring-1 sm:p-5">
+      <div>
+        <p className="text-foreground font-semibold tracking-tight">Was this classification right?</p>
+        <p className="text-muted-foreground mt-0.5 text-sm">Your feedback is saved for later evaluation — it does not change this thread yet.</p>
+      </div>
       <div className="flex flex-wrap gap-2">
         {FEEDBACK_KINDS.map((kind) => (
           <Button key={kind} type="button" size="sm" variant="outline" onClick={() => void send(kind)}>

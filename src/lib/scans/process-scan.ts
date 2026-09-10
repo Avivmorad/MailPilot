@@ -74,6 +74,18 @@ function mailpilotIdsOnMessage(
   return labelIds.filter((id) => ours.has(id));
 }
 
+export function shouldReuseStoredAnalysis(
+  existing: StoredThreadRow | null,
+  latestMessageId: string,
+  promptVersion: string,
+): boolean {
+  return (
+    existing?.lastAnalyzedMessageId != null &&
+    existing.lastAnalyzedMessageId === latestMessageId &&
+    existing.promptVersion === promptVersion
+  );
+}
+
 export function analysisFromStoredThread(row: StoredThreadRow): ThreadAnalysis | null {
   if (!row.analysis) {
     return null;
@@ -317,8 +329,7 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
         const latestAt = receivedAtIso(latest.internalDate);
 
         let analysis = existing ? analysisFromStoredThread(existing) : null;
-        const unchanged =
-          existing?.lastAnalyzedMessageId != null && existing.lastAnalyzedMessageId === latest.gmailMessageId;
+        const unchanged = shouldReuseStoredAnalysis(existing, latest.gmailMessageId, TRIAGE_PROMPT_VERSION);
 
         if (!unchanged) {
           const outcome = await analyze(

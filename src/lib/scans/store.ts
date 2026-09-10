@@ -241,6 +241,7 @@ export function createSupabaseScanStore(): ScanStorePort {
       const row: StoredThreadRow = {
         id: data.id as string,
         lastAnalyzedMessageId: (data.last_analyzed_message_id as string | null) ?? null,
+        promptVersion: (data.prompt_version as string | null) ?? null,
         analysis: analysisFromRow(data as Record<string, unknown>),
       };
       return row;

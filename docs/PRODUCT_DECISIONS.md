@@ -18,7 +18,7 @@ must follow these.
 | Timezone             | **Asia/Jerusalem**                                        |
 | Initial scan window  | Choose **1 / 2 / 3 / 4 days, 1 / 2 / 3 weeks, or 1 month** (default **7 days**) |
 | Subsequent scans     | Only changes since the last successful scan (incremental) |
-| Summary language     | **Hebrew**                                                |
+| Summary language     | **English**                                               |
 | Presentation         | Dashboard **and** an email digest                         |
 | Email body retention | Do **not** persist full email bodies long-term            |
 | Sending replies      | The system **never** sends replies on the user's behalf   |
@@ -36,7 +36,7 @@ These map onto the spec as follows:
   units/user/minute). When the budget is full the scan pauses until the oldest units
   expire, then continues. Scan now returns immediately and keeps running in the background.
 - Incremental since last success → Gmail History API incremental sync (spec §7.2).
-- Hebrew summaries → the AI summary/`short_display_title` fields are produced in Hebrew; the
+- English summaries → the AI summary/`short_display_title` fields are produced in English; the
   structured enum values (status/importance/etc.) stay in English as defined by the schema (spec §12).
 - No long-term body storage → privacy-first default already in spec §2.5 / §16.6.
 - Never auto-send → spec §3 "not in MVP" and §68.5.
@@ -106,11 +106,11 @@ One-time auth mail is **not** an open task: OTP / verification codes, magic link
 
 Within Open (and in the summary), group threads under:
 
-| Topic      | Hebrew   | Typical mail                                      |
-| ---------- | -------- | ------------------------------------------------- |
-| `security` | אבטחה    | Account / login / session (not OTPs)              |
-| `payments` | תשלומים  | Charges, invoices, receipts                       |
-| `general`  | כללי     | Everything else that is still a real task or FYI  |
+| Topic      | Label      | Typical mail                                      |
+| ---------- | ---------- | ------------------------------------------------- |
+| `security` | Security   | Account / login / session (not OTPs)              |
+| `payments` | Payments   | Charges, invoices, receipts                       |
+| `general`  | General    | Everything else that is still a real task or FYI  |
 
 Mapping from spec `category`: `account` → security; `finance` / `shopping` → payments;
 otherwise general. Similar notices sit together under the same topic in the summary; they
@@ -123,7 +123,7 @@ already did their step; **Summary** when the mail is useful FYI; **Ignore** for 
 Never persist full email bodies. `action_items` rows exist only for Open (`OPEN`) and
 Waiting (`WAITING`).
 
-### אבטחה
+### Security
 
 | Case | Where | `status` / action |
 | ---- | ----- | ----------------- |
@@ -134,7 +134,7 @@ Waiting (`WAITING`).
 | “Secure the account now” with **no** dismiss-if-you path | Open | `action_required` / `review` |
 | Password reset, locked/compromised account, unauthorized charge | Open | `action_required` / `review` |
 
-### תשלומים
+### Payments
 
 | Case | Where | `status` / action |
 | ---- | ----- | ----------------- |
@@ -145,7 +145,7 @@ Waiting (`WAITING`).
 | Card expired / update payment or service stops | Open | `action_required` / `pay` |
 | Marketing that looks like a credit alert | Ignore | `ignore` |
 
-### כללי
+### General
 
 | Case | Where | `status` / action |
 | ---- | ----- | ----------------- |

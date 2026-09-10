@@ -43,7 +43,7 @@ export function ActionControls({
     <div className="flex flex-wrap items-center gap-2">
       {status !== "COMPLETED" ? (
         <Button type="button" size="sm" disabled={busy} onClick={() => void patch({ op: "complete" })}>
-          Mark complete
+          Done
         </Button>
       ) : (
         <Button type="button" size="sm" variant="outline" disabled={busy} onClick={() => void patch({ op: "reopen" })}>
@@ -51,12 +51,13 @@ export function ActionControls({
         </Button>
       )}
       {status !== "COMPLETED" ? (
-        <label className="text-muted-foreground flex items-center gap-1 text-xs">
+        <label className="text-muted-foreground flex items-center gap-1.5 text-sm">
           Snooze
           <select
-            className="border-input bg-background h-7 rounded-lg border px-1 text-xs"
+            className="border-input bg-background h-7 rounded-lg border px-2 text-xs"
             disabled={busy}
             defaultValue=""
+            aria-label="Snooze for"
             onChange={(event) => {
               const days = Number(event.target.value) as SnoozeDays;
               if ((SNOOZE_DAYS as readonly number[]).includes(days)) {
@@ -66,7 +67,7 @@ export function ActionControls({
             }}
           >
             <option value="" disabled>
-              …
+              Choose days
             </option>
             {SNOOZE_DAYS.map((days) => (
               <option key={days} value={days}>

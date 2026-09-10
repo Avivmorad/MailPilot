@@ -1,6 +1,7 @@
 import { ArrowRight, Clock3, Inbox, ListChecks, ShieldCheck, Sparkles, Tag } from "lucide-react";
 
 import { Logo } from "@/components/brand/logo";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -37,7 +38,7 @@ const features = [
   {
     icon: Tag,
     title: "Gmail labels, in sync",
-    body: "Applies managed AI/* labels back to Gmail so your triage is visible everywhere — without touching your own labels.",
+      body: "Applies managed MailPilot/ labels back to Gmail so your triage is visible everywhere — without touching your own labels.",
   },
   {
     icon: Clock3,
@@ -59,7 +60,7 @@ const features = [
 const dashboardStats = [
   { label: "Processed", value: "32" },
   { label: "Important", value: "6" },
-  { label: "Need action", value: "5" },
+  { label: "Open tasks", value: "5" },
   { label: "Waiting", value: "3" },
 ];
 
@@ -73,8 +74,9 @@ export default function Home() {
             <a href="#features" className={buttonVariants({ variant: "ghost", size: "sm" })}>
               Features
             </a>
-            <a href="#preview" className={buttonVariants({ variant: "outline", size: "sm" })}>
-              Preview
+            <ThemeToggle />
+            <a href="/login" className={buttonVariants({ size: "sm" })}>
+              Sign in
             </a>
           </nav>
         </div>
@@ -83,18 +85,18 @@ export default function Home() {
       <main className="flex-1">
         <section className="mx-auto w-full max-w-6xl px-6 pt-20 pb-16 text-center">
           <Badge variant="secondary" className="mb-6">
-            Phase 0 · Bootstrap ready
+            Inbox triage for Gmail
           </Badge>
-          <h1 className="mx-auto max-w-3xl text-4xl font-semibold tracking-tight text-balance sm:text-5xl">
+          <h1 className="text-foreground mx-auto max-w-3xl text-4xl font-bold tracking-tight text-balance sm:text-5xl">
             Turn your inbox into a triage system, not a prettier list of emails.
           </h1>
-          <p className="text-muted-foreground mx-auto mt-6 max-w-2xl text-lg text-pretty">
+          <p className="text-muted-foreground mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-pretty">
             MailPilot connects to Gmail, understands each thread in context, and answers the only
             three questions that matter about your inbox.
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-            <a href="#preview" className={buttonVariants({ size: "lg" })}>
-              See a preview
+            <a href="/login" className={buttonVariants({ size: "lg" })}>
+              Sign in
               <ArrowRight className="size-4" />
             </a>
             <a href="#features" className={buttonVariants({ variant: "outline", size: "lg" })}>
@@ -122,9 +124,9 @@ export default function Home() {
         <section id="preview" className="border-border/60 bg-muted/30 border-y">
           <div className="mx-auto w-full max-w-6xl px-6 py-16">
             <div className="mb-8 text-center">
-              <h2 className="text-2xl font-semibold tracking-tight">Your inbox, under control</h2>
+              <h2 className="text-foreground text-2xl font-bold tracking-tight">Your inbox, under control</h2>
               <p className="text-muted-foreground mt-2">
-                A glance at the dashboard the pipeline is being built to power.
+                Open tasks, waiting items, and an inbox digest — kept as separate lists.
               </p>
             </div>
             <Card>
@@ -149,7 +151,7 @@ export default function Home() {
                     <Badge variant="secondary">Reply</Badge>
                     <Badge variant="outline">Due Sep 12</Badge>
                   </div>
-                  <div className="font-medium">University registration</div>
+                  <div className="text-foreground font-semibold tracking-tight">University registration</div>
                   <p className="text-muted-foreground mt-1 text-sm">
                     Do: Choose courses and submit registration. Why: Registration closes after the
                     deadline.
@@ -162,7 +164,7 @@ export default function Home() {
 
         <section id="features" className="mx-auto w-full max-w-6xl px-6 py-16">
           <div className="mb-8 text-center">
-            <h2 className="text-2xl font-semibold tracking-tight">What it does</h2>
+            <h2 className="text-foreground text-2xl font-bold tracking-tight">What it does</h2>
             <p className="text-muted-foreground mt-2">
               The product principles that shape every part of the build.
             </p>
@@ -186,7 +188,7 @@ export default function Home() {
       <footer className="border-border/60 border-t">
         <div className="text-muted-foreground mx-auto flex w-full max-w-6xl flex-col items-center justify-between gap-2 px-6 py-6 text-sm sm:flex-row">
           <Logo showWordmark={false} />
-          <span>MailPilot — MVP in progress. Not affiliated with Google.</span>
+          <span>MailPilot. Not affiliated with Google.</span>
         </div>
       </footer>
     </div>

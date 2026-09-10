@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { createEmailTriageProvider } from "@/lib/ai/client";
-import { isGeminiConfigured, isGmailConfigured } from "@/lib/config/env";
+import { getGeminiEnv, isGeminiConfigured, isGmailConfigured } from "@/lib/config/env";
 import { createGmailApiForUser } from "@/lib/gmail/client";
 import { GmailConnectError } from "@/lib/gmail/oauth";
 import { createGmailScanPort } from "@/lib/scans/gmail-port";
@@ -10,9 +10,9 @@ import {
   INITIAL_LOOKBACK_DAYS,
   type InitialLookbackDays,
 } from "@/lib/scans/lookback";
+import { isMissingScanSchemaError, SCAN_SCHEMA_MISSING_MESSAGE } from "@/lib/scans/errors";
 import { processInitialScan } from "@/lib/scans/process-scan";
 import { createSupabaseScanStore } from "@/lib/scans/store";
-import { getGeminiEnv } from "@/lib/config/env";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { ScanRunResult } from "@/lib/scans/types";
 
@@ -91,6 +91,9 @@ export async function startManualInitialScan(
   } catch (error) {
     if (error instanceof Error && error.message === "SCAN_IN_PROGRESS") {
       throw new ScanRequestError(409, "scan_in_progress", "A scan is already running for this Gmail account.");
+    }
+    if (isMissingScanSchemaError(error)) {
+      throw new ScanRequestError(503, "scan_schema_missing", SCAN_SCHEMA_MISSING_MESSAGE);
     }
     throw error;
   }

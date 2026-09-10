@@ -2,8 +2,13 @@ import { threadAnalysisSchema, type ThreadAnalysis } from "@/lib/ai/schemas";
 import type { ActionRecord } from "@/lib/actions/reconcile-action";
 import { parseAddressList, parseEmailAddress } from "@/lib/gmail/addresses";
 import { createAdminClient } from "@/lib/supabase/admin";
-import type { ScanSettings, ScanStorePort, StoredThreadRow } from "@/lib/scans/types";
+import { scanStoreFailure } from "@/lib/scans/errors";
 import { timestampOrNull } from "@/lib/scans/timestamps";
+import type { ScanSettings, ScanStorePort, StoredThreadRow } from "@/lib/scans/types";
+
+function failStore(operation: string, error: { message?: string } | null): never {
+  throw scanStoreFailure(operation, error?.message);
+}
 
 function asStringArray(value: unknown): string[] {
   if (!Array.isArray(value)) {
@@ -66,7 +71,7 @@ export function createSupabaseScanStore(): ScanStorePort {
         .limit(1)
         .maybeSingle();
       if (error) {
-        throw new Error("Failed to load running scan");
+        failStore("Failed to load running scan", error);
       }
       if (!data) {
         return null;
@@ -85,7 +90,7 @@ export function createSupabaseScanStore(): ScanStorePort {
         })
         .eq("id", scanId);
       if (error) {
-        throw new Error("Failed to mark stale scan as failed");
+        failStore("Failed to mark stale scan as failed", error);
       }
     },
 
@@ -104,7 +109,7 @@ export function createSupabaseScanStore(): ScanStorePort {
         .select("id")
         .single();
       if (error || !data) {
-        throw new Error("Failed to create scan run");
+        failStore("Failed to create scan run", error);
       }
       return data.id as string;
     },
@@ -125,7 +130,7 @@ export function createSupabaseScanStore(): ScanStorePort {
       if (patch.ignoredCount !== undefined) row.ignored_count = patch.ignoredCount;
       const { error } = await db.from("scan_runs").update(row).eq("id", scanId);
       if (error) {
-        throw new Error("Failed to update scan run");
+        failStore("Failed to update scan run", error);
       }
     },
 
@@ -145,7 +150,7 @@ export function createSupabaseScanStore(): ScanStorePort {
         .select("vip_senders, ignored_senders, timezone, daily_scan_time")
         .single();
       if (error || !data) {
-        throw new Error("Failed to load triage settings");
+        failStore("Failed to load triage settings", error);
       }
       const settings: ScanSettings = {
         vipSenders: asStringArray(data.vip_senders),
@@ -197,7 +202,7 @@ export function createSupabaseScanStore(): ScanStorePort {
         .select("id")
         .single();
       if (error || !data) {
-        throw new Error("Failed to upsert email thread");
+        failStore("Failed to upsert email thread", error);
       }
       return data.id as string;
     },
@@ -210,7 +215,7 @@ export function createSupabaseScanStore(): ScanStorePort {
         .eq("gmail_thread_id", gmailThreadId)
         .maybeSingle();
       if (error) {
-        throw new Error("Failed to load email thread");
+        failStore("Failed to load email thread", error);
       }
       if (!data) {
         return null;
@@ -251,14 +256,14 @@ export function createSupabaseScanStore(): ScanStorePort {
         { onConflict: "gmail_connection_id,gmail_message_id" },
       );
       if (error) {
-        throw new Error("Failed to upsert email message");
+        failStore("Failed to upsert email message", error);
       }
     },
 
     async getAction(threadId) {
       const { data, error } = await db.from("action_items").select("*").eq("thread_id", threadId).maybeSingle();
       if (error) {
-        throw new Error("Failed to load action item");
+        failStore("Failed to load action item", error);
       }
       if (!data) {
         return null;
@@ -285,7 +290,7 @@ export function createSupabaseScanStore(): ScanStorePort {
         { onConflict: "thread_id" },
       );
       if (error) {
-        throw new Error("Failed to upsert action item");
+        failStore("Failed to upsert action item", error);
       }
     },
 
@@ -302,7 +307,7 @@ export function createSupabaseScanStore(): ScanStorePort {
       }
       const { error } = await db.from("gmail_connections").update(patch).eq("id", input.connectionId);
       if (error) {
-        throw new Error("Failed to update Gmail connection scan state");
+        failStore("Failed to update Gmail connection scan state", error);
       }
     },
   };

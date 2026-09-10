@@ -29,6 +29,7 @@ export async function POST(request: Request) {
     if (error instanceof ScanRequestError) {
       return NextResponse.json({ error: error.code, message: error.message }, { status: error.status });
     }
-    return NextResponse.json({ error: "scan_failed" }, { status: 500 });
+    const message = error instanceof Error ? error.message : "Scan failed.";
+    return NextResponse.json({ error: "scan_failed", message }, { status: 500 });
   }
 }

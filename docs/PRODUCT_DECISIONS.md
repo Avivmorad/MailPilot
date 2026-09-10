@@ -66,10 +66,20 @@ in `src/lib/config/env.ts`. Some setup guides used different illustrative names;
 | -------------------------------------- | ----------------------------------------------- |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | `NEXT_PUBLIC_SUPABASE_ANON_KEY`                 |
 | `SUPABASE_SECRET_KEY`                  | `SUPABASE_SERVICE_ROLE_KEY`                     |
-| `GEMINI_API_KEY`                       | `OPENAI_API_KEY` (project uses OpenAI, spec §4) |
+| `OPENAI_API_KEY`                       | `GEMINI_API_KEY`                                |
+| `OPENAI_MODEL`                         | `GEMINI_MODEL`                                  |
 
 ## AI provider
 
-The project uses **OpenAI** with strict Structured Outputs, per spec §4/§22/§60. (Some setup notes
-mentioned Gemini; that was illustrative. Revisit only if the owner explicitly decides to switch —
-the `EmailTriageProvider` interface in spec §60 keeps this swappable.)
+The project uses **Google Gemini** with JSON Schema structured output
+(`responseMimeType: application/json` + `responseJsonSchema`), then Zod +
+invariant post-processing. This overrides spec §4/§22/§60, which named OpenAI.
+
+Implementation:
+
+- Env: `GEMINI_API_KEY`, `GEMINI_MODEL` (default in `.env.example`:
+  `gemini-3.1-flash-lite`; do not hard-code the model in source).
+- Provider class: `GeminiEmailTriageProvider` behind `EmailTriageProvider`
+  (spec §60 swap point).
+- Domain code must not import `@google/genai` outside `src/lib/ai/client.ts`.
+- Gmail labels are applied only after validated analysis (spec §68.8).

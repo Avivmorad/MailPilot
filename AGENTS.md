@@ -12,8 +12,10 @@ Owner-level product decisions that refine it live at
 overlay wins. Treat both as the source of truth. Implement phase-by-phase (see spec §63); do not
 invent different behavior without a documented reason.
 
-**Current status:** Phase 0–2 working (login + Connect Gmail). Phase 3 Gmail parser/thread
-context is in progress (MIME parse, direction, bounded thread prompt). No inbox scan yet.
+**Current status:** Phase 0–3 working (login, Connect Gmail, MIME/thread
+parser). Phase 4 AI triage is in: Gemini structured JSON, Zod schema,
+post-processing, prompt-injection wrapping, and eval fixtures. No inbox scan
+yet (Phase 5).
 
 ## Repository rules
 
@@ -36,7 +38,8 @@ context is in progress (MIME parse, direction, bounded thread prompt). No inbox 
 ## Conventions
 
 - Env access goes through `src/lib/config/env.ts`. Server code calls `getServerEnv()`;
-  client/public code calls `getClientEnv()`. Secrets must never reach the browser bundle.
+  Gmail OAuth uses `getGmailEnv()`; Gemini uses `getGeminiEnv()`; client/public code
+  calls `getClientEnv()`. Secrets must never reach the browser bundle.
 - Supabase clients: `@/lib/supabase/server` (RLS, per-request), `@/lib/supabase/client`
   (browser), `@/lib/supabase/admin` (service role, trusted server contexts only).
 - Store timestamps in UTC; convert to the user's timezone at UI/boundary layers.

@@ -4,7 +4,7 @@ import { z } from "zod";
  * Environment validation is split by phase so the app can run without every
  * later-phase secret. Public pages only need {@link getClientEnv}. Gmail OAuth
  * (Phase 2) uses {@link getGmailEnv}. Full {@link getServerEnv} is for later
- * phases that actually call OpenAI / cron.
+ * phases that actually call Gemini / cron.
  *
  * Secrets must never be imported into client components.
  */
@@ -35,15 +35,22 @@ const contextLimitsSchema = z.object({
 
 export type ContextLimits = z.infer<typeof contextLimitsSchema>;
 
-const serverEnvSchema = gmailEnvSchema.extend({
-  OPENAI_API_KEY: z.string().min(1),
-  OPENAI_MODEL: z.string().min(1),
-  CRON_SECRET: z.string().min(1),
-}).merge(contextLimitsSchema);
+const geminiEnvSchema = z.object({
+  GEMINI_API_KEY: z.string().min(1),
+  GEMINI_MODEL: z.string().min(1),
+});
+
+const serverEnvSchema = gmailEnvSchema
+  .extend({
+    CRON_SECRET: z.string().min(1),
+  })
+  .merge(geminiEnvSchema)
+  .merge(contextLimitsSchema);
 
 export type ClientEnv = z.infer<typeof supabasePublicSchema>;
 export type SupabaseAdminEnv = z.infer<typeof supabaseAdminSchema>;
 export type GmailEnv = z.infer<typeof gmailEnvSchema>;
+export type GeminiEnv = z.infer<typeof geminiEnvSchema>;
 export type ServerEnv = z.infer<typeof serverEnvSchema>;
 
 function formatIssues(error: z.ZodError): string {
@@ -76,6 +83,12 @@ export function parseGmailEnv(source: Record<string, unknown> = process.env): Gm
   return parsed.data;
 }
 
+export function parseGeminiEnv(source: Record<string, unknown> = process.env): GeminiEnv {
+  const parsed = geminiEnvSchema.safeParse(source);
+  if (!parsed.success) throwInvalid("Gemini", parsed.error);
+  return parsed.data;
+}
+
 export function parseServerEnv(source: Record<string, unknown> = process.env): ServerEnv {
   const parsed = serverEnvSchema.safeParse(source);
   if (!parsed.success) throwInvalid("server", parsed.error);
@@ -84,6 +97,10 @@ export function parseServerEnv(source: Record<string, unknown> = process.env): S
 
 export function isGmailConfigured(source: Record<string, unknown> = process.env): boolean {
   return gmailEnvSchema.safeParse(source).success;
+}
+
+export function isGeminiConfigured(source: Record<string, unknown> = process.env): boolean {
+  return geminiEnvSchema.safeParse(source).success;
 }
 
 export function getClientEnv(): ClientEnv {
@@ -96,6 +113,7 @@ export function getClientEnv(): ClientEnv {
 
 let cachedAdminEnv: SupabaseAdminEnv | null = null;
 let cachedGmailEnv: GmailEnv | null = null;
+let cachedGeminiEnv: GeminiEnv | null = null;
 let cachedServerEnv: ServerEnv | null = null;
 
 export function getSupabaseAdminEnv(): SupabaseAdminEnv {
@@ -110,6 +128,13 @@ export function getGmailEnv(): GmailEnv {
     cachedGmailEnv = parseGmailEnv();
   }
   return cachedGmailEnv;
+}
+
+export function getGeminiEnv(): GeminiEnv {
+  if (cachedGeminiEnv === null) {
+    cachedGeminiEnv = parseGeminiEnv();
+  }
+  return cachedGeminiEnv;
 }
 
 export function getContextLimits(source: Record<string, unknown> = process.env): ContextLimits {

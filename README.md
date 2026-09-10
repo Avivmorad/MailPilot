@@ -24,7 +24,10 @@ Built **phase by phase** (spec §63).
 - **Phase 2 — Gmail OAuth:** Connect / callback / status / disconnect, encrypted refresh tokens,
   and automatic `MailPilot/*` labels.
 - **Phase 3 — Parser:** MIME parser, attachment metadata (no binary), thread context with
-  INBOUND/OUTBOUND direction. Scanning and AI classification are **not** implemented yet.
+  INBOUND/OUTBOUND direction.
+- **Phase 4 — AI triage:** Gemini structured JSON (`GEMINI_API_KEY` / `GEMINI_MODEL`),
+  Zod schema, deterministic post-processing, prompt-injection wrapping, and eval
+  fixtures. Scanning the inbox is **not** implemented yet (Phase 5).
 
 Phase 2 requires Google OAuth credentials in `.env.local` and the `0002_gmail_connections.sql`
 migration applied to your Supabase project.
@@ -66,7 +69,7 @@ Apply SQL in the Supabase SQL Editor, in order:
 - **Backend:** Next.js Route Handlers / server-side services under `src/lib/**`.
 - **Database:** Supabase PostgreSQL (with Row Level Security).
 - **Auth:** Supabase Auth for the app account; a separate Google OAuth flow for Gmail authorization.
-- **AI:** OpenAI with strict Structured Outputs, validated with Zod.
+- **AI:** Google Gemini with JSON Schema structured output, validated with Zod.
 - **Scheduler:** a single global cron dispatcher that claims due connections (not per-user cron).
 - **Hosting:** Vercel.
 
@@ -75,7 +78,7 @@ Apply SQL in the Supabase SQL Editor, in order:
 - Node.js 22+ and npm.
 - A Supabase project (for Phase 1+).
 - A Google Cloud project with the Gmail API enabled and OAuth credentials (for Phase 2+).
-- An OpenAI API key (for Phase 4+).
+- A Gemini API key (`GEMINI_API_KEY`) and model (`GEMINI_MODEL`, for Phase 4+).
 
 ## Local setup
 
@@ -99,7 +102,7 @@ Copy `.env.example` to `.env.local` and fill in values. Never commit real secret
 | `SUPABASE_SERVICE_ROLE_KEY`                                                             | Server-only privileged key. Never expose to the client. |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` / `GOOGLE_REDIRECT_URI`                     | Gmail OAuth.                                            |
 | `TOKEN_ENCRYPTION_KEY`                                                                  | 32-byte key for AES-256-GCM refresh-token encryption.   |
-| `OPENAI_API_KEY` / `OPENAI_MODEL`                                                       | OpenAI access; model is configurable, not hard-coded.   |
+| `GEMINI_API_KEY` / `GEMINI_MODEL`                                                       | Gemini access; model is configurable, not hard-coded.   |
 | `CRON_SECRET`                                                                           | Protects the cron dispatcher endpoint.                  |
 | `MAX_THREAD_MESSAGES` / `MAX_MESSAGE_CHARS` / `MAX_THREAD_CHARS` / `AI_MAX_CONCURRENCY` | Context and cost controls.                              |
 
@@ -125,7 +128,8 @@ npm run format      # Prettier write
 ## Testing
 
 Unit tests use Vitest with a jsdom environment and Testing Library. Test files live next to the
-code they cover as `*.test.ts(x)`. See `docs/PROJECT_SPEC.md` §50–52 for the full test plan
+code they cover as `*.test.ts(x)`. Phase 4 eval fixtures live in `tests/fixtures/` and
+`tests/evals/` (spec §48). See `docs/PROJECT_SPEC.md` §50–52 for the full test plan
 (MIME parsing, encryption, reconciliation, idempotency, etc.) added in later phases.
 
 ## Cron configuration
@@ -150,8 +154,9 @@ requirements for your deployment. See spec §38.
 
 - **App fails to start complaining about environment variables:** a server feature needs a secret
   that isn't set. Fill in `.env.local` from `.env.example`.
-- **Supabase/Google/OpenAI calls fail:** verify the corresponding keys and, for Google, that the
-  redirect URI exactly matches your OAuth client configuration.
+- **Supabase/Google/Gemini calls fail:** verify the corresponding keys. For Gmail OAuth, the
+  redirect URI must match the OAuth client exactly. For Gemini, confirm `GEMINI_API_KEY` and
+  `GEMINI_MODEL`.
 - **Type or lint errors after adding code:** run `npm run typecheck` and `npm run lint` locally.
 
 ## Security notes

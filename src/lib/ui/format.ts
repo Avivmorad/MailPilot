@@ -80,15 +80,87 @@ export function formatRelativeTime(
   return formatDateTime(iso);
 }
 
+export type DeadlineProximity = "expired" | "soon" | "later";
+
+function daysUntilCalendarDate(
+  isoDate: string,
+  now: Date,
+  timeZone: string,
+): number | null {
+  if (!ISO_DATE.test(isoDate)) {
+    return null;
+  }
+  const today = calendarDateInTimeZone(now, timeZone);
+  const start = Date.parse(`${today}T12:00:00.000Z`);
+  const end = Date.parse(`${isoDate}T12:00:00.000Z`);
+  if (!Number.isFinite(start) || !Number.isFinite(end)) {
+    return null;
+  }
+  return Math.round((end - start) / 86_400_000);
+}
+
 /** True when a YYYY-MM-DD deadline is before today in Asia/Jerusalem (date-only). */
 export function isDeadlineOverdue(
   isoDate: string | null | undefined,
   now: Date = new Date(),
   timeZone: string = DISPLAY_TZ,
 ): boolean {
-  if (!isoDate || !ISO_DATE.test(isoDate)) {
-    return false;
+  return deadlineProximity(isoDate, now, timeZone) === "expired";
+}
+
+/**
+ * Calendar proximity for a date-only deadline.
+ * Today through 7 days = soon; after that = later; before today = expired.
+ */
+export function deadlineProximity(
+  isoDate: string | null | undefined,
+  now: Date = new Date(),
+  timeZone: string = DISPLAY_TZ,
+): DeadlineProximity | null {
+  if (!isoDate) {
+    return null;
   }
-  const today = calendarDateInTimeZone(now, timeZone);
-  return isoDate < today;
+  const days = daysUntilCalendarDate(isoDate, now, timeZone);
+  if (days == null) {
+    return null;
+  }
+  if (days < 0) {
+    return "expired";
+  }
+  if (days <= 7) {
+    return "soon";
+  }
+  return "later";
+}
+
+export function classForDeadline(
+  isoDate: string | null | undefined,
+  now: Date = new Date(),
+): string {
+  switch (deadlineProximity(isoDate, now)) {
+    case "expired":
+      return "font-semibold text-red-600 dark:text-red-400";
+    case "soon":
+      return "font-semibold text-orange-600 dark:text-orange-400";
+    case "later":
+      return "font-semibold text-green-600 dark:text-green-400";
+    default:
+      return "";
+  }
+}
+
+/** Prefer deadline proximity over stored AI urgency when a date exists. */
+export function displayUrgencyForDeadline(
+  deadline: string | null | undefined,
+  storedUrgency: string | null | undefined,
+  now: Date = new Date(),
+): string | null {
+  const proximity = deadlineProximity(deadline, now);
+  if (proximity) {
+    return proximity;
+  }
+  if (!storedUrgency || storedUrgency === "none" || storedUrgency === "normal") {
+    return null;
+  }
+  return storedUrgency;
 }

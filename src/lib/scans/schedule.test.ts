@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { nextDailyScanAt } from "@/lib/scans/schedule";
+import { nextDailyScanAt, nextScanAfterFailure, scheduledRetryAt } from "@/lib/scans/schedule";
 
 describe("nextDailyScanAt", () => {
   it("returns today's 08:00 Asia/Jerusalem when that time is still ahead", () => {
@@ -20,6 +20,19 @@ describe("nextDailyScanAt", () => {
   it("rolls to the next calendar day when now is exactly the scan time", () => {
     const now = new Date("2026-09-10T05:00:00.000Z");
     const next = nextDailyScanAt(now, "08:00", "Asia/Jerusalem");
+    expect(next.toISOString()).toBe("2026-09-11T05:00:00.000Z");
+  });
+});
+
+describe("scheduledRetryAt", () => {
+  const now = new Date("2026-09-10T05:00:00.000Z");
+
+  it("uses a 15-minute first retry", () => {
+    expect(scheduledRetryAt(now, 1).toISOString()).toBe("2026-09-10T05:15:00.000Z");
+  });
+
+  it("falls back to the next daily slot after the attempt cap", () => {
+    const next = nextScanAfterFailure(now, 3, "08:00", "Asia/Jerusalem");
     expect(next.toISOString()).toBe("2026-09-11T05:00:00.000Z");
   });
 });

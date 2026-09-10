@@ -12,17 +12,23 @@ Owner-level product decisions that refine it live at
 overlay wins. Treat both as the source of truth. Implement phase-by-phase (see spec §63); do not
 invent different behavior without a documented reason.
 
-**Current status:** Phase 0–7 working (login, Connect Gmail, MIME/thread
+**Current status:** Phase 0–8 working (login, Connect Gmail, MIME/thread
 parser, Gemini triage, initial scan, dashboard overview, incremental
-Gmail History sync). Phase 5: dashboard **Scan now** with 1/3/7-day lookback,
-DB upserts, action/label reconciliation, and counters. Failed AI does not
-apply Gmail labels. Phase 6: dashboard stats/scan cards; Mail tabs (Summary,
-Open, Waiting, Completed, Snoozed, Ignored); thread details, mark complete,
-snooze, Open in Gmail. Phase 7: subsequent scans use
-the History API; stale historyId recovers with a 1-hour overlap query.
-Open tasks are grouped (Security / Payments / General) and kept separate from the
-inbox summary; OTP and login-FYI notices are not open tasks.
-Daily scheduled scan (Phase 8) is not in yet.
+Gmail History sync, daily scheduled scans). Phase 5: dashboard **Scan now**
+with lookback of 1 / 2 / 3 / 4 days, 1 / 2 / 3 weeks, or 1 month (default
+7 days), DB upserts, action/label reconciliation, and counters. Failed AI
+does not apply Gmail labels. Phase 6: dashboard stats/scan cards; Mail tabs
+(Summary, Open, Waiting, Completed, Snoozed, Ignored); thread details, mark
+complete, snooze, Open in Gmail. Phase 7: subsequent scans use the History
+API; stale historyId recovers with a 1-hour overlap query. Open tasks are
+grouped (Security / Payments / General) and kept separate from the inbox
+summary; OTP and login-FYI notices are not open tasks.
+Phase 8: global cron dispatcher (`POST`/`GET` `/api/cron/scan-dispatcher`)
+claims due connections (`next_scan_at`), job lease, bounded retry, scan
+preferences, and scan history. Daily default is 08:00 Asia/Jerusalem.
+Phase 9: in-app digest after each successful/partial scan (period counts from
+DB, unique top open-task cards, digest history on `/digests`). Email digest
+delivery is a later extension.
 
 ## Repository rules
 

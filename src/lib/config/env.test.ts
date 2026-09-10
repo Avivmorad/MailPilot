@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   getContextLimits,
+  isCronConfigured,
   isGmailConfigured,
   isGeminiConfigured,
   parseClientEnv,
@@ -53,6 +54,16 @@ describe("parseGeminiEnv", () => {
 
   it("throws when Gemini secrets are missing", () => {
     expect(() => parseGeminiEnv({})).toThrowError(/Gemini/);
+  });
+});
+
+describe("isCronConfigured", () => {
+  it("is false when CRON_SECRET is missing", () => {
+    expect(isCronConfigured({})).toBe(false);
+  });
+
+  it("is true when CRON_SECRET is set", () => {
+    expect(isCronConfigured({ CRON_SECRET: "cron-secret" })).toBe(true);
   });
 });
 

@@ -12,6 +12,8 @@ describe("humanizeToken", () => {
 
   it("title-cases unknown snake_case values", () => {
     expect(humanizeToken("needs_review")).toBe("Needs review");
+    expect(humanizeToken("expired")).toBe("Expired");
+    expect(humanizeToken("later")).toBe("Later");
   });
 
   it("returns empty string for missing values", () => {

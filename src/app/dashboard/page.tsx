@@ -2,6 +2,7 @@ import { Ban, Clock3, Inbox, ListChecks, ShieldAlert } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { DigestReportCard } from "@/components/digest/digest-report-card";
 import { GmailConnectionCard } from "@/components/gmail/gmail-connection-card";
 import { AppShell } from "@/components/layout/app-shell";
 import { PageHeader } from "@/components/layout/page-header";
@@ -9,6 +10,7 @@ import { AppHeader } from "@/components/nav/app-header";
 import { InitialScanCard } from "@/components/scans/initial-scan-card";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { countActionsForUser } from "@/lib/actions/queries";
+import { ensureDigestForLatestScan } from "@/lib/digest/build-digest";
 import { getGmailStatusForUser } from "@/lib/gmail/connections";
 import { MAIL_TABS } from "@/lib/mail/tabs";
 import { getInboxCountsForUser, getLatestScanRunForUser } from "@/lib/scans/manual";
@@ -37,7 +39,7 @@ function dashboardDescription({
     return "A scan is running. You can keep using the dashboard while it works.";
   }
   if (latestStatus) {
-    return "Overview of scan status and counts. Open, waiting, and digest lists live under Mail.";
+    return "Overview of scan status and counts. Mail lists live under Mail; period digests live under Digests.";
   }
   return "Gmail is connected. Choose a lookback (up to a month) and run a scan.";
 }
@@ -76,13 +78,18 @@ export default async function DashboardPage({
   const [params, gmailStatus] = await Promise.all([searchParams, getGmailStatusForUser(user.id)]);
   const connected = gmailStatus.connection?.status === "CONNECTED";
   const emptyCounts = { processed: 0, important: 0, needAction: 0, waiting: 0, ignored: 0 };
-  const [counts, latestScan, openCount] = connected
+  const latestScan = connected ? await getLatestScanRunForUser(user.id) : null;
+  const [counts, openCount, latestDigest] = connected
     ? await Promise.all([
         getInboxCountsForUser(user.id),
-        getLatestScanRunForUser(user.id),
         countActionsForUser(user.id, "OPEN"),
+        ensureDigestForLatestScan(
+          user.id,
+          latestScan ? String(latestScan.id) : null,
+          latestScan ? String(latestScan.status) : null,
+        ).catch(() => null),
       ])
-    : [emptyCounts, null, 0];
+    : [emptyCounts, 0, null];
   const latestStatus = latestScan ? String(latestScan.status) : null;
   const showGmailCard = !connected || Boolean(params.gmail);
 
@@ -203,6 +210,15 @@ export default async function DashboardPage({
           }
         />
       </div>
+
+      <DigestReportCard digest={latestDigest} />
+      {latestDigest ? (
+        <p className="text-sm">
+          <Link href="/digests" className="text-primary font-medium hover:underline">
+            View digest history
+          </Link>
+        </p>
+      ) : null}
     </AppShell>
   );
 }

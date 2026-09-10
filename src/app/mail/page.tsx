@@ -17,7 +17,7 @@ export const dynamic = "force-dynamic";
 function tabDescription(tab: ReturnType<typeof parseMailTab>): string {
   switch (tab) {
     case "summary":
-      return "Quick updates only — FYI notices, receipts, and other mail that needs no action. Ignored noise lives in Ignored.";
+      return "Leftover useful FYI only. Receipts, OTPs, and marketing live in Ignored. Security events live in Open.";
     case "open":
       return "Mail that still needs a next step, grouped by Security, Payments, and General.";
     case "waiting":

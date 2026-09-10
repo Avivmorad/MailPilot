@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { gmailThreadUrl } from "@/lib/gmail/deep-link";
+import { mailBucketForThread } from "@/lib/mail/buckets";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { threadFeedbackSchema } from "@/lib/threads/feedback";
 
@@ -74,7 +75,7 @@ type ThreadListDbRow = {
 export const INBOX_SUMMARY_STATUSES = ["informational", "resolved"] as const;
 
 export function isInboxSummaryStatus(status: string | null | undefined): boolean {
-  return status === "informational" || status === "resolved";
+  return mailBucketForThread({ status }) === "summary";
 }
 
 export function mapRecentThreadRow(row: ThreadListDbRow): RecentThreadRow {
@@ -104,7 +105,9 @@ export async function listRecentThreadsForUser(userId: string, limit = 24): Prom
   if (error || !data) {
     return [];
   }
-  return data.map((row) => mapRecentThreadRow(row));
+  return data
+    .map((row) => mapRecentThreadRow(row))
+    .filter((row) => mailBucketForThread({ status: row.status }) === "summary");
 }
 
 export async function listIgnoredThreadsForUser(userId: string, limit = 50): Promise<RecentThreadRow[]> {
@@ -119,7 +122,9 @@ export async function listIgnoredThreadsForUser(userId: string, limit = 50): Pro
   if (error || !data) {
     return [];
   }
-  return data.map((row) => mapRecentThreadRow(row));
+  return data
+    .map((row) => mapRecentThreadRow(row))
+    .filter((row) => mailBucketForThread({ status: row.status }) === "ignored");
 }
 
 export async function getThreadDetailForUser(userId: string, threadId: string): Promise<ThreadDetail | null> {

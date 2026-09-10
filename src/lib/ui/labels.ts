@@ -10,12 +10,18 @@ const LABEL_OVERRIDES: Record<string, string> = {
   success: "Finished",
   partial: "Finished with errors",
   failed: "Failed",
+  initial: "Initial scan",
+  manual: "Manual scan",
+  scheduled: "Scheduled scan",
+  recovery: "Recovery scan",
   open: "Open",
   waiting: "Waiting",
   completed: "Done",
   snoozed: "Snoozed",
   urgent: "Urgent",
   soon: "Soon",
+  later: "Later",
+  expired: "Expired",
   normal: "Normal",
   none: "None",
   high: "High",
@@ -69,14 +75,17 @@ export function labelForDirection(value: string | null | undefined): string {
   return humanizeToken(value);
 }
 
-export type BadgeTone = "danger" | "warning" | "accent" | "neutral" | "muted";
+export type BadgeTone = "danger" | "warning" | "success" | "accent" | "neutral" | "muted";
 
 export function toneForUrgency(value: string | null | undefined): BadgeTone {
   switch (value?.toLowerCase()) {
     case "urgent":
+    case "expired":
       return "danger";
     case "soon":
       return "warning";
+    case "later":
+      return "success";
     case "normal":
       return "accent";
     default:
@@ -111,9 +120,12 @@ export function toneForThreadStatus(value: string | null | undefined): BadgeTone
 export function accentForUrgency(value: string | null | undefined): string {
   switch (value?.toLowerCase()) {
     case "urgent":
+    case "expired":
       return "border-l-destructive";
     case "soon":
-      return "border-l-amber-500";
+      return "border-l-orange-500";
+    case "later":
+      return "border-l-green-500";
     default:
       return "border-l-transparent";
   }

@@ -4,18 +4,18 @@ import { ActionControls } from "@/components/actions/action-controls";
 import { LabeledField } from "@/components/ui/labeled-field";
 import { MetaBadge } from "@/components/ui/meta-badge";
 import type { ActionListItem } from "@/lib/actions/queries";
-import { formatDate, formatDateTime, isDeadlineOverdue } from "@/lib/ui/format";
+import { classForDeadline, displayUrgencyForDeadline, formatDate, formatDateTime } from "@/lib/ui/format";
 import { accentForUrgency } from "@/lib/ui/labels";
 import { cn } from "@/lib/utils";
 
 export function ActionItemCard({ item }: { item: ActionListItem }) {
-  const overdue = isDeadlineOverdue(item.deadline);
+  const urgencyLabel = displayUrgencyForDeadline(item.deadline, item.urgency);
 
   return (
     <article
       className={cn(
         "bg-card ring-foreground/10 rounded-xl border-l-4 p-4 shadow-xs ring-1 sm:p-5",
-        accentForUrgency(item.urgency),
+        accentForUrgency(urgencyLabel ?? item.urgency),
       )}
     >
       <div className="flex flex-wrap items-start justify-between gap-2">
@@ -27,9 +27,7 @@ export function ActionItemCard({ item }: { item: ActionListItem }) {
           </h3>
         </div>
         <div className="flex flex-wrap gap-1">
-          {item.urgency && item.urgency !== "none" && item.urgency !== "normal" ? (
-            <MetaBadge kind="urgency" value={item.urgency} />
-          ) : null}
+          {urgencyLabel ? <MetaBadge kind="urgency" value={urgencyLabel} /> : null}
           {item.importance && item.importance !== "low" ? (
             <MetaBadge kind="importance" value={item.importance} />
           ) : null}
@@ -48,10 +46,7 @@ export function ActionItemCard({ item }: { item: ActionListItem }) {
           </LabeledField>
         ) : null}
         {item.deadline ? (
-          <LabeledField
-            label="Deadline"
-            valueClassName={cn(overdue && "font-semibold text-red-600 dark:text-red-400")}
-          >
+          <LabeledField label="Deadline" valueClassName={classForDeadline(item.deadline)}>
             {formatDate(item.deadline)}
           </LabeledField>
         ) : null}

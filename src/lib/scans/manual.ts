@@ -14,6 +14,7 @@ import {
 import { isMissingScanSchemaError, SCAN_SCHEMA_MISSING_MESSAGE } from "@/lib/scans/errors";
 import { openGmailScan, executeGmailScan } from "@/lib/scans/process-scan";
 import { createSupabaseScanStore } from "@/lib/scans/store";
+import { persistDigestAfterScan } from "@/lib/digest/build-digest";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { ScanRunResult } from "@/lib/scans/types";
 
@@ -95,7 +96,20 @@ export async function beginManualInitialScan(
 
   return {
     scanId: prepared.scanId,
-    execute: () => executeGmailScan(prepared),
+    execute: async () => {
+      const result = await executeGmailScan(prepared);
+      if (result.status === "SUCCESS" || result.status === "PARTIAL") {
+        try {
+          await persistDigestAfterScan({ userId, scanId: prepared.scanId });
+        } catch (error) {
+          console.error("[digest]", {
+            scanId: prepared.scanId,
+            error: error instanceof Error ? error.message : "digest_failed",
+          });
+        }
+      }
+      return result;
+    },
   };
 }
 
@@ -132,6 +146,20 @@ export async function getScanRunForUser(userId: string, scanId: string) {
     throw new Error("Failed to load scan run");
   }
   return data;
+}
+
+export async function getScanRunsForUser(userId: string, limit = 10) {
+  const db = createAdminClient();
+  const { data, error } = await db
+    .from("scan_runs")
+    .select(SCAN_RUN_SELECT)
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) {
+    return [];
+  }
+  return data ?? [];
 }
 
 export async function getLatestScanRunForUser(userId: string) {

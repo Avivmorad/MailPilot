@@ -196,7 +196,7 @@ export function createSupabaseScanStore(): ScanStorePort {
             short_display_title: analysis?.short_display_title ?? null,
             importance: analysis?.importance ?? null,
             importance_reason: analysis?.importance_reason ?? null,
-            status: analysis?.status ?? null,
+            status: analysis?.status ?? "informational",
             requires_action: analysis?.requires_action ?? false,
             requires_reply: analysis?.requires_reply ?? false,
             action_type: analysis?.action_type ?? null,

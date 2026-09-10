@@ -10,8 +10,7 @@ import { LabeledField } from "@/components/ui/labeled-field";
 import { MetaBadge } from "@/components/ui/meta-badge";
 import { getSessionUser } from "@/lib/supabase/auth";
 import { getThreadDetailForUser } from "@/lib/threads/queries";
-import { formatDate, formatDateTime, isDeadlineOverdue } from "@/lib/ui/format";
-import { cn } from "@/lib/utils";
+import { classForDeadline, displayUrgencyForDeadline, formatDate, formatDateTime } from "@/lib/ui/format";
 import { labelForDirection } from "@/lib/ui/labels";
 
 export const dynamic = "force-dynamic";
@@ -31,6 +30,7 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
   const inbound = [...thread.messages].reverse().find((message) => message.direction.toLowerCase() === "inbound");
   const senderMessage = inbound ?? thread.messages[thread.messages.length - 1];
   const sender = senderMessage?.senderName ?? senderMessage?.senderEmail ?? null;
+  const urgencyLabel = displayUrgencyForDeadline(thread.deadline, thread.urgency);
 
   return (
     <AppShell header={<AppHeader email={user.email} current="thread" />} width="narrow">
@@ -51,9 +51,7 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
       <div className="flex flex-wrap gap-2">
         {thread.status ? <MetaBadge kind="status" value={thread.status} /> : null}
         {thread.importance ? <MetaBadge kind="importance" value={thread.importance} /> : null}
-        {thread.urgency && thread.urgency !== "none" ? (
-          <MetaBadge kind="urgency" value={thread.urgency} />
-        ) : null}
+        {urgencyLabel ? <MetaBadge kind="urgency" value={urgencyLabel} /> : null}
       </div>
 
       <Card>
@@ -77,12 +75,7 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
               </LabeledField>
             ) : null}
             {thread.deadline ? (
-              <LabeledField
-                label="Deadline"
-                valueClassName={cn(
-                  isDeadlineOverdue(thread.deadline) && "font-semibold text-red-600 dark:text-red-400",
-                )}
-              >
+              <LabeledField label="Deadline" valueClassName={classForDeadline(thread.deadline)}>
                 {formatDate(thread.deadline)}
                 {thread.deadlineText ? ` (${thread.deadlineText})` : ""}
               </LabeledField>

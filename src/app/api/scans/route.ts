@@ -5,6 +5,7 @@ import { getSessionUser } from "@/lib/supabase/auth";
 import {
   beginManualInitialScan,
   getLatestScanRunForUser,
+  getScanRunsForUser,
   manualScanRequestSchema,
   ScanRequestError,
 } from "@/lib/scans/manual";
@@ -17,9 +18,12 @@ export async function GET() {
   if (!user) {
     return NextResponse.json({ error: "not_signed_in" }, { status: 401 });
   }
-  const scan = await getLatestScanRunForUser(user.id);
+  const [scan, items] = await Promise.all([
+    getLatestScanRunForUser(user.id),
+    getScanRunsForUser(user.id, 10),
+  ]);
   return NextResponse.json(
-    { scan },
+    { scan, items },
     { headers: { "Cache-Control": "no-store" } },
   );
 }

@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import { formatDate, formatDateTime, formatRelativeTime, isDeadlineOverdue } from "@/lib/ui/format";
+import {
+  classForDeadline,
+  deadlineProximity,
+  displayUrgencyForDeadline,
+  formatDate,
+  formatDateTime,
+  formatRelativeTime,
+  isDeadlineOverdue,
+} from "@/lib/ui/format";
 
 describe("formatDateTime", () => {
   it("formats UTC timestamps in Asia/Jerusalem", () => {
@@ -38,6 +46,29 @@ describe("isDeadlineOverdue", () => {
     const lateUtc = new Date("2026-09-10T21:30:00.000Z");
     expect(isDeadlineOverdue("2026-09-10", lateUtc)).toBe(true);
     expect(isDeadlineOverdue("2026-09-11", lateUtc)).toBe(false);
+  });
+});
+
+describe("deadlineProximity", () => {
+  const jerusalemAfternoon = new Date("2026-09-10T12:00:00.000Z");
+
+  it("marks a past date expired, this week soon, and after a week later", () => {
+    expect(deadlineProximity("2026-09-09", jerusalemAfternoon)).toBe("expired");
+    expect(deadlineProximity("2026-09-10", jerusalemAfternoon)).toBe("soon");
+    expect(deadlineProximity("2026-09-17", jerusalemAfternoon)).toBe("soon");
+    expect(deadlineProximity("2026-09-18", jerusalemAfternoon)).toBe("later");
+  });
+
+  it("overrides a stored soon tag when the deadline has already passed", () => {
+    expect(displayUrgencyForDeadline("2026-09-09", "soon", jerusalemAfternoon)).toBe("expired");
+    expect(displayUrgencyForDeadline("2026-09-20", "soon", jerusalemAfternoon)).toBe("later");
+    expect(displayUrgencyForDeadline(null, "urgent", jerusalemAfternoon)).toBe("urgent");
+  });
+
+  it("colors expired red, soon orange, and later green", () => {
+    expect(classForDeadline("2026-09-09", jerusalemAfternoon)).toContain("text-red-600");
+    expect(classForDeadline("2026-09-12", jerusalemAfternoon)).toContain("text-orange-600");
+    expect(classForDeadline("2026-09-20", jerusalemAfternoon)).toContain("text-green-600");
   });
 });
 

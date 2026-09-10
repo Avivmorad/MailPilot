@@ -1,14 +1,10 @@
 "use client";
 
 import { ChevronDown } from "lucide-react";
-import { useEffect, useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 
-import {
-  collapsedStorageKey,
-  parseCollapsedIds,
-  serializeCollapsedIds,
-  toggleCollapsedId,
-} from "@/lib/ui/collapsed-state";
+import { toggleCollapsedId } from "@/lib/ui/collapsed-state";
+import { useCollapsedIds } from "@/lib/ui/use-collapsed-ids";
 import { cn } from "@/lib/utils";
 
 const SECTION_ID = "self";
@@ -26,21 +22,8 @@ export function CollapsibleBlock({
   action?: ReactNode;
   children: ReactNode;
 }) {
-  const [collapsed, setCollapsed] = useState<string[]>([]);
-  const [ready, setReady] = useState(false);
+  const [collapsed, setCollapsed] = useCollapsedIds(storageKey);
   const open = !collapsed.includes(SECTION_ID);
-
-  useEffect(() => {
-    setCollapsed(parseCollapsedIds(window.localStorage.getItem(collapsedStorageKey(storageKey))));
-    setReady(true);
-  }, [storageKey]);
-
-  useEffect(() => {
-    if (!ready) {
-      return;
-    }
-    window.localStorage.setItem(collapsedStorageKey(storageKey), serializeCollapsedIds(collapsed));
-  }, [collapsed, ready, storageKey]);
 
   return (
     <section className="space-y-3">

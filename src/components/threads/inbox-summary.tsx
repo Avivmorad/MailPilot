@@ -11,7 +11,7 @@ export function InboxSummary({
   threads,
   storageKey = "inbox-summary",
   emptyTitle = "No classified mail yet",
-  emptyDescription = "Run a scan to see quick FYI updates. Ignored mail is in the Ignored tab, not here.",
+  emptyDescription = "Run a scan to see leftover FYI. Receipts, OTPs, and marketing are in Ignored.",
 }: {
   threads: RecentThreadRow[];
   storageKey?: string;

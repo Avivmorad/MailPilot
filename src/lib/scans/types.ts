@@ -57,7 +57,7 @@ export interface ScanSettings {
   dailyScanTime: string | null;
 }
 
-export type ScanTriggerType = "INITIAL" | "MANUAL" | "RECOVERY";
+export type ScanTriggerType = "INITIAL" | "MANUAL" | "RECOVERY" | "SCHEDULED";
 export type ScanDiscoveryMode = "INITIAL" | "INCREMENTAL" | "RECOVERY";
 
 export interface ConnectionScanState {

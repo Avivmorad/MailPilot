@@ -105,6 +105,10 @@ export function isGeminiConfigured(source: Record<string, unknown> = process.env
   return geminiEnvSchema.safeParse(source).success;
 }
 
+export function isCronConfigured(source: Record<string, unknown> = process.env): boolean {
+  return z.string().min(1).safeParse(source.CRON_SECRET).success;
+}
+
 export function getClientEnv(): ClientEnv {
   return parseClientEnv({
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,

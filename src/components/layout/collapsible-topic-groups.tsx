@@ -1,15 +1,12 @@
 "use client";
 
 import { ChevronDown } from "lucide-react";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useMemo, type ReactNode } from "react";
+
 
 import { ACTION_TOPIC_LABELS, type ActionTopic } from "@/lib/actions/topics";
-import {
-  collapsedStorageKey,
-  parseCollapsedIds,
-  serializeCollapsedIds,
-  toggleCollapsedId,
-} from "@/lib/ui/collapsed-state";
+import { toggleCollapsedId } from "@/lib/ui/collapsed-state";
+import { useCollapsedIds } from "@/lib/ui/use-collapsed-ids";
 import { cn } from "@/lib/utils";
 
 export interface CollapsibleTopicGroup {
@@ -28,20 +25,7 @@ export function CollapsibleTopicGroups({
   variant?: "plain" | "panel";
 }) {
   const topicIds = useMemo(() => groups.map((group) => group.topic), [groups]);
-  const [collapsed, setCollapsed] = useState<string[]>([]);
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    setCollapsed(parseCollapsedIds(window.localStorage.getItem(collapsedStorageKey(storageKey))));
-    setReady(true);
-  }, [storageKey]);
-
-  useEffect(() => {
-    if (!ready) {
-      return;
-    }
-    window.localStorage.setItem(collapsedStorageKey(storageKey), serializeCollapsedIds(collapsed));
-  }, [collapsed, ready, storageKey]);
+  const [collapsed, setCollapsed] = useCollapsedIds(storageKey);
 
   const allCollapsed = topicIds.length > 0 && topicIds.every((id) => collapsed.includes(id));
 

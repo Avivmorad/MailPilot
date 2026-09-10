@@ -59,6 +59,7 @@ describe("buildThreadContext", () => {
     expect(context.messages[0]?.direction).toBe("OUTBOUND");
     expect(context.messages[1]?.direction).toBe("INBOUND");
     expect(context.promptText).toContain("Direction: OUTBOUND");
+    expect(context.promptText).toContain("Cc:");
     expect(context.promptText).toContain("I'll review it tomorrow.");
   });
 

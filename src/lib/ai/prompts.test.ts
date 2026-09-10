@@ -58,4 +58,13 @@ describe("TRIAGE_SYSTEM_PROMPT", () => {
   it("treats inbound document-share notices as informational", () => {
     expect(TRIAGE_SYSTEM_PROMPT).toContain("shared a document with you");
   });
+
+  it("classifies by remaining action ownership and keeps OTP ignore", () => {
+    expect(TRIAGE_SYSTEM_PROMPT).toContain("remaining action and who owns it");
+    expect(TRIAGE_SYSTEM_PROMPT).toContain("automated sender alone must not");
+    expect(TRIAGE_SYSTEM_PROMPT).toContain("OTP / verification codes");
+    expect(TRIAGE_SYSTEM_PROMPT).toContain("receipt-only application acknowledgments");
+    expect(TRIAGE_SYSTEM_PROMPT).toContain("Out-of-office replies");
+    expect(TRIAGE_SYSTEM_PROMPT).toContain("Being CC'd does not create a task");
+  });
 });

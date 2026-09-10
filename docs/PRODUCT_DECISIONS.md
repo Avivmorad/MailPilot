@@ -40,6 +40,10 @@ These map onto the spec as follows:
   structured enum values (status/importance/etc.) stay in English as defined by the schema (spec §12).
 - No long-term body storage → privacy-first default already in spec §2.5 / §16.6.
 - Never auto-send → spec §3 "not in MVP" and §68.5.
+- In-app digest (Phase 9) is generated after each successful or partial scan
+  when `digest_enabled` is true (default). Counts come from stored messages and
+  threads for the scan window. Top actions are unique by thread. Sending the
+  digest by email is still a future extension (spec §72).
 
 ## Gmail labels
 
@@ -96,12 +100,19 @@ Implementation:
 The dashboard is an overview (scan status and counts). Mail lists live on **Mail** tabs
 and stay two separate products (they must not be the same list):
 
-1. **Inbox summary** (Summary tab) — quick updates only (`informational` / `resolved`), grouped by topic:
-   login notices, receipts, FYI. **Never** `ignore` (that is the Ignored tab) and never open/waiting tasks.
-2. **Open tasks** (Open tab) — only threads where the user still has a durable next step.
+1. **Inbox summary** (Summary tab) — leftover useful FYI only (`informational` / `resolved`).
+   **Never** `ignore` and never open/waiting tasks.
+2. **Open tasks** (Open tab) — a real next step, including security events and expired credentials.
+3. **Ignored** — OTP/verification, marketing, job alerts, receipts, and routine automated notices.
 
-One-time auth mail is **not** an open task: OTP / verification codes, magic links, and
-“click to verify this email address” are `ignore`. Placement for other families is below.
+Placement priority:
+
+1. OTP, verification code, marketing, job alert, receipt, routine confirmation, or automated FYI → `ignore`, unless the mail explicitly requires action.
+2. Unrecognized/new-device login, security alert, expired API key/token, deadline, required payment, check-in, or explicit action → `action_required`.
+3. Otherwise → `informational`.
+4. Status is never empty. `requires_action` is true only for Open.
+
+Mail tabs are derived from this single `status` (plus action workflow for waiting/completed/snoozed). A thread ID cannot appear in both Summary and Ignored.
 
 ## Open-task topics
 
@@ -124,24 +135,28 @@ already did their step; **Summary** when the mail is useful FYI; **Ignore** for 
 Never persist full email bodies. `action_items` rows exist only for Open (`OPEN`) and
 Waiting (`WAITING`).
 
+**Precedence:** classify by the remaining action and who owns it. An automated sender
+alone must not cause an actionable request to be ignored. OTP, magic links, and
+“verify this email address” stay Ignore (see Security).
+
 ### Security
 
 | Case | Where | `status` / action |
 | ---- | ----- | ----------------- |
-| OTP, magic link, confirm-email | Ignore | `ignore` |
-| New sign-in / app access granted, and the mail says if this was you do nothing | Summary | `informational` |
-| Provider already blocked the login | Summary | `informational` |
+| OTP, magic link, confirm-email, “Link verification code” | Ignore | `ignore` |
+| New / unrecognized device login, Google security alert | Open | `action_required` / `review` |
+| Expired API key, personal access token, or similar credential | Open | `action_required` / `review` |
+| Provider already blocked the login | Open | `action_required` / `review` |
 | Security copy about a **different** account (this mailbox is only recovery) | Ignore | `ignore` |
-| “Secure the account now” with **no** dismiss-if-you path | Open | `action_required` / `review` |
 | Password reset, locked/compromised account, unauthorized charge | Open | `action_required` / `review` |
 
 ### Payments
 
 | Case | Where | `status` / action |
 | ---- | ----- | ----------------- |
-| Paid receipt, refund issued, tax/VAT PDF ready to download | Summary | `informational` |
-| Bank/account update with no unpaid amount | Summary | `informational` |
-| Upcoming renewal or trial started, no charge due | Summary | `informational` |
+| Paid receipt, refund issued, tax/VAT PDF ready to download | Ignore | `ignore` |
+| Bank/account update with no unpaid amount | Ignore | `ignore` |
+| Upcoming renewal or trial started, no charge due | Ignore | `ignore` |
 | Unpaid invoice, failed charge, remaining balance, fine to pay | Open until **that thread** says paid | `action_required` / `pay` |
 | Card expired / update payment or service stops | Open | `action_required` / `pay` |
 | Marketing that looks like a credit alert | Ignore | `ignore` |
@@ -150,13 +165,19 @@ Waiting (`WAITING`).
 
 | Case | Where | `status` / action |
 | ---- | ----- | ----------------- |
-| Person asks to grant access, approve, sign, submit, or answer | Open | matching `action_type` |
+| Person or automated mail asks the user to grant access, approve, sign, submit, or answer | Open | matching `action_type` |
+| Signature request, approval request, or document comment that explicitly asks the user to act | Open | `sign` / `approve` / `reply` |
 | Bounce for mail the user sent | Open | `review` |
-| Meeting the user must accept/decline | Open | `schedule` |
+| Meeting the user must accept/decline, or a request to choose/confirm a new time | Open | `schedule` |
+| Interview scheduling, assessment, or request for missing application documents | Open | `schedule` / `submit` |
+| Parcel collection, address correction, or customs-information request | Open | `follow_up` / `submit` |
 | Check-in still needed | Open | `submit` |
 | User already asked/sent/signed; no reply yet | Waiting | `waiting` |
-| Webinar / mass calendar invite | Summary | `informational` |
+| Out-of-office reply or support-ticket acknowledgment while that request is unanswered | Waiting | `waiting` (not resolved) |
+| Webinar / mass calendar invite | Ignore | `ignore` |
+| Confirmed meeting reschedule or cancellation (no new time to choose) | Summary | `informational` |
 | Lab results or “document ready in the portal” | Summary | `informational` |
 | Drive/Docs/Dropbox “shared a document/file with you” (access granted) | Summary | `informational` |
-| Shipment out for delivery, itinerary, boarding pass, confirmed appointment | Summary | `informational` |
-| Job alerts, application auto-acks, bot mail (GitHub/Slack/etc.), surveys, promos | Ignore | `ignore` |
+| Routine tracking / shipment out for delivery, itinerary, boarding pass, confirmed appointment | Summary | `informational` |
+| Useful mail that assigns work only to someone else; being CC’d is not a task | Summary | `informational` |
+| Job alerts, receipt-only application acknowledgments, bot mail with no user action, surveys, promos | Ignore | `ignore` |

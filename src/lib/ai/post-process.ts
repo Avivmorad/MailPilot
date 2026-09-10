@@ -1,5 +1,13 @@
 import { normalizeDeadline } from "@/lib/ai/deadlines";
-import { isDocumentShareNotice, isEphemeralAuthNotice, isLoginFyiNotice } from "@/lib/ai/notices";
+import {
+  isEphemeralAuthNotice,
+  isIgnoreFamilyNotice,
+  isInformationalNotice,
+  isSecurityEventNotice,
+  isUserOwnedActionNotice,
+  isWaitingAcknowledgmentNotice,
+  ownedActionType,
+} from "@/lib/ai/notices";
 import {
   threadAnalysisSchema,
   type ActionType,
@@ -86,11 +94,78 @@ export function postProcessThreadAnalysis(
     next.action_type = "reply";
   }
 
+  const noticeParts = [
+    options.latestSubject,
+    next.short_display_title,
+    next.summary,
+    next.action_summary,
+    options.threadText,
+  ];
+
+  if (isEphemeralAuthNotice(noticeParts) || isIgnoreFamilyNotice(noticeParts)) {
+    next.status = "ignore";
+    next.importance = next.importance === "high" ? "medium" : next.importance;
+    next.requires_action = false;
+    next.requires_reply = false;
+    next.action_type = "none";
+    next.action_summary = null;
+    next.action_reason = null;
+    next.waiting_for = null;
+    next.waiting_since = null;
+    next.urgency = "none";
+  } else if (isUserOwnedActionNotice(noticeParts) || isSecurityEventNotice(noticeParts)) {
+    next.status = "action_required";
+    next.requires_action = true;
+    if (isSecurityEventNotice(noticeParts)) {
+      next.category = "account";
+    }
+    if (next.action_type === "none") {
+      next.action_type = isUserOwnedActionNotice(noticeParts)
+        ? ownedActionType(noticeParts)
+        : "review";
+    }
+    if (!next.action_summary) {
+      next.action_summary = next.action_reason ?? ACTION_SUMMARY_FALLBACK[next.action_type];
+    }
+  } else if (isWaitingAcknowledgmentNotice(noticeParts)) {
+    next.status = "waiting";
+    next.requires_action = false;
+    next.requires_reply = false;
+    if (next.action_type === "reply") {
+      next.action_type = "none";
+    }
+    next.action_summary = null;
+    if (!next.waiting_for) {
+      next.waiting_for = "the other party";
+    }
+  } else if (isInformationalNotice(noticeParts)) {
+    next.status = "informational";
+    next.requires_action = false;
+    next.requires_reply = false;
+    next.action_type = "none";
+    next.action_summary = null;
+    next.action_reason = null;
+    next.waiting_for = null;
+    next.waiting_since = null;
+    next.urgency = next.urgency === "urgent" ? "normal" : next.urgency;
+  } else if (next.deadline && next.status !== "waiting" && next.status !== "ignore") {
+    next.status = "action_required";
+    next.requires_action = true;
+    if (next.action_type === "none") {
+      next.action_type = "review";
+    }
+    if (!next.action_summary) {
+      next.action_summary = next.action_reason ?? ACTION_SUMMARY_FALLBACK[next.action_type];
+    }
+  }
+
   if (next.status === "action_required") {
     next.requires_action = true;
     if (!next.action_summary) {
       next.action_summary = next.action_reason ?? ACTION_SUMMARY_FALLBACK[next.action_type];
     }
+  } else if (next.status === "informational" || next.status === "ignore" || next.status === "resolved") {
+    next.requires_action = false;
   }
 
   if (next.status === "waiting") {
@@ -108,7 +183,11 @@ export function postProcessThreadAnalysis(
   const preferences = options.preferences;
   const from = options.latestFrom ?? null;
 
-  if (senderMatches(preferences?.ignoreSenders, from) && !isCriticalAccountMessage(next)) {
+  if (
+    senderMatches(preferences?.ignoreSenders, from) &&
+    !isCriticalAccountMessage(next) &&
+    !isSecurityEventNotice(noticeParts)
+  ) {
     next.status = "ignore";
     next.importance = "low";
   }
@@ -121,40 +200,10 @@ export function postProcessThreadAnalysis(
     }
   }
 
-  const noticeParts = [
-    options.latestSubject,
-    next.short_display_title,
-    next.summary,
-    next.action_summary,
-    options.threadText,
-  ];
-  if (isEphemeralAuthNotice(noticeParts)) {
-    next.status = "ignore";
-    next.importance = "low";
+  if (next.status === "action_required") {
+    next.requires_action = true;
+  } else if (next.status === "informational" || next.status === "ignore" || next.status === "resolved") {
     next.requires_action = false;
-    next.requires_reply = false;
-    next.action_type = "none";
-    next.action_summary = null;
-    next.action_reason = null;
-    next.urgency = "none";
-  } else if (isLoginFyiNotice(noticeParts)) {
-    next.status = "informational";
-    next.category = "account";
-    next.requires_action = false;
-    next.requires_reply = false;
-    next.action_type = "none";
-    next.action_summary = null;
-    next.urgency = next.urgency === "urgent" ? "normal" : next.urgency;
-  } else if (isDocumentShareNotice(noticeParts)) {
-    next.status = "informational";
-    next.requires_action = false;
-    next.requires_reply = false;
-    next.action_type = "none";
-    next.action_summary = null;
-    next.action_reason = null;
-    next.waiting_for = null;
-    next.waiting_since = null;
-    next.urgency = next.urgency === "urgent" ? "normal" : next.urgency;
   }
 
   return threadAnalysisSchema.parse(next);
@@ -185,6 +234,12 @@ export function assertThreadAnalysisInvariants(analysis: ThreadAnalysis): void {
   }
   if (analysis.confidence < 0 || analysis.confidence > 1) {
     throw new Error("Invariant E: confidence must be between 0 and 1");
+  }
+  if (
+    (analysis.status === "informational" || analysis.status === "ignore" || analysis.status === "resolved") &&
+    analysis.requires_action
+  ) {
+    throw new Error("Invariant A: Summary/Ignored require requires_action=false");
   }
 }
 

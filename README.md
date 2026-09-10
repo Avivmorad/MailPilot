@@ -17,15 +17,48 @@ name "Inbox Triage AI".)
 
 ## Project status
 
-Built **phase by phase** (spec §63). This repository contains **Phase 0 — Bootstrap** (Next.js
-App Router, TypeScript strict, Tailwind CSS v4, shadcn/ui, Supabase client/server scaffolding, Zod
-environment validation, ESLint + Prettier, a Vitest test setup, and a landing page) plus initial
-**Phase 1 — Auth + DB** scaffolding: a `profiles` migration with Row Level Security, Supabase
-session middleware, a `/login` page (email + password), and a protected `/dashboard`. Gmail and AI
-functionality are **not** implemented yet.
+Built **phase by phase** (spec §63).
 
-Phase 1 auth requires a configured Supabase project in `.env.local` to run end-to-end; the public
-landing page works without any secrets.
+- **Phase 0 — Bootstrap:** complete.
+- **Phase 1 — Auth + DB:** login works; `profiles` + RLS applied.
+- **Phase 2 — Gmail OAuth:** Connect / callback / status / disconnect, encrypted refresh tokens,
+  and automatic `MailPilot/*` labels.
+- **Phase 3 — Parser:** MIME parser, attachment metadata (no binary), thread context with
+  INBOUND/OUTBOUND direction. Scanning and AI classification are **not** implemented yet.
+
+Phase 2 requires Google OAuth credentials in `.env.local` and the `0002_gmail_connections.sql`
+migration applied to your Supabase project.
+
+## Google Cloud / Gmail setup
+
+1. Create a Google Cloud project and enable the **Gmail API**.
+2. Configure the OAuth consent screen (External + Testing is fine). Add your Gmail as a test user.
+3. Create OAuth client credentials of type **Web application**.
+4. Authorized redirect URI must match exactly:
+   `http://localhost:3000/api/gmail/callback`
+5. Put these in `.env.local`:
+   - `GOOGLE_CLIENT_ID`
+   - `GOOGLE_CLIENT_SECRET`
+   - `GOOGLE_REDIRECT_URI=http://localhost:3000/api/gmail/callback`
+   - `TOKEN_ENCRYPTION_KEY` — generate with `openssl rand -hex 32`
+6. Restart `npm run dev`, sign in, and click **Connect Gmail** on `/dashboard`.
+7. Scope requested: `https://www.googleapis.com/auth/gmail.modify` (minimum needed to read mail and apply labels).
+
+On first connect, MailPilot creates these labels if they are missing:
+
+- `MailPilot/Important`
+- `MailPilot/Action Required`
+- `MailPilot/Low Priority`
+- `MailPilot/Processed`
+
+The refresh token is encrypted (AES-256-GCM) and never sent to the browser.
+
+## Migrations
+
+Apply SQL in the Supabase SQL Editor, in order:
+
+1. `supabase/migrations/0001_profiles.sql`
+2. `supabase/migrations/0002_gmail_connections.sql`
 
 ## Architecture
 
@@ -73,20 +106,8 @@ Copy `.env.example` to `.env.local` and fill in values. Never commit real secret
 ## Supabase setup
 
 1. Create a Supabase project and copy its URL and keys into `.env.local`.
-2. Database schema is managed via migrations in `supabase/migrations` (added from Phase 1).
+2. Apply the SQL files in `supabase/migrations/` (SQL Editor), in numeric order.
 3. Row Level Security is required on all user-accessible tables (`user_id = auth.uid()`).
-
-## Google Cloud / Gmail setup
-
-1. Create a Google Cloud project and enable the **Gmail API**.
-2. Configure the OAuth consent screen and create OAuth client credentials.
-3. Use the minimum scope required: `https://www.googleapis.com/auth/gmail.modify`.
-4. Set the authorized redirect URI to match `GOOGLE_REDIRECT_URI`.
-
-## Migrations
-
-Supabase migrations live in `supabase/migrations` and are committed to the repository.
-(No migrations exist yet in Phase 0.)
 
 ## Running & scripts
 

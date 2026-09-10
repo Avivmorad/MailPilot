@@ -12,7 +12,8 @@ Owner-level product decisions that refine it live at
 overlay wins. Treat both as the source of truth. Implement phase-by-phase (see spec §63); do not
 invent different behavior without a documented reason.
 
-**Current status:** Phase 0 (Bootstrap) complete; Phase 1 (Auth + DB) scaffolding in progress.
+**Current status:** Phase 0–2 working (login + Connect Gmail). Phase 3 Gmail parser/thread
+context is in progress (MIME parse, direction, bounded thread prompt). No inbox scan yet.
 
 ## Repository rules
 

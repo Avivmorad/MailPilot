@@ -1,11 +1,12 @@
 import { redirect } from "next/navigation";
 
+import { GmailConnectionCard } from "@/components/gmail/gmail-connection-card";
 import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { getGmailStatusForUser } from "@/lib/gmail/connections";
 import { getSessionUser } from "@/lib/supabase/auth";
 
-// Auth depends on request cookies, so this page must never be prerendered.
 export const dynamic = "force-dynamic";
 
 const stats = [
@@ -15,11 +16,18 @@ const stats = [
   { label: "Waiting", value: "—" },
 ];
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ gmail?: string; reason?: string }>;
+}) {
   const user = await getSessionUser();
   if (!user) {
     redirect("/login");
   }
+
+  const params = await searchParams;
+  const gmailStatus = await getGmailStatusForUser(user.id);
 
   return (
     <div className="flex min-h-full flex-col">
@@ -27,6 +35,9 @@ export default async function DashboardPage() {
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-4">
           <Logo />
           <div className="flex items-center gap-3">
+            <a href="/settings" className="text-muted-foreground text-sm hover:underline">
+              Settings
+            </a>
             <span className="text-muted-foreground hidden text-sm sm:inline">{user.email}</span>
             <form action="/auth/signout" method="post">
               <Button type="submit" variant="outline" size="sm">
@@ -41,7 +52,9 @@ export default async function DashboardPage() {
         <div className="mb-8">
           <h1 className="text-2xl font-semibold tracking-tight">Inbox overview</h1>
           <p className="text-muted-foreground mt-1">
-            You&apos;re signed in. Connect Gmail to start triaging — coming in a later phase.
+            {gmailStatus.connection?.status === "CONNECTED"
+              ? "Gmail is connected. Scanning arrives in a later phase."
+              : "Connect Gmail to start triaging your inbox."}
           </p>
         </div>
 
@@ -56,18 +69,7 @@ export default async function DashboardPage() {
           ))}
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Connect Gmail</CardTitle>
-            <CardDescription>
-              MailPilot will scan the last 7 days, then run daily at 08:00 (Asia/Jerusalem),
-              analyzing only what changed since the last successful scan.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button disabled>Connect Gmail (coming soon)</Button>
-          </CardContent>
-        </Card>
+        <GmailConnectionCard status={gmailStatus} gmailFlash={params.gmail} reason={params.reason} />
       </main>
     </div>
   );

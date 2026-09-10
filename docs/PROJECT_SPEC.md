@@ -3,6 +3,10 @@
 > מסמך זה מיועד לשמש כ־Source of Truth עבור Cursor/Codex/Developers.
 > יש לבנות לפי השלבים והחוזים במסמך, ולא "להמציא" התנהגות אחרת בלי צורך.
 > שם המוצר הוא זמני: **Inbox Triage AI**.
+>
+> Owner overlay: [`PRODUCT_DECISIONS.md`](PRODUCT_DECISIONS.md) wins where it
+> differs — including the product name **MailPilot**, Gemini instead of OpenAI,
+> and `MailPilot/` Gmail labels.
 
 ---
 

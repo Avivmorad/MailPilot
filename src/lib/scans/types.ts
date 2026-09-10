@@ -1,0 +1,125 @@
+import type { ThreadAnalysis } from "@/lib/ai/schemas";
+import type { ActionRecord } from "@/lib/actions/reconcile-action";
+import type { MailPilotLogicalLabel } from "@/lib/gmail/constants";
+import type { ParsedGmailMessage } from "@/lib/gmail/parser";
+import type { InitialLookbackDays } from "@/lib/scans/lookback";
+
+export interface ScanCounters {
+  messagesDiscovered: number;
+  messagesProcessed: number;
+  threadsAnalyzed: number;
+  importantCount: number;
+  actionCount: number;
+  replyCount: number;
+  waitingCount: number;
+  informationalCount: number;
+  ignoredCount: number;
+}
+
+export const EMPTY_SCAN_COUNTERS: ScanCounters = {
+  messagesDiscovered: 0,
+  messagesProcessed: 0,
+  threadsAnalyzed: 0,
+  importantCount: 0,
+  actionCount: 0,
+  replyCount: 0,
+  waitingCount: 0,
+  informationalCount: 0,
+  ignoredCount: 0,
+};
+
+export function countersFromAnalyses(analyses: ThreadAnalysis[]): Omit<
+  ScanCounters,
+  "messagesDiscovered" | "messagesProcessed" | "threadsAnalyzed"
+> {
+  return {
+    importantCount: analyses.filter((item) => item.importance === "high").length,
+    actionCount: analyses.filter((item) => item.requires_action).length,
+    replyCount: analyses.filter((item) => item.requires_reply).length,
+    waitingCount: analyses.filter((item) => item.status === "waiting").length,
+    informationalCount: analyses.filter((item) => item.status === "informational").length,
+    ignoredCount: analyses.filter((item) => item.status === "ignore").length,
+  };
+}
+
+export interface StoredThreadRow {
+  id: string;
+  lastAnalyzedMessageId: string | null;
+  analysis: ThreadAnalysis | null;
+}
+
+export interface ScanSettings {
+  vipSenders: string[];
+  ignoredSenders: string[];
+  timezone: string;
+  dailyScanTime: string | null;
+}
+
+export interface ScanGmailPort {
+  listMessageRefs(query: string): Promise<Array<{ id: string; threadId: string }>>;
+  fetchThread(threadId: string): Promise<ParsedGmailMessage[]>;
+  getProfileHistoryId(): Promise<string | null>;
+  loadLabelMap(): Promise<Map<MailPilotLogicalLabel, string>>;
+  modifyThreadLabels(threadId: string, addLabelIds: string[], removeLabelIds: string[]): Promise<void>;
+}
+
+export interface ScanStorePort {
+  findRunningScan(connectionId: string): Promise<{ id: string; startedAt: string | null } | null>;
+  failScan(scanId: string, errorCode: string, errorMessage: string): Promise<void>;
+  insertScanRun(input: {
+    userId: string;
+    connectionId: string;
+    triggerType: "INITIAL" | "MANUAL";
+    windowStart: string;
+    windowEnd: string;
+  }): Promise<string>;
+  updateScanRun(
+    scanId: string,
+    patch: Partial<ScanCounters> & {
+      status: "RUNNING" | "SUCCESS" | "PARTIAL" | "FAILED";
+      finishedAt?: string;
+      errorCode?: string | null;
+      errorMessage?: string | null;
+    },
+  ): Promise<void>;
+  getSettings(userId: string): Promise<ScanSettings>;
+  upsertThread(input: {
+    userId: string;
+    connectionId: string;
+    gmailThreadId: string;
+    subject: string | null;
+    participants: Array<{ email: string; name: string | null }>;
+    latestMessageAt: string | null;
+    latestMessageDirection: string | null;
+    analysis: ThreadAnalysis | null;
+    lastAnalyzedMessageId: string | null;
+    promptVersion: string | null;
+    modelName: string | null;
+  }): Promise<string>;
+  getThread(connectionId: string, gmailThreadId: string): Promise<StoredThreadRow | null>;
+  upsertMessage(input: {
+    userId: string;
+    connectionId: string;
+    threadId: string;
+    message: ParsedGmailMessage;
+    direction: string;
+    receivedAt: string;
+    contentHash: string;
+  }): Promise<void>;
+  getAction(threadId: string): Promise<ActionRecord | null>;
+  upsertAction(userId: string, threadId: string, action: ActionRecord): Promise<void>;
+  updateConnectionScan(input: {
+    connectionId: string;
+    historyId: string | null;
+    lastSuccessfulScanAt?: string | null;
+    lastAttemptedScanAt: string;
+    nextScanAt: string | null;
+  }): Promise<void>;
+}
+
+export interface ScanRunResult {
+  scanId: string;
+  status: "SUCCESS" | "PARTIAL" | "FAILED";
+  counters: ScanCounters;
+  lookbackDays: InitialLookbackDays;
+}

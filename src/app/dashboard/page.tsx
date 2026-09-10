@@ -1,25 +1,20 @@
 import { redirect } from "next/navigation";
 
 import { GmailConnectionCard } from "@/components/gmail/gmail-connection-card";
+import { InitialScanCard } from "@/components/scans/initial-scan-card";
 import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { getGmailStatusForUser } from "@/lib/gmail/connections";
+import { getInboxCountsForUser, getLatestScanRunForUser } from "@/lib/scans/manual";
 import { getSessionUser } from "@/lib/supabase/auth";
 
 export const dynamic = "force-dynamic";
 
-const stats = [
-  { label: "Processed", value: "—" },
-  { label: "Important", value: "—" },
-  { label: "Need action", value: "—" },
-  { label: "Waiting", value: "—" },
-];
-
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ gmail?: string; reason?: string }>;
+  searchParams: Promise<{ gmail?: string; reason?: string; scan?: string }>;
 }) {
   const user = await getSessionUser();
   if (!user) {
@@ -28,6 +23,18 @@ export default async function DashboardPage({
 
   const params = await searchParams;
   const gmailStatus = await getGmailStatusForUser(user.id);
+  const connected = gmailStatus.connection?.status === "CONNECTED";
+  const counts = connected
+    ? await getInboxCountsForUser(user.id)
+    : { processed: 0, important: 0, needAction: 0, waiting: 0 };
+  const latestScan = connected ? await getLatestScanRunForUser(user.id) : null;
+
+  const stats = [
+    { label: "Processed", value: connected ? String(counts.processed) : "—" },
+    { label: "Important", value: connected ? String(counts.important) : "—" },
+    { label: "Need action", value: connected ? String(counts.needAction) : "—" },
+    { label: "Waiting", value: connected ? String(counts.waiting) : "—" },
+  ];
 
   return (
     <div className="flex min-h-full flex-col">
@@ -52,8 +59,12 @@ export default async function DashboardPage({
         <div className="mb-8">
           <h1 className="text-2xl font-semibold tracking-tight">Inbox overview</h1>
           <p className="text-muted-foreground mt-1">
-            {gmailStatus.connection?.status === "CONNECTED"
-              ? "Gmail is connected. Scanning arrives in a later phase."
+            {connected
+              ? params.scan === "done"
+                ? "Scan finished. Counts below are from the database."
+                : latestScan
+                ? `Last scan: ${String(latestScan.status).toLowerCase()}.`
+                : "Gmail is connected. Run an initial scan of the last 7 days."
               : "Connect Gmail to start triaging your inbox."}
           </p>
         </div>
@@ -69,7 +80,10 @@ export default async function DashboardPage({
           ))}
         </div>
 
-        <GmailConnectionCard status={gmailStatus} gmailFlash={params.gmail} reason={params.reason} />
+        <div className="grid gap-6 lg:grid-cols-2">
+          <GmailConnectionCard status={gmailStatus} gmailFlash={params.gmail} reason={params.reason} />
+          <InitialScanCard connected={connected} />
+        </div>
       </main>
     </div>
   );

@@ -56,3 +56,39 @@ export async function createGmailApiForUser(userId: string): Promise<{
     throw err;
   }
 }
+
+export async function createGmailApiForConnection(connectionId: string): Promise<{
+  gmail: gmail_v1.Gmail;
+  userId: string;
+  gmailEmail: string;
+}> {
+  const db = createAdminClient();
+  const { data, error } = await db
+    .from("gmail_connections")
+    .select("id, user_id, gmail_email, encrypted_refresh_token, status")
+    .eq("id", connectionId)
+    .eq("status", "CONNECTED")
+    .maybeSingle();
+
+  if (error || !data?.encrypted_refresh_token) {
+    throw new GmailConnectError("not_connected", "No connected Gmail account");
+  }
+
+  const env = getGmailEnv();
+  let refreshToken: string;
+  try {
+    refreshToken = decryptSecret(data.encrypted_refresh_token, env.TOKEN_ENCRYPTION_KEY);
+  } catch {
+    throw new GmailConnectError("encryption_key", "Could not decrypt stored Gmail token");
+  }
+
+  try {
+    const gmail = await createGmailApi(refreshToken);
+    return { gmail, userId: data.user_id as string, gmailEmail: data.gmail_email as string };
+  } catch (err) {
+    if (err instanceof GmailConnectError && err.reason === "reauth_required") {
+      await db.from("gmail_connections").update({ status: "REAUTH_REQUIRED" }).eq("id", data.id);
+    }
+    throw err;
+  }
+}

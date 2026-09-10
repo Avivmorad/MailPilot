@@ -3,13 +3,15 @@ import { describe, expect, it } from "vitest";
 import {
   getContextLimits,
   isGmailConfigured,
+  isGeminiConfigured,
   parseClientEnv,
+  parseGeminiEnv,
   parseGmailEnv,
   parseServerEnv,
 } from "@/lib/config/env";
 
 describe("parseGmailEnv", () => {
-  it("succeeds without OpenAI or cron secrets", () => {
+  it("succeeds without Gemini or cron secrets", () => {
     const env = parseGmailEnv({
       NEXT_PUBLIC_SUPABASE_URL: "https://example.supabase.co",
       NEXT_PUBLIC_SUPABASE_ANON_KEY: "anon-key",
@@ -40,6 +42,26 @@ describe("isGmailConfigured", () => {
   });
 });
 
+describe("parseGeminiEnv", () => {
+  it("reads GEMINI_API_KEY and GEMINI_MODEL", () => {
+    const env = parseGeminiEnv({
+      GEMINI_API_KEY: "gemini-test-key",
+      GEMINI_MODEL: "gemini-3.1-flash-lite",
+    });
+    expect(env.GEMINI_MODEL).toBe("gemini-3.1-flash-lite");
+  });
+
+  it("throws when Gemini secrets are missing", () => {
+    expect(() => parseGeminiEnv({})).toThrowError(/Gemini/);
+  });
+});
+
+describe("isGeminiConfigured", () => {
+  it("is false when Gemini keys are empty", () => {
+    expect(isGeminiConfigured({})).toBe(false);
+  });
+});
+
 const validServerEnv = {
   NEXT_PUBLIC_SUPABASE_URL: "https://example.supabase.co",
   NEXT_PUBLIC_SUPABASE_ANON_KEY: "anon-key",
@@ -48,8 +70,8 @@ const validServerEnv = {
   GOOGLE_CLIENT_SECRET: "client-secret",
   GOOGLE_REDIRECT_URI: "https://app.example.com/api/gmail/callback",
   TOKEN_ENCRYPTION_KEY: "0".repeat(64),
-  OPENAI_API_KEY: "sk-test",
-  OPENAI_MODEL: "gpt-test",
+  GEMINI_API_KEY: "gemini-test-key",
+  GEMINI_MODEL: "gemini-3.1-flash-lite",
   CRON_SECRET: "cron-secret",
 };
 

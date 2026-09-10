@@ -27,10 +27,15 @@ Built **phase by phase** (spec §63).
   INBOUND/OUTBOUND direction.
 - **Phase 4 — AI triage:** Gemini structured JSON (`GEMINI_API_KEY` / `GEMINI_MODEL`),
   Zod schema, deterministic post-processing, prompt-injection wrapping, and eval
-  fixtures. Scanning the inbox is **not** implemented yet (Phase 5).
+  fixtures.
+- **Phase 5 — Initial scan:** dashboard **Scan now** (24h / 3 days / 7 days,
+  default 7), Gmail list + thread analysis, idempotent DB upserts, action and
+  MailPilot label reconciliation, and inbox counters. Failed AI does not apply
+  labels. Daily incremental scan is still Phase 8.
 
 Phase 2 requires Google OAuth credentials in `.env.local` and the `0002_gmail_connections.sql`
-migration applied to your Supabase project.
+migration applied to your Supabase project. Phase 5 also needs
+`0003_initial_scan.sql` and a configured `GEMINI_API_KEY`.
 
 ## Google Cloud / Gmail setup
 
@@ -62,6 +67,7 @@ Apply SQL in the Supabase SQL Editor, in order:
 
 1. `supabase/migrations/0001_profiles.sql`
 2. `supabase/migrations/0002_gmail_connections.sql`
+3. `supabase/migrations/0003_initial_scan.sql`
 
 ## Architecture
 

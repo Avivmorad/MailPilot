@@ -12,10 +12,11 @@ Owner-level product decisions that refine it live at
 overlay wins. Treat both as the source of truth. Implement phase-by-phase (see spec §63); do not
 invent different behavior without a documented reason.
 
-**Current status:** Phase 0–3 working (login, Connect Gmail, MIME/thread
-parser). Phase 4 AI triage is in: Gemini structured JSON, Zod schema,
-post-processing, prompt-injection wrapping, and eval fixtures. No inbox scan
-yet (Phase 5).
+**Current status:** Phase 0–5 working (login, Connect Gmail, MIME/thread
+parser, Gemini triage, manual initial scan). Phase 5: dashboard **Scan now**
+with 1/3/7-day lookback, DB upserts, action/label reconciliation, and
+counters. Failed AI does not apply Gmail labels. Daily incremental scan
+(Phase 8) is not in yet.
 
 ## Repository rules
 

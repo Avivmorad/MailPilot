@@ -1,7 +1,7 @@
 import { google, type gmail_v1 } from "googleapis";
 
 import { createAdminClient } from "@/lib/supabase/admin";
-import { MAILPILOT_LABELS } from "@/lib/gmail/constants";
+import { MAILPILOT_LABELS, type MailPilotLogicalLabel } from "@/lib/gmail/constants";
 import { createOAuth2Client } from "@/lib/gmail/oauth";
 
 /**
@@ -62,4 +62,44 @@ export async function ensureManagedLabels(
 async function listAllLabels(gmail: gmail_v1.Gmail): Promise<gmail_v1.Schema$Label[]> {
   const res = await gmail.users.labels.list({ userId: "me" });
   return res.data.labels ?? [];
+}
+
+export async function loadLabelIdMap(
+  connectionId: string,
+): Promise<Map<MailPilotLogicalLabel, string>> {
+  const db = createAdminClient();
+  const { data, error } = await db
+    .from("gmail_labels")
+    .select("logical_name, gmail_label_id")
+    .eq("gmail_connection_id", connectionId);
+  if (error) {
+    throw new Error("Failed to load MailPilot label mappings");
+  }
+  const map = new Map<MailPilotLogicalLabel, string>();
+  for (const row of data ?? []) {
+    const logical = row.logical_name as MailPilotLogicalLabel;
+    if (MAILPILOT_LABELS.some((spec) => spec.logicalName === logical) && typeof row.gmail_label_id === "string") {
+      map.set(logical, row.gmail_label_id);
+    }
+  }
+  return map;
+}
+
+export async function modifyThreadLabels(
+  gmail: gmail_v1.Gmail,
+  threadId: string,
+  addLabelIds: string[],
+  removeLabelIds: string[],
+): Promise<void> {
+  if (addLabelIds.length === 0 && removeLabelIds.length === 0) {
+    return;
+  }
+  await gmail.users.threads.modify({
+    userId: "me",
+    id: threadId,
+    requestBody: {
+      addLabelIds,
+      removeLabelIds,
+    },
+  });
 }

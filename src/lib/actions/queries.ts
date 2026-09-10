@@ -114,3 +114,8 @@ export async function listActionsForUser(
   }
   return visible.slice(0, limit);
 }
+
+export async function countActionsForUser(userId: string, status: ActionStatus): Promise<number> {
+  const items = await listActionsForUser(userId, status, 200);
+  return items.length;
+}

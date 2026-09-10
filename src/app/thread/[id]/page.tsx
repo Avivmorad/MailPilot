@@ -6,10 +6,12 @@ import { AppShell } from "@/components/layout/app-shell";
 import { AppHeader } from "@/components/nav/app-header";
 import { ThreadFeedback } from "@/components/threads/thread-feedback";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { LabeledField } from "@/components/ui/labeled-field";
 import { MetaBadge } from "@/components/ui/meta-badge";
 import { getSessionUser } from "@/lib/supabase/auth";
 import { getThreadDetailForUser } from "@/lib/threads/queries";
-import { formatDate, formatDateTime } from "@/lib/ui/format";
+import { formatDate, formatDateTime, isDeadlineOverdue } from "@/lib/ui/format";
+import { cn } from "@/lib/utils";
 import { labelForDirection } from "@/lib/ui/labels";
 
 export const dynamic = "force-dynamic";
@@ -26,6 +28,9 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
   }
 
   const lowConfidence = thread.confidence != null && thread.confidence < 0.55;
+  const inbound = [...thread.messages].reverse().find((message) => message.direction.toLowerCase() === "inbound");
+  const senderMessage = inbound ?? thread.messages[thread.messages.length - 1];
+  const sender = senderMessage?.senderName ?? senderMessage?.senderEmail ?? null;
 
   return (
     <AppShell header={<AppHeader email={user.email} current="thread" />} width="narrow">
@@ -33,10 +38,14 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
         <Link href="/dashboard" className="text-muted-foreground hover:text-foreground text-sm hover:underline">
           ← Back to dashboard
         </Link>
-        <h1 className="text-foreground mt-3 text-2xl font-bold tracking-tight text-balance sm:text-3xl" dir="auto">
+        <h1 className="text-foreground mt-3 text-center text-2xl font-bold tracking-tight text-balance sm:text-3xl" dir="auto">
           {thread.shortDisplayTitle ?? thread.subject ?? "Thread"}
         </h1>
-        {thread.subject ? <p className="text-muted-foreground mt-1 text-sm">{thread.subject}</p> : null}
+        {thread.subject ? (
+          <p className="text-muted-foreground mt-1 text-center text-sm" dir="auto">
+            {thread.subject}
+          </p>
+        ) : null}
       </div>
 
       <div className="flex flex-wrap gap-2">
@@ -57,29 +66,34 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
           ) : (
             <p className="text-muted-foreground">No analysis yet.</p>
           )}
-          {thread.actionSummary ? (
-            <p className="bg-muted/60 rounded-lg px-3 py-2">
-              <span className="text-muted-foreground">Do: </span>
-              <span dir="auto">{thread.actionSummary}</span>
-            </p>
-          ) : null}
-          {thread.actionReason ? (
-            <p>
-              <span className="text-muted-foreground">Why: </span>
-              <span dir="auto">{thread.actionReason}</span>
-            </p>
-          ) : null}
-          {thread.waitingFor ? (
-            <p>
-              <span className="text-muted-foreground">Waiting on: </span>
-              {thread.waitingFor}
-            </p>
-          ) : null}
-          <p className="text-muted-foreground text-xs">
-            Deadline {formatDate(thread.deadline)}
-            {thread.deadlineText ? ` (${thread.deadlineText})` : ""} · Last activity{" "}
-            {formatDateTime(thread.latestMessageAt)}
-          </p>
+          <div className="space-y-1.5">
+            {sender ? <LabeledField label="Sender">{sender}</LabeledField> : null}
+            {thread.latestMessageAt ? (
+              <LabeledField label="Date">{formatDateTime(thread.latestMessageAt)}</LabeledField>
+            ) : null}
+            {thread.actionSummary ? (
+              <LabeledField label="Task" dir="auto">
+                {thread.actionSummary}
+              </LabeledField>
+            ) : null}
+            {thread.deadline ? (
+              <LabeledField
+                label="Deadline"
+                valueClassName={cn(
+                  isDeadlineOverdue(thread.deadline) && "font-semibold text-red-600 dark:text-red-400",
+                )}
+              >
+                {formatDate(thread.deadline)}
+                {thread.deadlineText ? ` (${thread.deadlineText})` : ""}
+              </LabeledField>
+            ) : null}
+            {thread.actionReason ? (
+              <LabeledField label="Why" dir="auto">
+                {thread.actionReason}
+              </LabeledField>
+            ) : null}
+            {thread.waitingFor ? <LabeledField label="Waiting on">{thread.waitingFor}</LabeledField> : null}
+          </div>
           {lowConfidence ? (
             <p className="text-amber-800 text-sm dark:text-amber-200">
               Low classification confidence ({thread.confidence?.toFixed(2)}). Double-check before acting.

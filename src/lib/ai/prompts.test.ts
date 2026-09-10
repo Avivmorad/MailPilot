@@ -54,4 +54,8 @@ describe("TRIAGE_SYSTEM_PROMPT", () => {
     expect(TRIAGE_SYSTEM_PROMPT).toContain("Write all user-facing text fields in English");
     expect(TRIAGE_SYSTEM_PROMPT).not.toContain("in Hebrew");
   });
+
+  it("treats inbound document-share notices as informational", () => {
+    expect(TRIAGE_SYSTEM_PROMPT).toContain("shared a document with you");
+  });
 });

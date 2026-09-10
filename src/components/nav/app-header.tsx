@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 
 const NAV = [
   { href: "dashboard", label: "Dashboard", path: "/dashboard" },
-  { href: "actions", label: "Actions", path: "/actions" },
+  { href: "mail", label: "Mail", path: "/mail" },
   { href: "settings", label: "Settings", path: "/settings" },
 ] as const;
 
@@ -16,7 +16,7 @@ export function AppHeader({
   current,
 }: {
   email?: string | null;
-  current: "dashboard" | "actions" | "settings" | "thread";
+  current: "dashboard" | "mail" | "settings" | "thread";
 }) {
   return (
     <header className="border-border/70 bg-background/85 sticky top-0 z-40 border-b backdrop-blur-md">

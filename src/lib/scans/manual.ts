@@ -161,6 +161,7 @@ export async function getInboxCountsForUser(userId: string) {
       important: 0,
       needAction: 0,
       waiting: 0,
+      ignored: 0,
     };
   }
   return {
@@ -168,5 +169,6 @@ export async function getInboxCountsForUser(userId: string) {
     important: data.filter((row) => row.importance === "high").length,
     needAction: data.filter((row) => row.requires_action === true).length,
     waiting: data.filter((row) => row.status === "waiting").length,
+    ignored: data.filter((row) => row.status === "ignore").length,
   };
 }

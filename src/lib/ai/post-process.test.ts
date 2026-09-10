@@ -210,6 +210,23 @@ describe("postProcessThreadAnalysis", () => {
     expect(processed.status).toBe("action_required");
     expect(processed.requires_action).toBe(true);
   });
+
+  it("downgrades a document-share notice from waiting to informational", () => {
+    const processed = postProcessThreadAnalysis(
+      analysis({
+        status: "waiting",
+        waiting_for: "Ada",
+        requires_action: false,
+        action_type: "none",
+        summary: "Ada shared a document with you",
+        short_display_title: "Document shared",
+      }),
+      { latestSubject: "Ada shared a document" },
+    );
+    expect(processed.status).toBe("informational");
+    expect(processed.waiting_for).toBeNull();
+    expect(processed.requires_action).toBe(false);
+  });
 });
 
 describe("confidenceBand", () => {

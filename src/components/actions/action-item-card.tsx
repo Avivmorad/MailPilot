@@ -1,13 +1,16 @@
 import Link from "next/link";
 
 import { ActionControls } from "@/components/actions/action-controls";
+import { LabeledField } from "@/components/ui/labeled-field";
 import { MetaBadge } from "@/components/ui/meta-badge";
 import type { ActionListItem } from "@/lib/actions/queries";
-import { formatDate, formatRelativeTime } from "@/lib/ui/format";
+import { formatDate, formatDateTime, isDeadlineOverdue } from "@/lib/ui/format";
 import { accentForUrgency } from "@/lib/ui/labels";
 import { cn } from "@/lib/utils";
 
 export function ActionItemCard({ item }: { item: ActionListItem }) {
+  const overdue = isDeadlineOverdue(item.deadline);
+
   return (
     <article
       className={cn(
@@ -16,13 +19,12 @@ export function ActionItemCard({ item }: { item: ActionListItem }) {
       )}
     >
       <div className="flex flex-wrap items-start justify-between gap-2">
-        <div className="min-w-0 flex-1">
-          <h3 className="text-foreground text-base leading-snug font-semibold tracking-tight" dir="auto">
+        <div className="min-w-0 w-full flex-1">
+          <h3 className="text-foreground text-center text-base leading-snug font-semibold tracking-tight" dir="auto">
             <Link href={`/thread/${item.threadId}`} className="hover:underline">
               {item.title}
             </Link>
           </h3>
-          {item.sender ? <p className="text-muted-foreground mt-1 text-sm">{item.sender}</p> : null}
         </div>
         <div className="flex flex-wrap gap-1">
           {item.urgency && item.urgency !== "none" && item.urgency !== "normal" ? (
@@ -35,27 +37,26 @@ export function ActionItemCard({ item }: { item: ActionListItem }) {
         </div>
       </div>
 
-      {item.description ? (
-        <p className="bg-muted/60 mt-3 rounded-lg px-3 py-2 text-sm leading-relaxed" dir="auto">
-          <span className="text-muted-foreground">Do: </span>
-          {item.description}
-        </p>
-      ) : item.summary ? (
-        <p className="text-muted-foreground mt-3 text-sm leading-relaxed" dir="auto">
-          {item.summary}
-        </p>
-      ) : null}
-
-      {item.waitingFor ? (
-        <p className="mt-2 text-sm">
-          <span className="text-muted-foreground">Waiting on: </span>
-          {item.waitingFor}
-        </p>
-      ) : null}
-
-      <p className="text-muted-foreground mt-3 text-xs">
-        Deadline {formatDate(item.deadline)} · {formatRelativeTime(item.latestMessageAt)}
-      </p>
+      <div className="mt-3 space-y-1.5">
+        {item.sender ? <LabeledField label="Sender">{item.sender}</LabeledField> : null}
+        {item.latestMessageAt ? (
+          <LabeledField label="Date">{formatDateTime(item.latestMessageAt)}</LabeledField>
+        ) : null}
+        {item.description ? (
+          <LabeledField label="Task" dir="auto">
+            {item.description}
+          </LabeledField>
+        ) : null}
+        {item.deadline ? (
+          <LabeledField
+            label="Deadline"
+            valueClassName={cn(overdue && "font-semibold text-red-600 dark:text-red-400")}
+          >
+            {formatDate(item.deadline)}
+          </LabeledField>
+        ) : null}
+        {item.waitingFor ? <LabeledField label="Waiting on">{item.waitingFor}</LabeledField> : null}
+      </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-3 border-t pt-3">
         <ActionControls actionId={item.id} status={item.status} />

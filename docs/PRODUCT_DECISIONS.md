@@ -93,11 +93,12 @@ Implementation:
 
 ## Inbox summary vs open tasks
 
-The dashboard has two separate products (they must not be the same list):
+The dashboard is an overview (scan status and counts). Mail lists live on **Mail** tabs
+and stay two separate products (they must not be the same list):
 
-1. **Inbox summary** — what arrived / what the mail is about, grouped by topic. Includes
-   informational mail (login notices, receipts, FYI).
-2. **Open tasks** — only threads where the user still has a durable next step.
+1. **Inbox summary** (Summary tab) — quick updates only (`informational` / `resolved`), grouped by topic:
+   login notices, receipts, FYI. **Never** `ignore` (that is the Ignored tab) and never open/waiting tasks.
+2. **Open tasks** (Open tab) — only threads where the user still has a durable next step.
 
 One-time auth mail is **not** an open task: OTP / verification codes, magic links, and
 “click to verify this email address” are `ignore`. Placement for other families is below.
@@ -156,5 +157,6 @@ Waiting (`WAITING`).
 | User already asked/sent/signed; no reply yet | Waiting | `waiting` |
 | Webinar / mass calendar invite | Summary | `informational` |
 | Lab results or “document ready in the portal” | Summary | `informational` |
+| Drive/Docs/Dropbox “shared a document/file with you” (access granted) | Summary | `informational` |
 | Shipment out for delivery, itinerary, boarding pass, confirmed appointment | Summary | `informational` |
 | Job alerts, application auto-acks, bot mail (GitHub/Slack/etc.), surveys, promos | Ignore | `ignore` |

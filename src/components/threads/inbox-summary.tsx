@@ -7,19 +7,24 @@ import { groupByTopic } from "@/lib/actions/topics";
 import type { RecentThreadRow } from "@/lib/threads/queries";
 import { formatRelativeTime } from "@/lib/ui/format";
 
-export function InboxSummary({ threads }: { threads: RecentThreadRow[] }) {
+export function InboxSummary({
+  threads,
+  storageKey = "inbox-summary",
+  emptyTitle = "No classified mail yet",
+  emptyDescription = "Run a scan to see quick FYI updates. Ignored mail is in the Ignored tab, not here.",
+}: {
+  threads: RecentThreadRow[];
+  storageKey?: string;
+  emptyTitle?: string;
+  emptyDescription?: string;
+}) {
   if (threads.length === 0) {
-    return (
-      <EmptyState
-        title="No classified mail yet"
-        description="Run a scan to see a topic-grouped digest of what arrived — including FYI notices."
-      />
-    );
+    return <EmptyState title={emptyTitle} description={emptyDescription} />;
   }
   const groups = groupByTopic(threads);
   return (
     <CollapsibleTopicGroups
-      storageKey="inbox-summary"
+      storageKey={storageKey}
       variant="panel"
       groups={groups.map((group) => ({
         topic: group.topic,
@@ -33,7 +38,7 @@ export function InboxSummary({ threads }: { threads: RecentThreadRow[] }) {
                   className="hover:bg-muted/50 block px-4 py-3 transition-colors"
                 >
                   <div className="flex flex-wrap items-start justify-between gap-2">
-                    <p className="text-foreground font-semibold leading-snug tracking-tight" dir="auto">
+                    <p className="text-foreground min-w-0 w-full text-center font-semibold leading-snug tracking-tight" dir="auto">
                       {thread.shortDisplayTitle ?? thread.summary ?? "Thread"}
                     </p>
                     <div className="flex shrink-0 items-center gap-2">

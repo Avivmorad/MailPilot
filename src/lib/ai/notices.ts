@@ -90,6 +90,34 @@ function matchesAny(text: string, patterns: RegExp[]): boolean {
   return patterns.some((pattern) => pattern.test(text));
 }
 
+const DOCUMENT_SHARE_FYI = [
+  /shared (a |an )?(document|file|folder|item|spreadsheet|presentation) with you/,
+  /has shared .+ with you/,
+  /invited you to (view|edit|comment)/,
+  /you('ve| have) been given access/,
+  /added you as (a |an )?(viewer|commenter|editor)/,
+  /שית(ף|פה|פו) איתך (מסמך|קובץ|תיקייה)/,
+  /שות(ף|פה) איתך/,
+  /קיבלת גישה (למסמך|לקובץ|לתיקייה)/,
+];
+
+const DOCUMENT_SHARE_IS_TASK = [
+  /requested access/,
+  /wants access/,
+  /please (review|sign|approve|comment|reply)/,
+  /grant (me |them )?access/,
+  /בקשת גישה/,
+  /אנא (חתום|אשר|הגב|בדוק)/,
+];
+
+export function isDocumentShareNotice(parts: Array<string | null | undefined>): boolean {
+  const text = haystack(parts);
+  if (!text || matchesAny(text, DOCUMENT_SHARE_IS_TASK)) {
+    return false;
+  }
+  return matchesAny(text, DOCUMENT_SHARE_FYI);
+}
+
 export function isLoginFyiNotice(parts: Array<string | null | undefined>): boolean {
   const text = haystack(parts);
   if (!text || matchesAny(text, REAL_SECURITY_ACTION)) {

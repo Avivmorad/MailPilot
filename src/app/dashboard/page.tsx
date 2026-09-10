@@ -1,21 +1,18 @@
-import { Clock3, Inbox, ListChecks, ShieldAlert } from "lucide-react";
+import { Ban, Clock3, Inbox, ListChecks, ShieldAlert } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { GroupedActionList } from "@/components/actions/grouped-action-list";
 import { GmailConnectionCard } from "@/components/gmail/gmail-connection-card";
 import { AppShell } from "@/components/layout/app-shell";
-import { CollapsibleBlock } from "@/components/layout/collapsible-block";
 import { PageHeader } from "@/components/layout/page-header";
 import { AppHeader } from "@/components/nav/app-header";
 import { InitialScanCard } from "@/components/scans/initial-scan-card";
-import { InboxSummary } from "@/components/threads/inbox-summary";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { listActionsForUser } from "@/lib/actions/queries";
+import { countActionsForUser } from "@/lib/actions/queries";
 import { getGmailStatusForUser } from "@/lib/gmail/connections";
+import { MAIL_TABS } from "@/lib/mail/tabs";
 import { getInboxCountsForUser, getLatestScanRunForUser } from "@/lib/scans/manual";
 import { getSessionUser } from "@/lib/supabase/auth";
-import { listRecentThreadsForUser } from "@/lib/threads/queries";
 import { formatDateTime } from "@/lib/ui/format";
 import { labelForScanStatus } from "@/lib/ui/labels";
 
@@ -40,9 +37,30 @@ function dashboardDescription({
     return "A scan is running. You can keep using the dashboard while it works.";
   }
   if (latestStatus) {
-    return "Open tasks are only mail that still needs a next step. The summary is everything else that arrived.";
+    return "Overview of scan status and counts. Open, waiting, and digest lists live under Mail.";
   }
   return "Gmail is connected. Choose a lookback (up to a month) and run a scan.";
+}
+
+function nextStepCopy({
+  connected,
+  openCount,
+  processed,
+}: {
+  connected: boolean;
+  openCount: number;
+  processed: number;
+}): string {
+  if (!connected) {
+    return "Connect Gmail in Settings or with the card above, then run your first scan.";
+  }
+  if (processed === 0) {
+    return "Run Scan now to classify recent mail. Lists will appear under Mail.";
+  }
+  if (openCount > 0) {
+    return `You have ${openCount} open task${openCount === 1 ? "" : "s"}. Open Mail to work through them.`;
+  }
+  return "No open tasks. Check the Mail summary for FYI mail, or Waiting if you already acted.";
 }
 
 export default async function DashboardPage({
@@ -57,23 +75,23 @@ export default async function DashboardPage({
 
   const [params, gmailStatus] = await Promise.all([searchParams, getGmailStatusForUser(user.id)]);
   const connected = gmailStatus.connection?.status === "CONNECTED";
-  const emptyCounts = { processed: 0, important: 0, needAction: 0, waiting: 0 };
-  const [counts, latestScan, openActions, waitingActions, recentThreads] = connected
+  const emptyCounts = { processed: 0, important: 0, needAction: 0, waiting: 0, ignored: 0 };
+  const [counts, latestScan, openCount] = connected
     ? await Promise.all([
         getInboxCountsForUser(user.id),
         getLatestScanRunForUser(user.id),
-        listActionsForUser(user.id, "OPEN", 24),
-        listActionsForUser(user.id, "WAITING", 8),
-        listRecentThreadsForUser(user.id, 24),
+        countActionsForUser(user.id, "OPEN"),
       ])
-    : [emptyCounts, null, [], [], []];
+    : [emptyCounts, null, 0];
   const latestStatus = latestScan ? String(latestScan.status) : null;
+  const showGmailCard = !connected || Boolean(params.gmail);
 
   const stats = [
-    { label: "Processed", value: connected ? String(counts.processed) : "—", icon: Inbox },
-    { label: "Important", value: connected ? String(counts.important) : "—", icon: ShieldAlert },
-    { label: "Open tasks", value: connected ? String(openActions.length) : "—", icon: ListChecks },
-    { label: "Waiting", value: connected ? String(counts.waiting) : "—", icon: Clock3 },
+    { label: "Processed", value: connected ? String(counts.processed) : "—", icon: Inbox, href: "/mail?tab=summary" },
+    { label: "Important", value: connected ? String(counts.important) : "—", icon: ShieldAlert, href: "/mail?tab=summary" },
+    { label: "Open", value: connected ? String(openCount) : "—", icon: ListChecks, href: "/mail?tab=open" },
+    { label: "Waiting", value: connected ? String(counts.waiting) : "—", icon: Clock3, href: "/mail?tab=waiting" },
+    { label: "Ignored", value: connected ? String(counts.ignored) : "—", icon: Ban, href: "/mail?tab=ignored" },
   ];
 
   return (
@@ -87,19 +105,45 @@ export default async function DashboardPage({
         })}
       />
 
-      {!connected || params.gmail ? (
+      {showGmailCard ? (
         <GmailConnectionCard status={gmailStatus} gmailFlash={params.gmail} reason={params.reason} />
-      ) : null}
+      ) : (
+        <p className="text-muted-foreground text-sm">
+          Gmail connected as{" "}
+          <span className="text-foreground font-medium">{gmailStatus.connection?.gmailEmail}</span>
+          {" · "}
+          <Link href="/settings" className="text-primary font-medium hover:underline">
+            Manage in Settings
+          </Link>
+        </p>
+      )}
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5 sm:gap-4">
         {stats.map((stat) => (
-          <Card key={stat.label} size="sm">
-            <CardContent className="pt-1">
-              <stat.icon className="text-muted-foreground mb-2 size-4" aria-hidden />
-              <div className="text-3xl font-semibold tracking-tight tabular-nums">{stat.value}</div>
-              <div className="text-muted-foreground mt-1 text-sm">{stat.label}</div>
-            </CardContent>
-          </Card>
+          <Link key={stat.label} href={stat.href} className="block rounded-xl focus-visible:ring-2 focus-visible:ring-offset-2">
+            <Card size="sm" className="h-full transition-colors hover:bg-muted/40">
+              <CardContent className="pt-1">
+                <stat.icon className="text-muted-foreground mb-2 size-4" aria-hidden />
+                <div className="text-3xl font-semibold tracking-tight tabular-nums">{stat.value}</div>
+                <div className="text-muted-foreground mt-1 text-sm">{stat.label}</div>
+              </CardContent>
+            </Card>
+          </Link>
+        ))}
+      </div>
+
+      <p className="text-sm leading-relaxed">{nextStepCopy({ connected, openCount, processed: counts.processed })}</p>
+
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+        <span className="text-muted-foreground">Mail lists</span>
+        {MAIL_TABS.map((item) => (
+          <Link
+            key={item.id}
+            href={`/mail?tab=${item.id}`}
+            className="text-primary font-medium hover:underline"
+          >
+            {item.label}
+          </Link>
         ))}
       </div>
 
@@ -159,45 +203,6 @@ export default async function DashboardPage({
           }
         />
       </div>
-
-      <CollapsibleBlock
-        storageKey="dashboard-open-tasks"
-        title="Open tasks"
-        description="Mail that still needs a next step, grouped by topic."
-        action={
-          <Link href="/actions?tab=OPEN" className="text-primary shrink-0 pt-2 text-sm font-medium hover:underline">
-            View all
-          </Link>
-        }
-      >
-        <GroupedActionList items={openActions} storageKey="open-tasks" />
-      </CollapsibleBlock>
-
-      <CollapsibleBlock
-        storageKey="dashboard-waiting"
-        title="Waiting"
-        description="You already acted. The ball is in someone else's court."
-        action={
-          <Link href="/actions?tab=WAITING" className="text-primary shrink-0 pt-2 text-sm font-medium hover:underline">
-            View all
-          </Link>
-        }
-      >
-        <GroupedActionList
-          items={waitingActions}
-          storageKey="waiting"
-          emptyTitle="Nothing waiting"
-          emptyDescription="Threads you replied to or submitted will land here."
-        />
-      </CollapsibleBlock>
-
-      <CollapsibleBlock
-        storageKey="dashboard-inbox-summary"
-        title="Inbox summary"
-        description="What the mail is about, including FYI notices. These are not open tasks."
-      >
-        <InboxSummary threads={recentThreads} />
-      </CollapsibleBlock>
     </AppShell>
   );
 }

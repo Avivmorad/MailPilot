@@ -1,5 +1,16 @@
 const DISPLAY_TZ = "Asia/Jerusalem";
 
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+function calendarDateInTimeZone(now: Date, timeZone: string): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(now);
+}
+
 function parseInstant(iso: string): Date | null {
   const date = new Date(iso);
   return Number.isFinite(date.getTime()) ? date : null;
@@ -27,7 +38,7 @@ export function formatDate(isoDate: string | null | undefined): string {
   if (!isoDate) {
     return "—";
   }
-  const dateOnly = /^\d{4}-\d{2}-\d{2}$/.test(isoDate);
+  const dateOnly = ISO_DATE.test(isoDate);
   const date = dateOnly ? new Date(`${isoDate}T12:00:00.000Z`) : parseInstant(isoDate);
   if (!date) {
     return "—";
@@ -67,4 +78,17 @@ export function formatRelativeTime(
     return `${days}d ago`;
   }
   return formatDateTime(iso);
+}
+
+/** True when a YYYY-MM-DD deadline is before today in Asia/Jerusalem (date-only). */
+export function isDeadlineOverdue(
+  isoDate: string | null | undefined,
+  now: Date = new Date(),
+  timeZone: string = DISPLAY_TZ,
+): boolean {
+  if (!isoDate || !ISO_DATE.test(isoDate)) {
+    return false;
+  }
+  const today = calendarDateInTimeZone(now, timeZone);
+  return isoDate < today;
 }

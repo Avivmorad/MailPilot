@@ -1,5 +1,5 @@
 import { normalizeDeadline } from "@/lib/ai/deadlines";
-import { isEphemeralAuthNotice, isLoginFyiNotice } from "@/lib/ai/notices";
+import { isDocumentShareNotice, isEphemeralAuthNotice, isLoginFyiNotice } from "@/lib/ai/notices";
 import {
   threadAnalysisSchema,
   type ActionType,
@@ -144,6 +144,16 @@ export function postProcessThreadAnalysis(
     next.requires_reply = false;
     next.action_type = "none";
     next.action_summary = null;
+    next.urgency = next.urgency === "urgent" ? "normal" : next.urgency;
+  } else if (isDocumentShareNotice(noticeParts)) {
+    next.status = "informational";
+    next.requires_action = false;
+    next.requires_reply = false;
+    next.action_type = "none";
+    next.action_summary = null;
+    next.action_reason = null;
+    next.waiting_for = null;
+    next.waiting_since = null;
     next.urgency = next.urgency === "urgent" ? "normal" : next.urgency;
   }
 

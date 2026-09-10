@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { isEphemeralAuthNotice, isLoginFyiNotice, isNonTaskNotice } from "@/lib/ai/notices";
+import {
+  isDocumentShareNotice,
+  isEphemeralAuthNotice,
+  isLoginFyiNotice,
+  isNonTaskNotice,
+} from "@/lib/ai/notices";
 
 describe("isEphemeralAuthNotice", () => {
   it("treats OTP and email-verify mail as non-tasks", () => {
@@ -44,6 +49,20 @@ describe("isLoginFyiNotice", () => {
 
   it("keeps secure-now mail as a task when there is no dismiss-if-you path", () => {
     expect(isLoginFyiNotice(["Unusual sign-in detected. Secure your account now."])).toBe(false);
+  });
+});
+
+describe("isDocumentShareNotice", () => {
+  it("treats Drive share-with-you mail as FYI", () => {
+    expect(isDocumentShareNotice(["Ada shared a document with you. Open in Drive."])).toBe(true);
+    expect(isDocumentShareNotice(["דני שיתף איתך מסמך"])).toBe(true);
+  });
+
+  it("keeps access requests and review asks as tasks", () => {
+    expect(isDocumentShareNotice(["Ada requested access to Invoice Q3"])).toBe(false);
+    expect(
+      isDocumentShareNotice(["Ada shared a document with you. Please review and sign."]),
+    ).toBe(false);
   });
 });
 

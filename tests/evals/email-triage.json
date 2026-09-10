@@ -568,5 +568,27 @@
       "deadline": null,
       "summary": "קידום וובינר עם דחיפות שיווקית מזויפת — ניתן להתעלם."
     }
+  },
+  {
+    "id": "case_051_drive_document_share",
+    "userEmails": ["me@example.com"],
+    "messages": [
+      {
+        "from": "drive-shares-noreply@google.com",
+        "to": "me@example.com",
+        "subject": "Invoice Q3",
+        "body": "Ada shared a document with you. Open in Drive to view Invoice Q3.",
+        "direction": "INBOUND"
+      }
+    ],
+    "expected": {
+      "importance": "low",
+      "action_type": "none",
+      "requires_action": false,
+      "requires_reply": false,
+      "status": "informational",
+      "deadline": null,
+      "summary": "שיתפו איתך מסמך ב-Drive — גישה כבר ניתנה, אין משימה פתוחה."
+    }
   }
 ]

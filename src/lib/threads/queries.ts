@@ -60,26 +60,66 @@ export interface RecentThreadRow {
   latestMessageAt: string | null;
 }
 
-export async function listRecentThreadsForUser(userId: string, limit = 24): Promise<RecentThreadRow[]> {
-  const db = createAdminClient();
-  const { data, error } = await db
-    .from("email_threads")
-    .select("id, short_display_title, summary, status, importance, category, latest_message_at")
-    .eq("user_id", userId)
-    .order("latest_message_at", { ascending: false })
-    .limit(limit);
-  if (error || !data) {
-    return [];
-  }
-  return data.map((row) => ({
-    id: row.id as string,
+type ThreadListDbRow = {
+  id: unknown;
+  short_display_title: unknown;
+  summary: unknown;
+  status: unknown;
+  importance: unknown;
+  category: unknown;
+  latest_message_at: unknown;
+};
+
+/** FYI / quick updates only — never ignore, open tasks, or waiting. */
+export const INBOX_SUMMARY_STATUSES = ["informational", "resolved"] as const;
+
+export function isInboxSummaryStatus(status: string | null | undefined): boolean {
+  return status === "informational" || status === "resolved";
+}
+
+export function mapRecentThreadRow(row: ThreadListDbRow): RecentThreadRow {
+  return {
+    id: String(row.id),
     shortDisplayTitle: (row.short_display_title as string | null) ?? null,
     summary: (row.summary as string | null) ?? null,
     status: (row.status as string | null) ?? null,
     importance: (row.importance as string | null) ?? null,
     category: (row.category as string | null) ?? null,
     latestMessageAt: (row.latest_message_at as string | null) ?? null,
-  }));
+  };
+}
+
+const THREAD_LIST_SELECT =
+  "id, short_display_title, summary, status, importance, category, latest_message_at";
+
+export async function listRecentThreadsForUser(userId: string, limit = 24): Promise<RecentThreadRow[]> {
+  const db = createAdminClient();
+  const { data, error } = await db
+    .from("email_threads")
+    .select(THREAD_LIST_SELECT)
+    .eq("user_id", userId)
+    .in("status", [...INBOX_SUMMARY_STATUSES])
+    .order("latest_message_at", { ascending: false })
+    .limit(limit);
+  if (error || !data) {
+    return [];
+  }
+  return data.map((row) => mapRecentThreadRow(row));
+}
+
+export async function listIgnoredThreadsForUser(userId: string, limit = 50): Promise<RecentThreadRow[]> {
+  const db = createAdminClient();
+  const { data, error } = await db
+    .from("email_threads")
+    .select(THREAD_LIST_SELECT)
+    .eq("user_id", userId)
+    .eq("status", "ignore")
+    .order("latest_message_at", { ascending: false })
+    .limit(limit);
+  if (error || !data) {
+    return [];
+  }
+  return data.map((row) => mapRecentThreadRow(row));
 }
 
 export async function getThreadDetailForUser(userId: string, threadId: string): Promise<ThreadDetail | null> {

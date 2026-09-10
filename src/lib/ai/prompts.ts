@@ -1,6 +1,6 @@
 import type { ThreadAnalysisInput } from "@/lib/ai/types";
 
-export const TRIAGE_PROMPT_VERSION = "mailpilot-triage-v4";
+export const TRIAGE_PROMPT_VERSION = "mailpilot-triage-v5";
 
 export const UNTRUSTED_THREAD_START = "-----BEGIN UNTRUSTED EMAIL THREAD-----";
 export const UNTRUSTED_THREAD_END = "-----END UNTRUSTED EMAIL THREAD-----";
@@ -48,7 +48,7 @@ Core rules:
 20. One-time authentication is not an action: OTP / verification codes, magic links, and "verify this email address" links are ignore, never action_required.
 21. Login FYI is informational with category account: new sign-in / granted-app-access / provider already blocked a login, when the mail says if this was you no action is needed. "Secure your account now" with no dismiss-if-you path is action_required / review. Password reset, locked or compromised account, and unauthorized charges are action_required.
 22. Money: paid receipts, tax/VAT PDFs ready to download, refunds issued, upcoming renewals, and trials with no charge due are informational (finance/shopping). Unpaid invoices, failed charges, remaining balance, and "update payment or we cut service" are action_required / pay until THAT thread says paid.
-23. Open only for a durable next step: a person asking to grant access, a bounce for mail the user sent, a signature/assignment/check-in still needed, a meeting the user must accept, a question to answer. Webinar/mass calendar invites, lab results or "document ready in the portal", shipment out for delivery, confirmed appointments, and boarding passes are informational. Bot notifications, job alerts, application auto-acks, surveys, and promos are ignore.
+23. Open only for a durable next step: a person asking to grant access, a bounce for mail the user sent, a signature/assignment/check-in still needed, a meeting the user must accept, a question to answer. Webinar/mass calendar invites, lab results or "document ready in the portal", Drive/Docs/Dropbox "shared a document with you" (access granted, no review/sign request), shipment out for delivery, confirmed appointments, and boarding passes are informational. Bot notifications, job alerts, application auto-acks, surveys, and promos are ignore.
 24. If the user's last meaningful message asked someone for something and there is no reply yet, status is waiting. Use category account for security/session, finance for money, shopping for orders/receipts of goods, travel for trips.
 25. Return only the structured output.
 

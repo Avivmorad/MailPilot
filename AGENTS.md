@@ -13,11 +13,12 @@ overlay wins. Treat both as the source of truth. Implement phase-by-phase (see s
 invent different behavior without a documented reason.
 
 **Current status:** Phase 0–7 working (login, Connect Gmail, MIME/thread
-parser, Gemini triage, initial scan, dashboard Action Center, incremental
+parser, Gemini triage, initial scan, dashboard overview, incremental
 Gmail History sync). Phase 5: dashboard **Scan now** with 1/3/7-day lookback,
 DB upserts, action/label reconciliation, and counters. Failed AI does not
-apply Gmail labels. Phase 6: dashboard cards, action/waiting lists, thread
-details, mark complete, snooze, Open in Gmail. Phase 7: subsequent scans use
+apply Gmail labels. Phase 6: dashboard stats/scan cards; Mail tabs (Summary,
+Open, Waiting, Completed, Snoozed, Ignored); thread details, mark complete,
+snooze, Open in Gmail. Phase 7: subsequent scans use
 the History API; stale historyId recovers with a 1-hour overlap query.
 Open tasks are grouped (Security / Payments / General) and kept separate from the
 inbox summary; OTP and login-FYI notices are not open tasks.

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { formatDate, formatDateTime, formatRelativeTime } from "@/lib/ui/format";
+import { formatDate, formatDateTime, formatRelativeTime, isDeadlineOverdue } from "@/lib/ui/format";
 
 describe("formatDateTime", () => {
   it("formats UTC timestamps in Asia/Jerusalem", () => {
@@ -15,6 +15,29 @@ describe("formatDate", () => {
 
   it("returns an em dash when missing", () => {
     expect(formatDate(null)).toBe("—");
+  });
+});
+
+describe("isDeadlineOverdue", () => {
+  const jerusalemAfternoon = new Date("2026-09-10T12:00:00.000Z");
+
+  it("does not treat today's deadline as overdue", () => {
+    expect(isDeadlineOverdue("2026-09-10", jerusalemAfternoon)).toBe(false);
+  });
+
+  it("treats yesterday's deadline as overdue", () => {
+    expect(isDeadlineOverdue("2026-09-09", jerusalemAfternoon)).toBe(true);
+  });
+
+  it("does not treat a missing deadline as overdue", () => {
+    expect(isDeadlineOverdue(null, jerusalemAfternoon)).toBe(false);
+  });
+
+  it("uses Asia/Jerusalem calendar date, not UTC", () => {
+    // 21:30 UTC on 10 Sep is already 00:30 on 11 Sep in Asia/Jerusalem (UTC+3).
+    const lateUtc = new Date("2026-09-10T21:30:00.000Z");
+    expect(isDeadlineOverdue("2026-09-10", lateUtc)).toBe(true);
+    expect(isDeadlineOverdue("2026-09-11", lateUtc)).toBe(false);
   });
 });
 

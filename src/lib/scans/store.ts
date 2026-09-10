@@ -54,6 +54,7 @@ function actionFromRow(row: Record<string, unknown>): ActionRecord {
     source: String(row.source ?? "AI"),
     manualOverride: Boolean(row.manual_override),
     completedAt: (row.completed_at as string | null) ?? null,
+    snoozedUntil: (row.snoozed_until as string | null) ?? null,
   };
 }
 
@@ -122,6 +123,8 @@ export function createSupabaseScanStore(): ScanStorePort {
       if (patch.messagesDiscovered !== undefined) row.messages_discovered = patch.messagesDiscovered;
       if (patch.messagesProcessed !== undefined) row.messages_processed = patch.messagesProcessed;
       if (patch.threadsAnalyzed !== undefined) row.threads_analyzed = patch.threadsAnalyzed;
+      if (patch.threadsDiscovered !== undefined) row.threads_discovered = patch.threadsDiscovered;
+      if (patch.threadsChecked !== undefined) row.threads_checked = patch.threadsChecked;
       if (patch.importantCount !== undefined) row.important_count = patch.importantCount;
       if (patch.actionCount !== undefined) row.action_count = patch.actionCount;
       if (patch.replyCount !== undefined) row.reply_count = patch.replyCount;
@@ -159,6 +162,21 @@ export function createSupabaseScanStore(): ScanStorePort {
         dailyScanTime: (data.daily_scan_time as string | null) ?? "08:00",
       };
       return settings;
+    },
+
+    async getConnectionScanState(connectionId) {
+      const { data, error } = await db
+        .from("gmail_connections")
+        .select("gmail_history_id, last_successful_scan_at")
+        .eq("id", connectionId)
+        .maybeSingle();
+      if (error) {
+        failStore("Failed to load Gmail connection scan state", error);
+      }
+      return {
+        historyId: (data?.gmail_history_id as string | null) ?? null,
+        lastSuccessfulScanAt: (data?.last_successful_scan_at as string | null) ?? null,
+      };
     },
 
     async upsertThread(input) {
@@ -286,6 +304,7 @@ export function createSupabaseScanStore(): ScanStorePort {
           source: action.source,
           manual_override: action.manualOverride,
           completed_at: action.completedAt,
+          snoozed_until: action.snoozedUntil,
         },
         { onConflict: "thread_id" },
       );

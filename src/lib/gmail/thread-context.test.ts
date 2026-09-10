@@ -47,7 +47,13 @@ describe("buildThreadContext", () => {
         }),
       ],
       ["me@example.com"],
-      { MAX_THREAD_MESSAGES: 6, MAX_MESSAGE_CHARS: 12000, MAX_THREAD_CHARS: 35000, AI_MAX_CONCURRENCY: 5 },
+      {
+        MAX_THREAD_MESSAGES: 6,
+        MAX_MESSAGE_CHARS: 12000,
+        MAX_THREAD_CHARS: 35000,
+        AI_MAX_CONCURRENCY: 5,
+        GMAIL_QUOTA_UNITS_PER_MINUTE: 12000,
+      },
     );
 
     expect(context.messages[0]?.direction).toBe("OUTBOUND");
@@ -71,6 +77,7 @@ describe("buildThreadContext", () => {
       MAX_MESSAGE_CHARS: 12000,
       MAX_THREAD_CHARS: 35000,
       AI_MAX_CONCURRENCY: 5,
+      GMAIL_QUOTA_UNITS_PER_MINUTE: 12000,
     });
     expect(context.messages).toHaveLength(3);
     expect(context.messages[0]?.gmailMessageId).toBe("5");

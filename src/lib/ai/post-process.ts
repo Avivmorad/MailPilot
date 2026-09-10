@@ -1,4 +1,5 @@
 import { normalizeDeadline } from "@/lib/ai/deadlines";
+import { isEphemeralAuthNotice, isLoginFyiNotice } from "@/lib/ai/notices";
 import {
   threadAnalysisSchema,
   type ActionType,
@@ -58,6 +59,8 @@ export function postProcessThreadAnalysis(
   analysis: ThreadAnalysis,
   options: {
     latestFrom?: string | null;
+    latestSubject?: string | null;
+    threadText?: string | null;
     preferences?: Partial<TriagePreferences>;
   } = {},
 ): ThreadAnalysis {
@@ -116,6 +119,32 @@ export function postProcessThreadAnalysis(
     } else if (IMPORTANCE_RANK[next.importance] < IMPORTANCE_RANK.medium) {
       next.importance = "medium";
     }
+  }
+
+  const noticeParts = [
+    options.latestSubject,
+    next.short_display_title,
+    next.summary,
+    next.action_summary,
+    options.threadText,
+  ];
+  if (isEphemeralAuthNotice(noticeParts)) {
+    next.status = "ignore";
+    next.importance = "low";
+    next.requires_action = false;
+    next.requires_reply = false;
+    next.action_type = "none";
+    next.action_summary = null;
+    next.action_reason = null;
+    next.urgency = "none";
+  } else if (isLoginFyiNotice(noticeParts)) {
+    next.status = "informational";
+    next.category = "account";
+    next.requires_action = false;
+    next.requires_reply = false;
+    next.action_type = "none";
+    next.action_summary = null;
+    next.urgency = next.urgency === "urgent" ? "normal" : next.urgency;
   }
 
   return threadAnalysisSchema.parse(next);

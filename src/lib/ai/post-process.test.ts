@@ -129,6 +129,87 @@ describe("postProcessThreadAnalysis", () => {
     expect(processed.status).toBe("action_required");
     expect(processed.importance).toBe("high");
   });
+
+  it("downgrades OTP mail so it is never an open task", () => {
+    const processed = postProcessThreadAnalysis(
+      analysis({
+        status: "action_required",
+        requires_action: true,
+        action_type: "other",
+        action_summary: "הזן את הקוד",
+        short_display_title: "קוד אימות",
+        summary: "הזן את קוד האימות 5827 באתר ג'ובנט",
+      }),
+      { latestSubject: "קוד אימות" },
+    );
+    expect(processed.status).toBe("ignore");
+    expect(processed.requires_action).toBe(false);
+  });
+
+  it("keeps login FYI as informational account mail", () => {
+    const processed = postProcessThreadAnalysis(
+      analysis({
+        status: "action_required",
+        requires_action: true,
+        importance: "medium",
+        category: "notification",
+        action_summary: "בדוק את ההתחברות",
+        summary: "בדוק את פעילות החשבון שלך ב-Linear כדי לוודא שההתחברות מוכרת",
+      }),
+    );
+    expect(processed.status).toBe("informational");
+    expect(processed.category).toBe("account");
+    expect(processed.requires_action).toBe(false);
+  });
+
+  it("downgrades high-importance new-sign-in mail so it is not an open task", () => {
+    const processed = postProcessThreadAnalysis(
+      analysis({
+        status: "action_required",
+        requires_action: true,
+        importance: "high",
+        category: "account",
+        action_type: "review",
+        action_summary: "אבטח את החשבון",
+        summary: "כניסה חדשה ב-Windows. אם הכניסה בוצעה על ידך, אין צורך לעשות דבר.",
+      }),
+    );
+    expect(processed.status).toBe("informational");
+    expect(processed.requires_action).toBe(false);
+    expect(processed.action_type).toBe("none");
+  });
+
+  it("downgrades a provider-blocked login to summary FYI", () => {
+    const processed = postProcessThreadAnalysis(
+      analysis({
+        status: "action_required",
+        requires_action: true,
+        importance: "high",
+        category: "account",
+        action_type: "review",
+        action_summary: "בדוק את ניסיון הכניסה שנחסם",
+        summary: "התראת אבטחה קריטית: חסמנו ניסיון כניסה לחשבון שלך.",
+      }),
+    );
+    expect(processed.status).toBe("informational");
+    expect(processed.requires_action).toBe(false);
+  });
+
+  it("keeps secure-now mail as an open task when there is no dismiss-if-you path", () => {
+    const processed = postProcessThreadAnalysis(
+      analysis({
+        status: "action_required",
+        requires_action: true,
+        importance: "high",
+        category: "account",
+        action_type: "review",
+        action_summary: "אבטח את החשבון",
+        summary: "Unusual sign-in detected. Secure your account now.",
+      }),
+    );
+    expect(processed.status).toBe("action_required");
+    expect(processed.requires_action).toBe(true);
+  });
 });
 
 describe("confidenceBand", () => {

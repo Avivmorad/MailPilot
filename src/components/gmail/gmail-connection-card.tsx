@@ -63,7 +63,7 @@ function statusCopy(status: GmailStatusPayload): { title: string; body: string }
   if (!connection || connection.status === "DISCONNECTED") {
     return {
       title: "Connect Gmail",
-      body: "MailPilot will scan the last 7 days, then run daily at 08:00 (Asia/Jerusalem).",
+      body: "MailPilot can scan up to the last month. You choose the window. Daily incremental scans come later.",
     };
   }
 

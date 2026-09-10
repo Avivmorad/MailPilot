@@ -82,7 +82,7 @@ describe("parseServerEnv", () => {
     expect(env.MAX_THREAD_MESSAGES).toBe(6);
     expect(env.MAX_MESSAGE_CHARS).toBe(12000);
     expect(env.MAX_THREAD_CHARS).toBe(35000);
-    expect(env.AI_MAX_CONCURRENCY).toBe(5);
+    expect(env.AI_MAX_CONCURRENCY).toBe(2);
   });
 
   it("coerces string numbers from the environment", () => {
@@ -123,5 +123,6 @@ describe("getContextLimits", () => {
     expect(limits.MAX_THREAD_MESSAGES).toBe(6);
     expect(limits.MAX_MESSAGE_CHARS).toBe(12000);
     expect(limits.MAX_THREAD_CHARS).toBe(35000);
+    expect(limits.GMAIL_QUOTA_UNITS_PER_MINUTE).toBe(12000);
   });
 });

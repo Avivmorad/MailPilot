@@ -48,6 +48,8 @@ export async function analyzeThread(
   try {
     processed = postProcessThreadAnalysis(parsed.data, {
       latestFrom: input.latestFrom,
+      latestSubject: input.latestSubject,
+      threadText: input.threadText,
       preferences: input.preferences,
     });
     assertThreadAnalysisInvariants(processed);

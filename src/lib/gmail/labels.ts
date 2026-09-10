@@ -3,6 +3,8 @@ import { google, type gmail_v1 } from "googleapis";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { MAILPILOT_LABELS, type MailPilotLogicalLabel } from "@/lib/gmail/constants";
 import { createOAuth2Client } from "@/lib/gmail/oauth";
+import { GMAIL_UNITS } from "@/lib/gmail/quota";
+import { withGmailRetry } from "@/lib/gmail/retry";
 
 /**
  * Ensure managed MailPilot labels exist in Gmail and persist the
@@ -29,14 +31,18 @@ export async function ensureManagedLabels(
   for (const spec of MAILPILOT_LABELS) {
     let gmailLabelId = byName.get(spec.gmailLabelName);
     if (!gmailLabelId) {
-      const created = await gmail.users.labels.create({
-        userId: "me",
-        requestBody: {
-          name: spec.gmailLabelName,
-          labelListVisibility: "labelShow",
-          messageListVisibility: "show",
-        },
-      });
+      const created = await withGmailRetry(
+        () =>
+          gmail.users.labels.create({
+            userId: "me",
+            requestBody: {
+              name: spec.gmailLabelName,
+              labelListVisibility: "labelShow",
+              messageListVisibility: "show",
+            },
+          }),
+        { units: GMAIL_UNITS.labelsCreate },
+      );
       if (!created.data.id) {
         throw new Error(`Failed to create Gmail label ${spec.gmailLabelName}`);
       }
@@ -60,7 +66,9 @@ export async function ensureManagedLabels(
 }
 
 async function listAllLabels(gmail: gmail_v1.Gmail): Promise<gmail_v1.Schema$Label[]> {
-  const res = await gmail.users.labels.list({ userId: "me" });
+  const res = await withGmailRetry(() => gmail.users.labels.list({ userId: "me" }), {
+    units: GMAIL_UNITS.labelsList,
+  });
   return res.data.labels ?? [];
 }
 
@@ -94,12 +102,16 @@ export async function modifyThreadLabels(
   if (addLabelIds.length === 0 && removeLabelIds.length === 0) {
     return;
   }
-  await gmail.users.threads.modify({
-    userId: "me",
-    id: threadId,
-    requestBody: {
-      addLabelIds,
-      removeLabelIds,
-    },
-  });
+  await withGmailRetry(
+    () =>
+      gmail.users.threads.modify({
+        userId: "me",
+        id: threadId,
+        requestBody: {
+          addLabelIds,
+          removeLabelIds,
+        },
+      }),
+    { units: GMAIL_UNITS.threadsModify },
+  );
 }

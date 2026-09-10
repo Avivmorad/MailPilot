@@ -40,6 +40,7 @@ function existing(overrides: Partial<ActionRecord> = {}): ActionRecord {
     source: "AI",
     manualOverride: false,
     completedAt: null,
+    snoozedUntil: null,
     ...overrides,
   };
 }
@@ -115,5 +116,38 @@ describe("reconcileActionItem", () => {
       latestMessageAt: "2026-09-10T10:00:00.000Z",
     });
     expect(next).toBeNull();
+  });
+
+  it("keeps a snoozed action until snoozed_until", () => {
+    const snoozed = existing({
+      status: "SNOOZED",
+      snoozedUntil: "2026-09-12T10:00:00.000Z",
+      manualOverride: true,
+    });
+    const next = reconcileActionItem({
+      analysis: analysis(),
+      existing: snoozed,
+      latestDirection: "INBOUND",
+      latestMessageAt: "2026-09-10T10:00:00.000Z",
+      now: new Date("2026-09-11T10:00:00.000Z"),
+    });
+    expect(next).toEqual(snoozed);
+  });
+
+  it("closes an OPEN action when analysis becomes ignore", () => {
+    const next = reconcileActionItem({
+      analysis: analysis({
+        status: "ignore",
+        requires_action: false,
+        requires_reply: false,
+        action_type: "none",
+        action_summary: null,
+        importance: "low",
+      }),
+      existing: existing(),
+      latestDirection: "INBOUND",
+      latestMessageAt: "2026-09-10T12:00:00.000Z",
+    });
+    expect(next?.status).toBe("COMPLETED");
   });
 });

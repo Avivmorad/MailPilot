@@ -9,4 +9,4 @@ export function isMissingScanSchemaError(error: unknown): boolean {
 }
 
 export const SCAN_SCHEMA_MISSING_MESSAGE =
-  "Apply supabase/migrations/0003_initial_scan.sql in the Supabase SQL Editor, then try Scan now again.";
+  "Apply supabase/migrations/0003_initial_scan.sql and 0005_scan_progress.sql in the Supabase SQL Editor, then try Scan now again.";

@@ -1,0 +1,236 @@
+[
+  {
+    "id": "case_001_reply_by_tomorrow",
+    "subject": "Proposal review — need your reply by tomorrow",
+    "sender_type": "work",
+    "email_body": "Hi, could you review the attached proposal and send your feedback by tomorrow EOD? We need it before the client call.",
+    "expected_importance": "high",
+    "expected_action": "reply",
+    "expected_summary": "עמית מבקש משוב על הצעה עד מחר בסוף היום לפני שיחת לקוח."
+  },
+  {
+    "id": "case_002_invoice_to_pay",
+    "subject": "Invoice #4821 — payment due Sep 15",
+    "sender_type": "finance",
+    "email_body": "Please find invoice #4821 for 1,250 attached. Payment is due by September 15. Bank details are included.",
+    "expected_importance": "high",
+    "expected_action": "pay",
+    "expected_summary": "חשבונית מס' 4821 על סך 1,250 לתשלום עד 15 בספטמבר."
+  },
+  {
+    "id": "case_003_payment_confirmation",
+    "subject": "Your payment was received",
+    "sender_type": "finance",
+    "email_body": "Thank you. We have received your payment of 1,250. No further action is required.",
+    "expected_importance": "low",
+    "expected_action": "none",
+    "expected_summary": "אישור קבלת תשלום על סך 1,250 — לא נדרשת פעולה."
+  },
+  {
+    "id": "case_004_newsletter",
+    "subject": "This week in frontend #212",
+    "sender_type": "newsletter",
+    "email_body": "The latest articles on React, TypeScript and web performance, curated for you this week.",
+    "expected_importance": "low",
+    "expected_action": "none",
+    "expected_summary": "ניוזלטר שבועי על פיתוח פרונטאנד — לקריאה בלבד."
+  },
+  {
+    "id": "case_005_promotion",
+    "subject": "48 HOURS ONLY — 70% OFF everything!",
+    "sender_type": "promotion",
+    "email_body": "Our biggest sale of the year ends soon. Shop now and save 70% on all items. Limited time!",
+    "expected_importance": "low",
+    "expected_action": "none",
+    "expected_summary": "מייל פרסומי על מבצע הנחות — דחיפות שיווקית בלבד, ניתן להתעלם."
+  },
+  {
+    "id": "case_006_meeting_reschedule",
+    "subject": "Moving our sync to Thursday",
+    "sender_type": "work",
+    "email_body": "Something came up, so I'd like to move our Wednesday sync to Thursday at 11:00. Does that work for you?",
+    "expected_importance": "medium",
+    "expected_action": "reply",
+    "expected_summary": "בקשה להזיז את הפגישה מיום רביעי ליום חמישי ב-11:00 — נדרש אישור."
+  },
+  {
+    "id": "case_007_security_suspicious_login",
+    "subject": "Security alert: new sign-in from an unrecognized device",
+    "sender_type": "security",
+    "email_body": "We detected a sign-in from a new device in a location you don't usually use. If this wasn't you, secure your account now.",
+    "expected_importance": "high",
+    "expected_action": "review",
+    "expected_summary": "התראת אבטחה על כניסה ממכשיר לא מזוהה — יש לבדוק ולאבטח את החשבון."
+  },
+  {
+    "id": "case_008_routine_login_notice",
+    "subject": "You signed in to your account",
+    "sender_type": "security",
+    "email_body": "You just signed in on Chrome, Windows. If this was you, no action is needed.",
+    "expected_importance": "low",
+    "expected_action": "none",
+    "expected_summary": "הודעת כניסה שגרתית מזוהה — לא נדרשת פעולה."
+  },
+  {
+    "id": "case_009_university_registration",
+    "subject": "Course registration for next semester is open",
+    "sender_type": "school",
+    "email_body": "Registration for the next semester is now open. Please choose your courses and submit before September 12.",
+    "expected_importance": "high",
+    "expected_action": "submit",
+    "expected_summary": "נפתחה הרשמה לקורסים לסמסטר הבא — יש לבחור ולהגיש עד 12 בספטמבר."
+  },
+  {
+    "id": "case_010_project_approval",
+    "subject": "Approval needed: Q4 budget",
+    "sender_type": "work",
+    "email_body": "Can you approve the attached Q4 budget so we can proceed with vendor contracts this week?",
+    "expected_importance": "high",
+    "expected_action": "approve",
+    "expected_summary": "בקשה לאשר את תקציב Q4 כדי להתקדם עם חוזי ספקים השבוע."
+  },
+  {
+    "id": "case_011_already_replied_waiting",
+    "subject": "Re: Signed form submitted",
+    "sender_type": "work",
+    "email_body": "Thanks — I've submitted the signed form as requested. Let me know once it's approved on your side.",
+    "expected_importance": "medium",
+    "expected_action": "none",
+    "expected_summary": "המשתמש כבר שלח את הטופס החתום וממתין לאישור מהצד השני."
+  },
+  {
+    "id": "case_012_attachment_to_review",
+    "subject": "Draft report attached for your review",
+    "sender_type": "work",
+    "email_body": "Attaching the draft report (report_v3.pdf). Please take a look when you can and share comments.",
+    "expected_importance": "medium",
+    "expected_action": "review",
+    "expected_summary": "צורף דוח טיוטה (report_v3.pdf) לבדיקה והערות — תוכן הקובץ לא נותח."
+  },
+  {
+    "id": "case_013_overdue_deadline",
+    "subject": "OVERDUE: timesheet was due yesterday",
+    "sender_type": "work",
+    "email_body": "Our records show your timesheet for last week is still missing. It was due yesterday — please submit it as soon as possible.",
+    "expected_importance": "high",
+    "expected_action": "submit",
+    "expected_summary": "דיווח השעות באיחור — היה אמור להימסר אתמול, יש להגיש בהקדם."
+  },
+  {
+    "id": "case_014_shipping_notification",
+    "subject": "Your order has shipped",
+    "sender_type": "shopping",
+    "email_body": "Good news! Your order #55127 is on its way and should arrive within 3 business days. Track it anytime.",
+    "expected_importance": "low",
+    "expected_action": "none",
+    "expected_summary": "הזמנה #55127 נשלחה ותגיע תוך כ-3 ימי עסקים — עדכון בלבד."
+  },
+  {
+    "id": "case_015_password_reset_requested",
+    "subject": "Reset your password",
+    "sender_type": "account",
+    "email_body": "We received a request to reset your password. Use the link below within 30 minutes. If you didn't request this, ignore this email.",
+    "expected_importance": "medium",
+    "expected_action": "review",
+    "expected_summary": "התקבלה בקשה לאיפוס סיסמה — לבדוק אם יזמת את הבקשה."
+  },
+  {
+    "id": "case_016_job_interview",
+    "subject": "Interview availability",
+    "sender_type": "work",
+    "email_body": "We'd like to schedule a technical interview. Please send us your availability for Monday or Tuesday.",
+    "expected_importance": "high",
+    "expected_action": "reply",
+    "expected_summary": "המגייס מבקש זמינות לראיון טכני ליום שני או שלישי — נדרשת תשובה."
+  },
+  {
+    "id": "case_017_bank_statement",
+    "subject": "Your monthly statement is ready",
+    "sender_type": "finance",
+    "email_body": "Your account statement for August is now available to view in online banking.",
+    "expected_importance": "low",
+    "expected_action": "none",
+    "expected_summary": "דוח חשבון חודשי לאוגוסט זמין לצפייה — מידע בלבד."
+  },
+  {
+    "id": "case_018_subscription_renewal",
+    "subject": "Your plan renews in 5 days",
+    "sender_type": "finance",
+    "email_body": "Your annual plan will renew automatically on Sep 20 for 199. Update or cancel before then if needed.",
+    "expected_importance": "medium",
+    "expected_action": "review",
+    "expected_summary": "המנוי השנתי יתחדש אוטומטית ב-20 בספטמבר על סך 199 — לבדוק אם לעדכן/לבטל."
+  },
+  {
+    "id": "case_019_calendar_invite",
+    "subject": "Invitation: Design review @ Fri 14:00",
+    "sender_type": "work",
+    "email_body": "You've been invited to 'Design review' on Friday 14:00-15:00. Please accept or decline.",
+    "expected_importance": "medium",
+    "expected_action": "schedule",
+    "expected_summary": "הזמנה לפגישת 'Design review' ביום שישי 14:00 — יש לאשר או לדחות."
+  },
+  {
+    "id": "case_020_phishing_attempt",
+    "subject": "Your account will be closed — verify NOW",
+    "sender_type": "security",
+    "email_body": "Unusual activity detected. Click here immediately and enter your full card number to keep your account open.",
+    "expected_importance": "low",
+    "expected_action": "none",
+    "expected_summary": "מייל התחזות (פישינג) המבקש פרטי כרטיס — חשוד, אין להיענות."
+  },
+  {
+    "id": "case_021_colleague_question",
+    "subject": "Quick question about the API",
+    "sender_type": "work",
+    "email_body": "Do we already have an endpoint for exporting reports, or should I build one? Let me know.",
+    "expected_importance": "medium",
+    "expected_action": "reply",
+    "expected_summary": "עמית שואל אם קיים endpoint לייצוא דוחות — נדרשת תשובה."
+  },
+  {
+    "id": "case_022_travel_itinerary",
+    "subject": "Your trip confirmation — TLV to BER",
+    "sender_type": "travel",
+    "email_body": "Your flights are confirmed. Departure Sep 22 08:10 from TLV. Check-in opens 24 hours before.",
+    "expected_importance": "medium",
+    "expected_action": "none",
+    "expected_summary": "אישור טיסה TLV לברלין ב-22 בספטמבר 08:10 — לשמירה, ללא פעולה מיידית."
+  },
+  {
+    "id": "case_023_signature_request",
+    "subject": "Please sign: NDA",
+    "sender_type": "work",
+    "email_body": "Before we share the specs, please review and sign the attached NDA. It should take two minutes.",
+    "expected_importance": "high",
+    "expected_action": "sign",
+    "expected_summary": "בקשה לחתום על הסכם סודיות (NDA) לפני שיתוף המפרט."
+  },
+  {
+    "id": "case_024_social_notification",
+    "subject": "You have 3 new connection requests",
+    "sender_type": "social",
+    "email_body": "3 people want to connect with you. See who they are and grow your network.",
+    "expected_importance": "low",
+    "expected_action": "none",
+    "expected_summary": "התראה על 3 בקשות חיבור ברשת חברתית — מידע בלבד."
+  },
+  {
+    "id": "case_025_fyi_forward",
+    "subject": "Fwd: notes from the offsite",
+    "sender_type": "work",
+    "email_body": "Sharing the notes from last week's offsite for your visibility. No action needed from you.",
+    "expected_importance": "low",
+    "expected_action": "none",
+    "expected_summary": "העברת סיכום מהאופסייט לידיעה בלבד — לא נדרשת פעולה."
+  },
+  {
+    "id": "case_026_failed_payment",
+    "subject": "Action required: your payment failed",
+    "sender_type": "finance",
+    "email_body": "We couldn't process your payment for the Pro plan. Please update your payment method to avoid service interruption.",
+    "expected_importance": "high",
+    "expected_action": "pay",
+    "expected_summary": "התשלום לתוכנית Pro נכשל — יש לעדכן אמצעי תשלום כדי למנוע ניתוק שירות."
+  }
+]

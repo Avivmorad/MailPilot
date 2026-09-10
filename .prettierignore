@@ -1,0 +1,6 @@
+.next
+node_modules
+coverage
+*.log
+docs/PROJECT_SPEC.md
+package-lock.json

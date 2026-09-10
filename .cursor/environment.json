@@ -1,0 +1,10 @@
+{
+  "name": "MailPilot",
+  "install": "npm ci",
+  "terminals": [
+    {
+      "name": "dev",
+      "command": "npm run dev"
+    }
+  ]
+}

@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Assistant, Geist, Geist_Mono } from "next/font/google";
 import type { ReactNode } from "react";
 
+import { Analytics } from "@vercel/analytics/next";
+
 import { ThemeSync } from "@/components/theme/theme-sync";
 import { THEME_INIT_SCRIPT } from "@/lib/ui/theme";
 
@@ -40,6 +42,7 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
         <ThemeSync />
         {children}
+        <Analytics />
       </body>
     </html>
   );

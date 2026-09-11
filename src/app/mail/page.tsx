@@ -20,7 +20,7 @@ function tabDescription(tab: ReturnType<typeof parseMailTab>): string {
     case "summary":
       return "Leftover useful FYI only. Receipts, OTPs, and marketing live in Ignored. Security events live in Open.";
     case "open":
-      return "Mail that still needs a next step, grouped by Security, Payments, and General.";
+      return "Mail that still needs a next step, grouped by category.";
     case "waiting":
       return "You already acted. The ball is in someone else's court.";
     case "completed":

@@ -1,5 +1,9 @@
 import { z } from "zod";
 
+import { CATEGORY_VALUES } from "@/lib/ai/categories";
+
+export { CATEGORY_VALUES, type Category } from "@/lib/ai/categories";
+
 export const IMPORTANCE_VALUES = ["high", "medium", "low"] as const;
 export const THREAD_STATUS_VALUES = [
   "action_required",
@@ -22,20 +26,6 @@ export const ACTION_TYPE_VALUES = [
   "other",
   "none",
 ] as const;
-export const CATEGORY_VALUES = [
-  "work",
-  "school",
-  "finance",
-  "account",
-  "shopping",
-  "travel",
-  "social",
-  "newsletter",
-  "promotion",
-  "notification",
-  "other",
-] as const;
-
 export const importanceSchema = z.enum(IMPORTANCE_VALUES);
 export const threadStatusSchema = z.enum(THREAD_STATUS_VALUES);
 export const urgencySchema = z.enum(URGENCY_VALUES);
@@ -75,7 +65,6 @@ export type Importance = z.infer<typeof importanceSchema>;
 export type ThreadStatus = z.infer<typeof threadStatusSchema>;
 export type Urgency = z.infer<typeof urgencySchema>;
 export type ActionType = z.infer<typeof actionTypeSchema>;
-export type Category = z.infer<typeof categorySchema>;
 export type ThreadAnalysis = z.infer<typeof threadAnalysisSchema>;
 
 const THREAD_ANALYSIS_PROPERTY_ORDER = [

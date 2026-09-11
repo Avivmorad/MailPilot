@@ -6,11 +6,11 @@ import { AppChrome } from "@/components/layout/app-chrome";
 import { ThreadFeedback } from "@/components/threads/thread-feedback";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LabeledField } from "@/components/ui/labeled-field";
-import { MetaBadge } from "@/components/ui/meta-badge";
+import { ThreadTags } from "@/components/ui/thread-tags";
 import { mailBucketForThread } from "@/lib/mail/buckets";
 import { getSessionUser } from "@/lib/supabase/auth";
 import { getThreadDetailForUser } from "@/lib/threads/queries";
-import { classForDeadline, displayUrgencyForDeadline, formatDate, formatDateTime } from "@/lib/ui/format";
+import { classForDeadline, formatDate, formatDateTime } from "@/lib/ui/format";
 import { labelForDirection } from "@/lib/ui/labels";
 
 export const dynamic = "force-dynamic";
@@ -30,7 +30,6 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
   const inbound = [...thread.messages].reverse().find((message) => message.direction.toLowerCase() === "inbound");
   const senderMessage = inbound ?? thread.messages[thread.messages.length - 1];
   const sender = senderMessage?.senderName ?? senderMessage?.senderEmail ?? null;
-  const urgencyLabel = displayUrgencyForDeadline(thread.deadline, thread.urgency);
   const backTab = mailBucketForThread({ status: thread.status, actionStatus: thread.actionStatus });
   const doText = thread.actionSummary;
   const whyText =
@@ -54,11 +53,15 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
         ) : null}
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        {thread.status ? <MetaBadge kind="status" value={thread.status} /> : null}
-        {thread.importance ? <MetaBadge kind="importance" value={thread.importance} /> : null}
-        {urgencyLabel ? <MetaBadge kind="urgency" value={urgencyLabel} /> : null}
-      </div>
+      <ThreadTags
+        category={thread.category}
+        status={thread.status}
+        importance={thread.importance}
+        urgency={thread.urgency}
+        deadline={thread.deadline}
+        actionType={thread.actionType}
+        includeLowImportance
+      />
 
       <Card>
         <CardHeader>

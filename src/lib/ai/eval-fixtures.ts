@@ -3,14 +3,13 @@ import path from "node:path";
 
 import { z } from "zod";
 
+import { normalizeCategory } from "@/lib/ai/categories";
 import { assertThreadAnalysisInvariants, postProcessThreadAnalysis } from "@/lib/ai/post-process";
 import {
   actionTypeSchema,
-  CATEGORY_VALUES,
   importanceSchema,
   threadAnalysisSchema,
   threadStatusSchema,
-  type Category,
   type ThreadAnalysis,
   type ThreadStatus,
 } from "@/lib/ai/schemas";
@@ -144,10 +143,7 @@ export function goldAnalysisForEvalCase(evalCase: EvalCase): ThreadAnalysis {
   const senderType = latest?.from.includes("@")
     ? latest.from.split("@")[1]?.split(".")[0]
     : undefined;
-  const category =
-    senderType && (CATEGORY_VALUES as readonly string[]).includes(senderType)
-      ? (senderType as Category)
-      : "other";
+  const category = normalizeCategory(senderType);
 
   const analysis: ThreadAnalysis = {
     summary: evalCase.expected.summary,

@@ -64,7 +64,7 @@ export function mailTabEmptyCopy(tab: MailTab): { title: string; description: st
     case "open":
       return {
         title: "Nothing currently needs your action.",
-        description: "When a thread still needs a real next step, it will show up here — grouped by topic.",
+        description: "When a thread still needs a real next step, it will show up here — grouped by category.",
       };
     case "waiting":
       return {

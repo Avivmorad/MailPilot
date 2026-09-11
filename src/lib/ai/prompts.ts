@@ -1,6 +1,7 @@
+import { categoryPromptLines } from "@/lib/ai/categories";
 import type { ThreadAnalysisInput } from "@/lib/ai/types";
 
-export const TRIAGE_PROMPT_VERSION = "mailpilot-triage-v7";
+export const TRIAGE_PROMPT_VERSION = "mailpilot-triage-v8";
 
 export const UNTRUSTED_THREAD_START = "-----BEGIN UNTRUSTED EMAIL THREAD-----";
 export const UNTRUSTED_THREAD_END = "-----END UNTRUSTED EMAIL THREAD-----";
@@ -52,8 +53,10 @@ Core rules:
 24. Open only for a durable next step the user still owns: a person or system asking the user to grant access, approve, sign, submit, or answer; a bounce for mail the user sent; a check-in still needed; interview scheduling, an assessment, or missing application documents; parcel collection, address correction, or customs information; a meeting the user must accept/decline or a request to choose/confirm a new time; a document comment that explicitly asks the user to act.
 25. Informational: lab results or "document ready in the portal"; Drive/Docs/Dropbox "shared a document with you" or other access-granted notices (no review/sign/approve/comment-to-act request); routine tracking / shipment out for delivery; itinerary, boarding pass, confirmed appointment; a confirmed meeting reschedule or cancellation with no new time to choose; useful mail that assigns work only to another person. Being CC'd does not create a task unless the user also has an explicit action.
 26. Ignore: job alerts, webinar/mass calendar invites, receipt-only application acknowledgments, paid receipts, bot mail with no user-owned action, surveys, and promos.
-27. If the user's last meaningful message asked someone for something and there is no substantive reply yet, status is waiting. Out-of-office replies and support-ticket acknowledgments are not resolution and must stay waiting. Use category account for security/session, finance for money, shopping for orders/receipts of goods, travel for trips.
-28. Return only the structured output.
+27. If the user's last meaningful message asked someone for something and there is no substantive reply yet, status is waiting. Out-of-office replies and support-ticket acknowledgments are not resolution and must stay waiting.
+28. Choose exactly one category. Prefer a specific bucket over other:
+${categoryPromptLines()}
+29. Return only the structured output.
 
 Language:
 - Write all user-facing text fields in English: summary, short_display_title, action_summary, action_reason, importance_reason, waiting_for, deadline_text, sender_name, and organization.

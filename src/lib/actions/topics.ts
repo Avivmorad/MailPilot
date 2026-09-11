@@ -1,13 +1,15 @@
-import { isEphemeralAuthNotice, isLoginFyiNotice } from "@/lib/ai/notices";
+import {
+  CATEGORY_LABELS,
+  CATEGORY_VALUES,
+  normalizeCategory,
+  type Category,
+} from "@/lib/ai/categories";
+import { isEphemeralAuthNotice, isLoginFyiNotice, isSecurityEventNotice } from "@/lib/ai/notices";
 
-export const ACTION_TOPICS = ["security", "payments", "general"] as const;
-export type ActionTopic = (typeof ACTION_TOPICS)[number];
+export const ACTION_TOPICS = CATEGORY_VALUES;
+export type ActionTopic = Category;
 
-export const ACTION_TOPIC_LABELS: Record<ActionTopic, string> = {
-  security: "Security",
-  payments: "Payments",
-  general: "General",
-};
+export const ACTION_TOPIC_LABELS = CATEGORY_LABELS;
 
 export interface TopicableItem {
   category?: string | null;
@@ -20,21 +22,25 @@ export interface TopicableItem {
 
 export function topicForItem(item: TopicableItem): ActionTopic {
   const noticeParts = [item.title, item.shortDisplayTitle, item.summary, item.description];
-  if (isLoginFyiNotice(noticeParts) || isEphemeralAuthNotice(noticeParts) || item.category === "account") {
+  if (
+    isLoginFyiNotice(noticeParts) ||
+    isEphemeralAuthNotice(noticeParts) ||
+    isSecurityEventNotice(noticeParts)
+  ) {
     return "security";
   }
-  if (item.actionType === "pay" || item.category === "finance" || item.category === "shopping") {
-    return "payments";
+  const category = normalizeCategory(item.category);
+  if (category === "other" && item.actionType === "pay") {
+    return "finance";
   }
-  return "general";
+  return category;
 }
 
 export function groupByTopic<T extends TopicableItem>(items: T[]): Array<{ topic: ActionTopic; items: T[] }> {
-  const buckets: Record<ActionTopic, T[]> = {
-    security: [],
-    payments: [],
-    general: [],
-  };
+  const buckets = {} as Record<ActionTopic, T[]>;
+  for (const topic of ACTION_TOPICS) {
+    buckets[topic] = [];
+  }
   for (const item of items) {
     buckets[topicForItem(item)].push(item);
   }

@@ -2,12 +2,12 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 import { ActionControls } from "@/components/actions/action-controls";
-import { AppShell } from "@/components/layout/app-shell";
-import { AppHeader } from "@/components/nav/app-header";
+import { AppChrome } from "@/components/layout/app-chrome";
 import { ThreadFeedback } from "@/components/threads/thread-feedback";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LabeledField } from "@/components/ui/labeled-field";
 import { MetaBadge } from "@/components/ui/meta-badge";
+import { mailBucketForThread } from "@/lib/mail/buckets";
 import { getSessionUser } from "@/lib/supabase/auth";
 import { getThreadDetailForUser } from "@/lib/threads/queries";
 import { classForDeadline, displayUrgencyForDeadline, formatDate, formatDateTime } from "@/lib/ui/format";
@@ -31,18 +31,24 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
   const senderMessage = inbound ?? thread.messages[thread.messages.length - 1];
   const sender = senderMessage?.senderName ?? senderMessage?.senderEmail ?? null;
   const urgencyLabel = displayUrgencyForDeadline(thread.deadline, thread.urgency);
+  const backTab = mailBucketForThread({ status: thread.status, actionStatus: thread.actionStatus });
+  const doText = thread.actionSummary;
+  const whyText =
+    thread.actionReason && doText && thread.actionReason.trim() === doText.trim()
+      ? null
+      : thread.actionReason;
 
   return (
-    <AppShell header={<AppHeader email={user.email} current="thread" />} width="narrow">
+    <AppChrome user={user} current="thread" width="narrow">
       <div>
-        <Link href="/dashboard" className="text-muted-foreground hover:text-foreground text-sm hover:underline">
-          ← Back to dashboard
+        <Link href={`/mail?tab=${backTab}`} className="text-muted-foreground hover:text-foreground text-sm hover:underline">
+          ← Back to Mail
         </Link>
-        <h1 className="text-foreground mt-3 text-center text-2xl font-bold tracking-tight text-balance sm:text-3xl" dir="auto">
+        <h1 className="text-foreground mt-3 text-2xl font-bold tracking-tight text-balance sm:text-3xl" dir="auto">
           {thread.shortDisplayTitle ?? thread.subject ?? "Thread"}
         </h1>
         {thread.subject ? (
-          <p className="text-muted-foreground mt-1 text-center text-sm" dir="auto">
+          <p className="text-muted-foreground mt-1 text-sm" dir="auto">
             {thread.subject}
           </p>
         ) : null}
@@ -64,25 +70,25 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
           ) : (
             <p className="text-muted-foreground">No analysis yet.</p>
           )}
-          <div className="space-y-1.5">
+          <div className="space-y-1">
             {sender ? <LabeledField label="Sender">{sender}</LabeledField> : null}
             {thread.latestMessageAt ? (
               <LabeledField label="Date">{formatDateTime(thread.latestMessageAt)}</LabeledField>
             ) : null}
-            {thread.actionSummary ? (
-              <LabeledField label="Task" dir="auto">
-                {thread.actionSummary}
+            {doText ? (
+              <LabeledField label="Do" dir="auto">
+                {doText}
               </LabeledField>
             ) : null}
             {thread.deadline ? (
-              <LabeledField label="Deadline" valueClassName={classForDeadline(thread.deadline)}>
+              <LabeledField label="Due" valueClassName={classForDeadline(thread.deadline)}>
                 {formatDate(thread.deadline)}
                 {thread.deadlineText ? ` (${thread.deadlineText})` : ""}
               </LabeledField>
             ) : null}
-            {thread.actionReason ? (
+            {whyText ? (
               <LabeledField label="Why" dir="auto">
-                {thread.actionReason}
+                {whyText}
               </LabeledField>
             ) : null}
             {thread.waitingFor ? <LabeledField label="Waiting on">{thread.waitingFor}</LabeledField> : null}
@@ -140,6 +146,6 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
       </Card>
 
       <ThreadFeedback threadId={thread.id} />
-    </AppShell>
+    </AppChrome>
   );
 }

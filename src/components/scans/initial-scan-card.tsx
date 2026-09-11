@@ -5,7 +5,14 @@ import { useEffect, useState } from "react";
 
 import { ScanProgressBar } from "@/components/scans/scan-progress-bar";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   DEFAULT_LOOKBACK_DAYS,
   INITIAL_LOOKBACK_DAYS,
@@ -18,6 +25,8 @@ import {
   startScanResponseSchema,
   type ScanRunSnapshot,
 } from "@/lib/scans/progress";
+import { formatDateTime } from "@/lib/ui/format";
+import { labelForScanStatus } from "@/lib/ui/labels";
 
 async function fetchLatestScan(): Promise<ScanRunSnapshot | null> {
   const response = await fetch("/api/scans", { cache: "no-store" });
@@ -30,10 +39,18 @@ export function InitialScanCard({
   connected,
   incremental,
   latestScan,
+  lastRunAt,
+  nextScanAt,
+  lastRunStatus,
+  messagesProcessed,
 }: {
   connected: boolean;
   incremental: boolean;
   latestScan?: ScanRunSnapshot | null;
+  lastRunAt?: string | null;
+  nextScanAt?: string | null;
+  lastRunStatus?: string | null;
+  messagesProcessed?: number | null;
 }) {
   const router = useRouter();
   const resumeId = latestScan?.status === "RUNNING" ? latestScan.id : null;
@@ -132,38 +149,42 @@ export function InitialScanCard({
   }
 
   const bar = progress ? snapshotProgress(progress) : { threadsDiscovered: 0, threadsChecked: 0 };
+  const statusLabel = lastRunStatus ? labelForScanStatus(lastRunStatus) : null;
 
   return (
-    <Card>
+    <Card id="scan">
       <CardHeader>
         <CardTitle>{incremental ? "Scan inbox" : "Initial scan"}</CardTitle>
         <CardDescription>
-          Choose how far back to read. Unchanged threads are skipped. If Gmail hits its per-minute
-          limit, the scan pauses for about a minute, then continues.
+          {busy
+            ? "Checking conversations in the background. You can keep using MailPilot."
+            : "Choose how far back to read. Unchanged threads are skipped."}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <label className="block text-sm">
-          <span className="text-muted-foreground mb-1.5 block">Lookback window</span>
-          <select
-            className="border-input bg-background h-9 w-full max-w-xs rounded-lg border px-3 text-sm"
-            value={lookbackDays}
-            disabled={!connected || busy}
-            onChange={(event) => setLookbackDays(Number(event.target.value) as InitialLookbackDays)}
-          >
-            {INITIAL_LOOKBACK_DAYS.map((value) => (
-              <option key={value} value={value}>
-                {LOOKBACK_OPTION_LABELS[value]}
-              </option>
-            ))}
-          </select>
-        </label>
         {busy ? (
           <ScanProgressBar threadsChecked={bar.threadsChecked} threadsDiscovered={bar.threadsDiscovered} />
         ) : null}
-        <Button type="button" disabled={!connected || busy} onClick={() => void runScan()}>
-          {busy ? "Scanning…" : incremental ? "Scan new mail" : "Scan now"}
-        </Button>
+        <div className="flex flex-wrap items-end gap-3">
+          <label className="block min-w-40 flex-1 text-sm">
+            <span className="text-muted-foreground mb-1.5 block">Lookback window</span>
+            <select
+              className="border-input bg-background h-9 w-full max-w-xs rounded-lg border px-3 text-sm"
+              value={lookbackDays}
+              disabled={!connected || busy}
+              onChange={(event) => setLookbackDays(Number(event.target.value) as InitialLookbackDays)}
+            >
+              {INITIAL_LOOKBACK_DAYS.map((value) => (
+                <option key={value} value={value}>
+                  {LOOKBACK_OPTION_LABELS[value]}
+                </option>
+              ))}
+            </select>
+          </label>
+          <Button type="button" size="lg" disabled={!connected || busy} onClick={() => void runScan()}>
+            {busy ? "Scanning…" : incremental ? "Scan new mail" : "Scan now"}
+          </Button>
+        </div>
         {message ? (
           <p className={error ? "text-destructive text-sm" : "text-sm"}>{message}</p>
         ) : null}
@@ -171,6 +192,22 @@ export function InitialScanCard({
           <p className="text-muted-foreground text-sm">Connect Gmail before running a scan.</p>
         ) : null}
       </CardContent>
+      {lastRunAt || nextScanAt || busy ? (
+        <CardFooter className="text-muted-foreground flex-wrap gap-x-4 gap-y-1 text-sm">
+          {lastRunAt ? (
+            <span>
+              Last run {formatDateTime(lastRunAt)}
+              {statusLabel ? ` · ${statusLabel}` : ""}
+              {typeof messagesProcessed === "number" ? ` · ${messagesProcessed} emails` : ""}
+            </span>
+          ) : busy ? (
+            <span>In progress</span>
+          ) : (
+            <span>No scan yet</span>
+          )}
+          {nextScanAt ? <span>Next scan {formatDateTime(nextScanAt)}</span> : null}
+        </CardFooter>
+      ) : null}
     </Card>
   );
 }

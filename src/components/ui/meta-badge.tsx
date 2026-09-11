@@ -9,10 +9,13 @@ import {
 import { cn } from "@/lib/utils";
 
 const TONE_CLASS: Record<BadgeTone, string> = {
-  danger: "border-transparent bg-destructive/10 text-destructive",
-  warning: "border-transparent bg-orange-500/15 text-orange-800 dark:text-orange-200",
-  success: "border-transparent bg-green-500/15 text-green-800 dark:text-green-200",
-  accent: "border-transparent bg-primary/10 text-primary",
+  danger: "border-transparent bg-destructive/15 text-destructive dark:bg-destructive/25",
+  warning:
+    "border-transparent bg-orange-500/20 text-orange-900 dark:bg-orange-400/20 dark:text-orange-100",
+  success:
+    "border-transparent bg-green-500/20 text-green-900 dark:bg-green-400/20 dark:text-green-100",
+  info: "border-transparent bg-sky-500/20 text-sky-800 dark:bg-sky-400/20 dark:text-sky-100",
+  accent: "border-transparent bg-primary/15 text-primary dark:bg-primary/25",
   neutral: "",
   muted: "border-transparent bg-muted text-muted-foreground",
 };

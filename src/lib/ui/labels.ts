@@ -75,7 +75,7 @@ export function labelForDirection(value: string | null | undefined): string {
   return humanizeToken(value);
 }
 
-export type BadgeTone = "danger" | "warning" | "success" | "accent" | "neutral" | "muted";
+export type BadgeTone = "danger" | "warning" | "success" | "info" | "accent" | "neutral" | "muted";
 
 export function toneForUrgency(value: string | null | undefined): BadgeTone {
   switch (value?.toLowerCase()) {
@@ -85,7 +85,7 @@ export function toneForUrgency(value: string | null | undefined): BadgeTone {
     case "soon":
       return "warning";
     case "later":
-      return "success";
+      return "info";
     case "normal":
       return "accent";
     default:
@@ -125,7 +125,7 @@ export function accentForUrgency(value: string | null | undefined): string {
     case "soon":
       return "border-l-orange-500";
     case "later":
-      return "border-l-green-500";
+      return "border-l-sky-400";
     default:
       return "border-l-transparent";
   }

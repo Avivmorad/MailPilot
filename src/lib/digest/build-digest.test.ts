@@ -4,6 +4,7 @@ import {
   buildDigestSummaryText,
   computeDigestPeriodCounts,
   digestListQuerySchema,
+  sameUtcInstant,
   uniqueTopActions,
 } from "@/lib/digest/build-digest";
 
@@ -115,5 +116,12 @@ describe("digestListQuerySchema", () => {
     expect(digestListQuerySchema.parse({}).limit).toBe(20);
     expect(digestListQuerySchema.safeParse({ limit: "0" }).success).toBe(false);
     expect(digestListQuerySchema.parse({ limit: "5" }).limit).toBe(5);
+  });
+});
+
+describe("sameUtcInstant", () => {
+  it("treats Postgres and ISO timestamps as the same instant", () => {
+    expect(sameUtcInstant("2026-08-12 10:42:40.317+00", "2026-08-12T10:42:40.317Z")).toBe(true);
+    expect(sameUtcInstant("2026-08-12T10:42:40.317Z", "2026-09-11T10:42:40.317Z")).toBe(false);
   });
 });

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { mapDigestReportRow } from "@/lib/digest/queries";
+import { chunkIds, mapDigestReportRow } from "@/lib/digest/queries";
 
 describe("mapDigestReportRow", () => {
   it("maps digest columns and drops invalid action cards", () => {
@@ -44,5 +44,15 @@ describe("mapDigestReportRow", () => {
       ],
       createdAt: "2026-09-11T08:00:00.000Z",
     });
+  });
+
+  it("chunks long id lists so PostgREST .in() filters stay under the URL limit", () => {
+    const ids = Array.from({ length: 250 }, (_, index) => `id-${index}`);
+    const chunks = chunkIds(ids, 100);
+    expect(chunks).toHaveLength(3);
+    expect(chunks[0]).toHaveLength(100);
+    expect(chunks[1]).toHaveLength(100);
+    expect(chunks[2]).toHaveLength(50);
+    expect(chunkIds([], 100)).toEqual([]);
   });
 });

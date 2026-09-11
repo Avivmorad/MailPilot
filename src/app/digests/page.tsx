@@ -2,9 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { DigestReportCard } from "@/components/digest/digest-report-card";
-import { AppShell } from "@/components/layout/app-shell";
+import { AppChrome } from "@/components/layout/app-chrome";
 import { PageHeader } from "@/components/layout/page-header";
-import { AppHeader } from "@/components/nav/app-header";
 import { ensureDigestForLatestScan } from "@/lib/digest/build-digest";
 import { listDigestsForUser } from "@/lib/digest/queries";
 import { getLatestScanRunForUser } from "@/lib/scans/manual";
@@ -27,7 +26,7 @@ export default async function DigestsPage() {
   const digests = await listDigestsForUser(user.id, 20).catch(() => []);
 
   return (
-    <AppShell header={<AppHeader email={user.email} current="digests" />} width="narrow">
+    <AppChrome user={user} current="digests" width="narrow">
       <PageHeader
         title="Digests"
         description="In-app history of period counts and top open tasks after each successful scan. Email delivery is not in the MVP."
@@ -52,6 +51,6 @@ export default async function DigestsPage() {
         </Link>
         . Scan again from the dashboard to refresh these numbers.
       </p>
-    </AppShell>
+    </AppChrome>
   );
 }

@@ -20,7 +20,7 @@ export function ScanProgressBar({
         )}
       </div>
       <div
-        className="bg-muted h-2 overflow-hidden rounded-full"
+        className="bg-muted h-2.5 overflow-hidden rounded-full"
         role="progressbar"
         aria-label="Scan progress"
         aria-valuemin={0}

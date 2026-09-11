@@ -122,19 +122,35 @@ export function buildDigestSummaryText(counts: DigestPeriodCounts): string {
   ].join(" ");
 }
 
+export function sameUtcInstant(left: string, right: string): boolean {
+  const a = Date.parse(left);
+  const b = Date.parse(right);
+  return Number.isFinite(a) && Number.isFinite(b) && a === b;
+}
+
 export async function ensureDigestForLatestScan(
   userId: string,
   scanId: string | null,
   scanStatus: string | null,
 ): Promise<DigestReport | null> {
   const existing = await getLatestDigestForUser(userId);
-  if (existing) {
+  if (!scanId || (scanStatus !== "SUCCESS" && scanStatus !== "PARTIAL")) {
     return existing;
   }
-  if (!scanId || (scanStatus !== "SUCCESS" && scanStatus !== "PARTIAL")) {
-    return null;
+  const scan = await loadScanRunPeriod(userId, scanId);
+  if (
+    existing &&
+    scan &&
+    sameUtcInstant(existing.periodStart, scan.periodStart) &&
+    sameUtcInstant(existing.periodEnd, scan.periodEnd)
+  ) {
+    return existing;
   }
-  return persistDigestAfterScan({ userId, scanId });
+  try {
+    return (await persistDigestAfterScan({ userId, scanId })) ?? existing;
+  } catch {
+    return existing;
+  }
 }
 
 export async function persistDigestAfterScan(input: {

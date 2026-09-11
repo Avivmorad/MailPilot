@@ -143,7 +143,7 @@ export function classForDeadline(
     case "soon":
       return "font-semibold text-orange-600 dark:text-orange-400";
     case "later":
-      return "font-semibold text-green-600 dark:text-green-400";
+      return "font-semibold text-sky-600 dark:text-sky-300";
     default:
       return "";
   }

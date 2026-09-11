@@ -42,6 +42,21 @@ type DigestDbRow = {
 const DIGEST_SELECT =
   "id, user_id, gmail_connection_id, period_start, period_end, total_messages, important_count, action_count, reply_count, waiting_count, informational_count, ignored_count, summary_text, top_actions, created_at";
 
+/** PostgREST `.in()` filters blow the URL if hundreds of UUIDs are inlined. */
+export const DIGEST_THREAD_ID_CHUNK = 100;
+
+export function chunkIds<T>(items: T[], size: number): T[][] {
+  if (items.length === 0) {
+    return [];
+  }
+  const chunkSize = Math.max(1, size);
+  const chunks: T[][] = [];
+  for (let index = 0; index < items.length; index += chunkSize) {
+    chunks.push(items.slice(index, index + chunkSize));
+  }
+  return chunks;
+}
+
 function asInt(value: unknown): number {
   const n = Number(value);
   return Number.isFinite(n) ? n : 0;
@@ -147,24 +162,30 @@ export async function loadDigestPeriodActivity(input: {
     return { messages: mappedMessages, threads: [] };
   }
 
-  const { data: threads, error: threadError } = await db
-    .from("email_threads")
-    .select("id, status, importance, requires_action, requires_reply")
-    .eq("user_id", input.userId)
-    .in("id", threadIds);
-  if (threadError) {
-    throw new DigestQueryError(500, "activity_failed", "Failed to load digest period threads.");
+  const threads: DigestThreadActivity[] = [];
+  for (const slice of chunkIds(threadIds, DIGEST_THREAD_ID_CHUNK)) {
+    const { data: threadRows, error: threadError } = await db
+      .from("email_threads")
+      .select("id, status, importance, requires_action, requires_reply")
+      .eq("user_id", input.userId)
+      .in("id", slice);
+    if (threadError) {
+      throw new DigestQueryError(500, "activity_failed", "Failed to load digest period threads.");
+    }
+    for (const row of threadRows ?? []) {
+      threads.push({
+        id: String(row.id),
+        status: (row.status as string | null) ?? null,
+        importance: (row.importance as string | null) ?? null,
+        requiresAction: Boolean(row.requires_action),
+        requiresReply: Boolean(row.requires_reply),
+      });
+    }
   }
 
   return {
     messages: mappedMessages,
-    threads: (threads ?? []).map((row) => ({
-      id: String(row.id),
-      status: (row.status as string | null) ?? null,
-      importance: (row.importance as string | null) ?? null,
-      requiresAction: Boolean(row.requires_action),
-      requiresReply: Boolean(row.requires_reply),
-    })),
+    threads,
   };
 }
 

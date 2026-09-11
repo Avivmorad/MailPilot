@@ -4,12 +4,22 @@ import { ActionControls } from "@/components/actions/action-controls";
 import { LabeledField } from "@/components/ui/labeled-field";
 import { MetaBadge } from "@/components/ui/meta-badge";
 import type { ActionListItem } from "@/lib/actions/queries";
-import { classForDeadline, displayUrgencyForDeadline, formatDate, formatDateTime } from "@/lib/ui/format";
+import { classForDeadline, displayUrgencyForDeadline, formatDate, formatRelativeTime } from "@/lib/ui/format";
 import { accentForUrgency } from "@/lib/ui/labels";
 import { cn } from "@/lib/utils";
 
 export function ActionItemCard({ item }: { item: ActionListItem }) {
   const urgencyLabel = displayUrgencyForDeadline(item.deadline, item.urgency);
+  const doText =
+    item.actionSummary && item.actionSummary.trim() === item.title.trim() ? null : item.actionSummary;
+  const whyText =
+    item.actionReason &&
+    ((doText && item.actionReason.trim() === doText.trim()) || item.actionReason.trim() === item.title.trim())
+      ? null
+      : item.actionReason;
+  const meta = [item.sender, item.latestMessageAt ? formatRelativeTime(item.latestMessageAt) : null]
+    .filter(Boolean)
+    .join(" · ");
 
   return (
     <article
@@ -18,15 +28,16 @@ export function ActionItemCard({ item }: { item: ActionListItem }) {
         accentForUrgency(urgencyLabel ?? item.urgency),
       )}
     >
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <div className="min-w-0 w-full flex-1">
-          <h3 className="text-foreground text-center text-base leading-snug font-semibold tracking-tight" dir="auto">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <h3 className="text-foreground text-base leading-snug font-semibold tracking-tight" dir="auto">
             <Link href={`/thread/${item.threadId}`} className="hover:underline">
               {item.title}
             </Link>
           </h3>
+          {meta ? <p className="text-muted-foreground mt-0.5 text-sm">{meta}</p> : null}
         </div>
-        <div className="flex flex-wrap gap-1">
+        <div className="flex shrink-0 flex-wrap justify-end gap-1">
           {urgencyLabel ? <MetaBadge kind="urgency" value={urgencyLabel} /> : null}
           {item.importance && item.importance !== "low" ? (
             <MetaBadge kind="importance" value={item.importance} />
@@ -35,19 +46,20 @@ export function ActionItemCard({ item }: { item: ActionListItem }) {
         </div>
       </div>
 
-      <div className="mt-3 space-y-1.5">
-        {item.sender ? <LabeledField label="Sender">{item.sender}</LabeledField> : null}
-        {item.latestMessageAt ? (
-          <LabeledField label="Date">{formatDateTime(item.latestMessageAt)}</LabeledField>
-        ) : null}
-        {item.description ? (
-          <LabeledField label="Task" dir="auto">
-            {item.description}
+      <div className="mt-3 space-y-1">
+        {doText ? (
+          <LabeledField label="Do" dir="auto">
+            {doText}
           </LabeledField>
         ) : null}
         {item.deadline ? (
-          <LabeledField label="Deadline" valueClassName={classForDeadline(item.deadline)}>
+          <LabeledField label="Due" valueClassName={classForDeadline(item.deadline)}>
             {formatDate(item.deadline)}
+          </LabeledField>
+        ) : null}
+        {whyText ? (
+          <LabeledField label="Why" dir="auto">
+            {whyText}
           </LabeledField>
         ) : null}
         {item.waitingFor ? <LabeledField label="Waiting on">{item.waitingFor}</LabeledField> : null}

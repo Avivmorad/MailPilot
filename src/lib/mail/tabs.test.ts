@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   actionStatusForMailTab,
   isMailTab,
+  mailTabEmptyCopy,
   mailTabFromLegacyActionTab,
   parseMailTab,
 } from "@/lib/mail/tabs";
@@ -28,5 +29,12 @@ describe("mail tabs", () => {
     expect(mailTabFromLegacyActionTab("OPEN")).toBe("open");
     expect(mailTabFromLegacyActionTab("SNOOZED")).toBe("snoozed");
     expect(mailTabFromLegacyActionTab("summary")).toBe("summary");
+  });
+
+  it("uses spec empty-state copy for Open and Waiting", () => {
+    expect(mailTabEmptyCopy("open").title).toBe("Nothing currently needs your action.");
+    expect(mailTabEmptyCopy("waiting").title).toBe(
+      "You're not waiting on any tracked email threads.",
+    );
   });
 });

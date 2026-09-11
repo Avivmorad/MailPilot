@@ -58,3 +58,38 @@ export function mailTabFromLegacyActionTab(value: string | null | undefined): Ma
   }
   return parseMailTab(value);
 }
+
+export function mailTabEmptyCopy(tab: MailTab): { title: string; description: string } {
+  switch (tab) {
+    case "open":
+      return {
+        title: "Nothing currently needs your action.",
+        description: "When a thread still needs a real next step, it will show up here — grouped by topic.",
+      };
+    case "waiting":
+      return {
+        title: "You're not waiting on any tracked email threads.",
+        description: "After you act, threads move here until the other side replies.",
+      };
+    case "completed":
+      return {
+        title: "No completed tasks yet.",
+        description: "Mark an open task done and it will land here.",
+      };
+    case "snoozed":
+      return {
+        title: "Nothing snoozed.",
+        description: "Postpone a task and it returns to Open when the snooze ends.",
+      };
+    case "ignored":
+      return {
+        title: "Nothing ignored",
+        description: "OTP notices and other ignore-classified mail will appear here after a scan.",
+      };
+    case "summary":
+      return {
+        title: "No leftover FYI yet",
+        description: "Run a scan to see useful updates. Receipts, OTPs, and marketing are in Ignored.",
+      };
+  }
+}

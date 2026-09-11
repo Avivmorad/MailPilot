@@ -190,6 +190,7 @@ export async function getInboxCountsForUser(userId: string) {
       needAction: 0,
       waiting: 0,
       ignored: 0,
+      fyi: 0,
     };
   }
   return {
@@ -198,5 +199,6 @@ export async function getInboxCountsForUser(userId: string) {
     needAction: data.filter((row) => row.requires_action === true).length,
     waiting: data.filter((row) => row.status === "waiting").length,
     ignored: data.filter((row) => row.status === "ignore").length,
+    fyi: data.filter((row) => row.status === "informational" || row.status === "resolved").length,
   };
 }

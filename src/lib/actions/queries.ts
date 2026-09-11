@@ -10,6 +10,8 @@ export interface ActionListItem {
   status: ActionStatus;
   title: string;
   description: string | null;
+  actionSummary: string | null;
+  actionReason: string | null;
   waitingFor: string | null;
   deadline: string | null;
   urgency: string | null;
@@ -30,6 +32,9 @@ interface ThreadJoin {
   gmail_thread_id: string;
   participants: unknown;
   category: string | null;
+  short_display_title: string | null;
+  action_summary: string | null;
+  action_reason: string | null;
 }
 
 function senderFromParticipants(participants: unknown): string | null {
@@ -40,19 +45,24 @@ function senderFromParticipants(participants: unknown): string | null {
   return first.name || first.email || null;
 }
 
-function mapRow(
+export function mapActionListItem(
   row: Record<string, unknown>,
   gmailEmail: string,
 ): ActionListItem {
   const thread = row.email_threads as ThreadJoin | ThreadJoin[] | null;
   const joined = Array.isArray(thread) ? thread[0] : thread;
   const gmailThreadId = joined?.gmail_thread_id ?? "";
+  const description = (row.description as string | null) ?? null;
+  const actionSummary = joined?.action_summary ?? description;
+  const shortTitle = joined?.short_display_title?.trim() || null;
   return {
     id: String(row.id),
     threadId: String(row.thread_id),
     status: row.status as ActionStatus,
-    title: String(row.title),
-    description: (row.description as string | null) ?? null,
+    title: shortTitle || String(row.title),
+    description,
+    actionSummary,
+    actionReason: joined?.action_reason ?? null,
     waitingFor: (row.waiting_for as string | null) ?? null,
     deadline: (row.deadline as string | null) ?? null,
     urgency: (row.urgency as string | null) ?? null,
@@ -88,7 +98,7 @@ export async function listActionsForUser(
   const { data, error } = await db
     .from("action_items")
     .select(
-      "id, thread_id, status, title, description, waiting_for, deadline, urgency, snoozed_until, action_type, email_threads ( id, summary, importance, latest_message_at, gmail_thread_id, participants, category )",
+      "id, thread_id, status, title, description, waiting_for, deadline, urgency, snoozed_until, action_type, email_threads ( id, summary, importance, latest_message_at, gmail_thread_id, participants, category, short_display_title, action_summary, action_reason )",
     )
     .eq("user_id", userId)
     .eq("status", status)
@@ -96,7 +106,7 @@ export async function listActionsForUser(
   if (error || !data) {
     return [];
   }
-  const mapped = data.map((row) => mapRow(row as Record<string, unknown>, gmailEmail));
+  const mapped = data.map((row) => mapActionListItem(row as Record<string, unknown>, gmailEmail));
   const visible =
     status === "OPEN"
       ? mapped.filter(

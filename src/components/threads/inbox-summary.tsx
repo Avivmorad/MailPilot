@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import Link from "next/link";
 
 import { EmptyState } from "@/components/layout/empty-state";
@@ -12,14 +13,16 @@ export function InboxSummary({
   storageKey = "inbox-summary",
   emptyTitle = "No classified mail yet",
   emptyDescription = "Run a scan to see leftover FYI. Receipts, OTPs, and marketing are in Ignored.",
+  emptyAction,
 }: {
   threads: RecentThreadRow[];
   storageKey?: string;
   emptyTitle?: string;
   emptyDescription?: string;
+  emptyAction?: ReactNode;
 }) {
   if (threads.length === 0) {
-    return <EmptyState title={emptyTitle} description={emptyDescription} />;
+    return <EmptyState title={emptyTitle} description={emptyDescription} action={emptyAction} />;
   }
   const groups = groupByTopic(threads);
   return (
@@ -38,7 +41,10 @@ export function InboxSummary({
                   className="hover:bg-muted/50 block px-4 py-3 transition-colors"
                 >
                   <div className="flex flex-wrap items-start justify-between gap-2">
-                    <p className="text-foreground min-w-0 w-full text-center font-semibold leading-snug tracking-tight" dir="auto">
+                    <p
+                      className="text-foreground min-w-0 flex-1 font-semibold leading-snug tracking-tight"
+                      dir="auto"
+                    >
                       {thread.shortDisplayTitle ?? thread.summary ?? "Thread"}
                     </p>
                     <div className="flex shrink-0 items-center gap-2">

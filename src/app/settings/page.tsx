@@ -1,9 +1,8 @@
 import { redirect } from "next/navigation";
 
 import { GmailConnectionCard } from "@/components/gmail/gmail-connection-card";
-import { AppShell } from "@/components/layout/app-shell";
+import { AppChrome } from "@/components/layout/app-chrome";
 import { PageHeader } from "@/components/layout/page-header";
-import { AppHeader } from "@/components/nav/app-header";
 import { ScanHistoryList } from "@/components/scans/scan-history-list";
 import { ScanPreferencesForm } from "@/components/settings/scan-preferences-form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,7 +31,7 @@ export default async function SettingsPage({
   ]);
 
   return (
-    <AppShell header={<AppHeader email={user.email} current="settings" />} width="narrow">
+    <AppChrome user={user} current="settings" width="narrow">
       <PageHeader
         title="Settings"
         description="Connect Gmail, set the daily scan time (default 08:00 Asia/Jerusalem), and review scan history."
@@ -62,6 +61,6 @@ export default async function SettingsPage({
           History is on the Digests page. Open tasks stay on Mail.
         </CardContent>
       </Card>
-    </AppShell>
+    </AppChrome>
   );
 }

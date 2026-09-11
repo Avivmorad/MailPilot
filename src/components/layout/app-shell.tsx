@@ -4,16 +4,19 @@ import { cn } from "@/lib/utils";
 
 export function AppShell({
   header,
+  banner,
   children,
   width = "wide",
 }: {
   header: ReactNode;
+  banner?: ReactNode;
   children: ReactNode;
   width?: "wide" | "narrow";
 }) {
   return (
     <div className="flex min-h-full flex-col">
       {header}
+      {banner}
       <main
         className={cn(
           "mx-auto w-full flex-1 px-4 py-8 sm:px-6 sm:py-10",

@@ -2,12 +2,13 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { GroupedActionList } from "@/components/actions/grouped-action-list";
-import { AppShell } from "@/components/layout/app-shell";
+import { AppChrome } from "@/components/layout/app-chrome";
 import { PageHeader } from "@/components/layout/page-header";
-import { AppHeader } from "@/components/nav/app-header";
 import { InboxSummary } from "@/components/threads/inbox-summary";
+import { buttonVariants } from "@/components/ui/button";
 import { listActionsForUser } from "@/lib/actions/queries";
-import { actionStatusForMailTab, MAIL_TABS, parseMailTab } from "@/lib/mail/tabs";
+import { getGmailStatusForUser } from "@/lib/gmail/connections";
+import { actionStatusForMailTab, MAIL_TABS, mailTabEmptyCopy, parseMailTab } from "@/lib/mail/tabs";
 import { getSessionUser } from "@/lib/supabase/auth";
 import { listIgnoredThreadsForUser, listRecentThreadsForUser } from "@/lib/threads/queries";
 import { cn } from "@/lib/utils";
@@ -43,13 +44,27 @@ export default async function MailPage({
   const params = await searchParams;
   const tab = parseMailTab(params.tab);
   const actionStatus = actionStatusForMailTab(tab);
+  const empty = mailTabEmptyCopy(tab);
 
-  const actionItems = actionStatus ? await listActionsForUser(user.id, actionStatus) : [];
-  const summaryThreads = tab === "summary" ? await listRecentThreadsForUser(user.id, 50) : [];
-  const ignoredThreads = tab === "ignored" ? await listIgnoredThreadsForUser(user.id, 50) : [];
+  const [actionItems, summaryThreads, ignoredThreads, gmailStatus] = await Promise.all([
+    actionStatus ? listActionsForUser(user.id, actionStatus) : Promise.resolve([]),
+    tab === "summary" ? listRecentThreadsForUser(user.id, 50) : Promise.resolve([]),
+    tab === "ignored" ? listIgnoredThreadsForUser(user.id, 50) : Promise.resolve([]),
+    getGmailStatusForUser(user.id),
+  ]);
+  const connected = gmailStatus.connection?.status === "CONNECTED";
+  const emptyAction = connected ? (
+    <Link href="/dashboard#scan" className={buttonVariants({ size: "sm" })}>
+      Scan now
+    </Link>
+  ) : (
+    <a href="/api/gmail/connect" className={buttonVariants({ size: "sm" })}>
+      Connect Gmail
+    </a>
+  );
 
   return (
-    <AppShell header={<AppHeader email={user.email} current="mail" />} width="narrow">
+    <AppChrome user={user} current="mail">
       <PageHeader title="Mail" description={tabDescription(tab)} />
       <div className="bg-muted/70 flex flex-wrap gap-1 rounded-xl p-1">
         {MAIL_TABS.map((item) => (
@@ -69,24 +84,32 @@ export default async function MailPage({
         ))}
       </div>
       {tab === "summary" ? (
-        <InboxSummary threads={summaryThreads} storageKey="mail-summary" />
+        <InboxSummary
+          threads={summaryThreads}
+          storageKey="mail-summary"
+          emptyTitle={empty.title}
+          emptyDescription={empty.description}
+          emptyAction={emptyAction}
+        />
       ) : null}
       {tab === "ignored" ? (
         <InboxSummary
           threads={ignoredThreads}
           storageKey="mail-ignored"
-          emptyTitle="Nothing ignored"
-          emptyDescription="OTP notices and other ignore-classified mail will appear here after a scan."
+          emptyTitle={empty.title}
+          emptyDescription={empty.description}
+          emptyAction={emptyAction}
         />
       ) : null}
       {actionStatus ? (
         <GroupedActionList
           items={actionItems}
           storageKey={`mail-${tab}`}
-          emptyTitle="Nothing in this list yet"
-          emptyDescription="Run a scan from the dashboard, then come back to work through mail."
+          emptyTitle={empty.title}
+          emptyDescription={empty.description}
+          emptyAction={emptyAction}
         />
       ) : null}
-    </AppShell>
+    </AppChrome>
   );
 }

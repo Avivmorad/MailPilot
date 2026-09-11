@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 import { ActionItemCard } from "@/components/actions/action-item-card";
 import { EmptyState } from "@/components/layout/empty-state";
 import { CollapsibleTopicGroups } from "@/components/layout/collapsible-topic-groups";
@@ -9,14 +11,16 @@ export function GroupedActionList({
   storageKey = "open-tasks",
   emptyTitle = "No open tasks",
   emptyDescription = "When a thread still needs a real next step, it will show up here — grouped by topic.",
+  emptyAction,
 }: {
   items: ActionListItem[];
   storageKey?: string;
   emptyTitle?: string;
   emptyDescription?: string;
+  emptyAction?: ReactNode;
 }) {
   if (items.length === 0) {
-    return <EmptyState title={emptyTitle} description={emptyDescription} />;
+    return <EmptyState title={emptyTitle} description={emptyDescription} action={emptyAction} />;
   }
   const groups = groupByTopic(items);
   return (

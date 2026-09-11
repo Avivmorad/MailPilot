@@ -1,24 +1,26 @@
-import { Ban, Clock3, Inbox, ListChecks, ShieldAlert } from "lucide-react";
+import { Clock3, Inbox, ListChecks } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { ActionItemCard } from "@/components/actions/action-item-card";
 import { DigestReportCard } from "@/components/digest/digest-report-card";
 import { GmailConnectionCard } from "@/components/gmail/gmail-connection-card";
-import { AppShell } from "@/components/layout/app-shell";
+import { AppChrome } from "@/components/layout/app-chrome";
+import { EmptyState } from "@/components/layout/empty-state";
 import { PageHeader } from "@/components/layout/page-header";
-import { AppHeader } from "@/components/nav/app-header";
 import { InitialScanCard } from "@/components/scans/initial-scan-card";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { countActionsForUser } from "@/lib/actions/queries";
+import { buttonVariants } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { listActionsForUser } from "@/lib/actions/queries";
 import { ensureDigestForLatestScan } from "@/lib/digest/build-digest";
 import { getGmailStatusForUser } from "@/lib/gmail/connections";
-import { MAIL_TABS } from "@/lib/mail/tabs";
 import { getInboxCountsForUser, getLatestScanRunForUser } from "@/lib/scans/manual";
 import { getSessionUser } from "@/lib/supabase/auth";
-import { formatDateTime } from "@/lib/ui/format";
-import { labelForScanStatus } from "@/lib/ui/labels";
+import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
+
+const ATTENTION_PREVIEW = 3;
 
 function dashboardDescription({
   connected,
@@ -33,36 +35,58 @@ function dashboardDescription({
     return "Connect Gmail to start triaging your inbox.";
   }
   if (scanDone) {
-    return "Scan finished. The numbers below are live from your mailbox.";
+    return "Scan finished. Open tasks are first — FYI and waiting stay in Mail.";
   }
   if (latestStatus === "RUNNING") {
-    return "A scan is running. You can keep using the dashboard while it works.";
+    return "A scan is running. You can keep working while it classifies mail.";
   }
-  if (latestStatus) {
-    return "Overview of scan status and counts. Mail lists live under Mail; period digests live under Digests.";
-  }
-  return "Gmail is connected. Choose a lookback (up to a month) and run a scan.";
+  return "What needs you, what you are waiting for, and what happened.";
 }
 
-function nextStepCopy({
+function nextStep({
   connected,
   openCount,
   processed,
+  scanRunning,
 }: {
   connected: boolean;
   openCount: number;
   processed: number;
-}): string {
+  scanRunning: boolean;
+}): { title: string; body: string; href: string; label: string } | null {
   if (!connected) {
-    return "Connect Gmail in Settings or with the card above, then run your first scan.";
+    return null;
+  }
+  if (scanRunning) {
+    return {
+      title: "Scan in progress",
+      body: "Progress is on the scan panel below. Mail lists update as threads finish.",
+      href: "#scan",
+      label: "View scan",
+    };
   }
   if (processed === 0) {
-    return "Run Scan now to classify recent mail. Lists will appear under Mail.";
+    return {
+      title: "Run your first scan",
+      body: "Choose a lookback window and classify recent mail. Open tasks will land here.",
+      href: "#scan",
+      label: "Scan now",
+    };
   }
   if (openCount > 0) {
-    return `You have ${openCount} open task${openCount === 1 ? "" : "s"}. Open Mail to work through them.`;
+    return {
+      title: `${openCount} open task${openCount === 1 ? "" : "s"}`,
+      body: "Work through Needs your attention, or open the full list in Mail.",
+      href: "/mail?tab=open",
+      label: "Work through them",
+    };
   }
-  return "No open tasks. Check the Mail summary for FYI mail, or Waiting if you already acted.";
+  return {
+    title: "Inbox is clear",
+    body: "No open tasks. Check Mail summary for leftover FYI, or Waiting if you already acted.",
+    href: "/mail?tab=summary",
+    label: "Open Mail summary",
+  };
 }
 
 export default async function DashboardPage({
@@ -77,32 +101,43 @@ export default async function DashboardPage({
 
   const [params, gmailStatus] = await Promise.all([searchParams, getGmailStatusForUser(user.id)]);
   const connected = gmailStatus.connection?.status === "CONNECTED";
-  const emptyCounts = { processed: 0, important: 0, needAction: 0, waiting: 0, ignored: 0 };
+  const showGmailCard =
+    Boolean(params.gmail) ||
+    Boolean(gmailStatus.loadError) ||
+    !gmailStatus.configured ||
+    !gmailStatus.connection ||
+    gmailStatus.connection.status === "DISCONNECTED";
+  const emptyCounts = { processed: 0, important: 0, needAction: 0, waiting: 0, ignored: 0, fyi: 0 };
   const latestScan = connected ? await getLatestScanRunForUser(user.id) : null;
-  const [counts, openCount, latestDigest] = connected
+  const [counts, openActions, latestDigest] = connected
     ? await Promise.all([
         getInboxCountsForUser(user.id),
-        countActionsForUser(user.id, "OPEN"),
+        listActionsForUser(user.id, "OPEN"),
         ensureDigestForLatestScan(
           user.id,
           latestScan ? String(latestScan.id) : null,
           latestScan ? String(latestScan.status) : null,
         ).catch(() => null),
       ])
-    : [emptyCounts, 0, null];
+    : [emptyCounts, [], null];
   const latestStatus = latestScan ? String(latestScan.status) : null;
-  const showGmailCard = !connected || Boolean(params.gmail);
+  const openCount = openActions.length;
+  const attentionItems = openActions.slice(0, ATTENTION_PREVIEW);
 
+  const step = nextStep({
+    connected,
+    openCount,
+    processed: counts.processed,
+    scanRunning: latestStatus === "RUNNING",
+  });
   const stats = [
-    { label: "Processed", value: connected ? String(counts.processed) : "—", icon: Inbox, href: "/mail?tab=summary" },
-    { label: "Important", value: connected ? String(counts.important) : "—", icon: ShieldAlert, href: "/mail?tab=summary" },
-    { label: "Open", value: connected ? String(openCount) : "—", icon: ListChecks, href: "/mail?tab=open" },
-    { label: "Waiting", value: connected ? String(counts.waiting) : "—", icon: Clock3, href: "/mail?tab=waiting" },
-    { label: "Ignored", value: connected ? String(counts.ignored) : "—", icon: Ban, href: "/mail?tab=ignored" },
+    { label: "Open tasks", value: connected ? String(openCount) : "—", href: "/mail?tab=open", icon: ListChecks, hero: true },
+    { label: "Waiting", value: connected ? String(counts.waiting) : "—", href: "/mail?tab=waiting", icon: Clock3, hero: false },
+    { label: "FYI", value: connected ? String(counts.fyi) : "—", href: "/mail?tab=summary", icon: Inbox, hero: false },
   ];
 
   return (
-    <AppShell header={<AppHeader email={user.email} current="dashboard" />}>
+    <AppChrome user={user} current="dashboard">
       <PageHeader
         title="Inbox overview"
         description={dashboardDescription({
@@ -114,24 +149,29 @@ export default async function DashboardPage({
 
       {showGmailCard ? (
         <GmailConnectionCard status={gmailStatus} gmailFlash={params.gmail} reason={params.reason} />
-      ) : (
-        <p className="text-muted-foreground text-sm">
-          Gmail connected as{" "}
-          <span className="text-foreground font-medium">{gmailStatus.connection?.gmailEmail}</span>
-          {" · "}
-          <Link href="/settings" className="text-primary font-medium hover:underline">
-            Manage in Settings
-          </Link>
-        </p>
-      )}
+      ) : null}
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5 sm:gap-4">
+      {step ? (
+        <div className="bg-card ring-foreground/10 flex flex-wrap items-center justify-between gap-3 rounded-xl px-4 py-3 ring-1">
+          <div className="min-w-0">
+            <p className="font-medium tracking-tight">{step.title}</p>
+            <p className="text-muted-foreground mt-0.5 text-sm leading-relaxed">{step.body}</p>
+          </div>
+          <Link href={step.href} className={buttonVariants()}>
+            {step.label}
+          </Link>
+        </div>
+      ) : null}
+
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         {stats.map((stat) => (
           <Link key={stat.label} href={stat.href} className="block rounded-xl focus-visible:ring-2 focus-visible:ring-offset-2">
-            <Card size="sm" className="h-full transition-colors hover:bg-muted/40">
-              <CardContent className="pt-1">
+            <Card size={stat.hero ? "default" : "sm"} className="h-full transition-colors hover:bg-muted/40">
+              <CardContent className={cn(stat.hero ? "pt-1" : "")}>
                 <stat.icon className="text-muted-foreground mb-2 size-4" aria-hidden />
-                <div className="text-3xl font-semibold tracking-tight tabular-nums">{stat.value}</div>
+                <div className={cn("font-semibold tracking-tight tabular-nums", stat.hero ? "text-4xl" : "text-3xl")}>
+                  {stat.value}
+                </div>
                 <div className="text-muted-foreground mt-1 text-sm">{stat.label}</div>
               </CardContent>
             </Card>
@@ -139,86 +179,82 @@ export default async function DashboardPage({
         ))}
       </div>
 
-      <p className="text-sm leading-relaxed">{nextStepCopy({ connected, openCount, processed: counts.processed })}</p>
+      <section className="space-y-3">
+        <div className="flex flex-wrap items-end justify-between gap-2">
+          <div>
+            <h2 className="text-foreground text-lg font-semibold tracking-tight">Needs your attention</h2>
+            <p className="text-muted-foreground text-sm">Top open tasks. Full list lives in Mail.</p>
+          </div>
+          {openCount > 0 ? (
+            <Link href="/mail?tab=open" className="text-primary text-sm font-medium hover:underline">
+              View all in Mail
+            </Link>
+          ) : null}
+        </div>
+        {attentionItems.length > 0 ? (
+          <div className="space-y-3">
+            {attentionItems.map((item) => (
+              <ActionItemCard key={item.id} item={item} />
+            ))}
+          </div>
+        ) : (
+          <EmptyState
+            title="Nothing currently needs your action."
+            description={
+              connected
+                ? "When a thread still needs a next step, it will show up here."
+                : "Connect Gmail to start organizing your inbox."
+            }
+            action={
+              connected ? (
+                <Link href="#scan" className={buttonVariants({ size: "sm" })}>
+                  Scan now
+                </Link>
+              ) : (
+                <a href="/api/gmail/connect" className={buttonVariants({ size: "sm" })}>
+                  Connect Gmail
+                </a>
+              )
+            }
+          />
+        )}
+      </section>
 
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
-        <span className="text-muted-foreground">Mail lists</span>
-        {MAIL_TABS.map((item) => (
-          <Link
-            key={item.id}
-            href={`/mail?tab=${item.id}`}
-            className="text-primary font-medium hover:underline"
-          >
-            {item.label}
-          </Link>
-        ))}
-      </div>
+      <InitialScanCard
+        connected={connected}
+        incremental={Boolean(gmailStatus.connection?.lastSuccessfulScanAt)}
+        latestScan={
+          latestScan
+            ? {
+                id: String(latestScan.id),
+                status: String(latestScan.status),
+                threads_discovered: Number(latestScan.threads_discovered ?? 0),
+                threads_checked: Number(latestScan.threads_checked ?? 0),
+              }
+            : null
+        }
+        lastRunAt={
+          latestStatus === "RUNNING" ? null : ((latestScan?.finished_at as string | null | undefined) ?? null)
+        }
+        lastRunStatus={latestStatus === "RUNNING" ? null : latestStatus}
+        messagesProcessed={
+          latestScan && latestStatus !== "RUNNING" ? Number(latestScan.messages_processed ?? 0) : null
+        }
+        nextScanAt={gmailStatus.connection?.nextScanAt}
+      />
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Latest scan</CardTitle>
-            <CardDescription>
-              {latestScan
-                ? latestStatus === "RUNNING"
-                  ? "Checking conversations in the background."
-                  : `Status: ${labelForScanStatus(latestStatus)}.`
-                : "No scan yet."}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="text-sm leading-relaxed">
-            {latestScan ? (
-              <dl className="text-muted-foreground grid gap-2 sm:grid-cols-2">
-                <div>
-                  <dt className="text-foreground font-medium">Last run</dt>
-                  <dd>
-                    {latestStatus === "RUNNING"
-                      ? "In progress"
-                      : formatDateTime(latestScan.finished_at as string | null)}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-foreground font-medium">Progress</dt>
-                  <dd>
-                    {latestStatus === "RUNNING"
-                      ? `${Number(latestScan.threads_checked ?? 0)} of ${Number(latestScan.threads_discovered ?? 0)} conversations`
-                      : `${latestScan.messages_processed} emails processed`}
-                  </dd>
-                </div>
-                <div className="sm:col-span-2">
-                  <dt className="text-foreground font-medium">Next scan</dt>
-                  <dd>{formatDateTime(gmailStatus.connection?.nextScanAt)}</dd>
-                </div>
-              </dl>
-            ) : (
-              <p className="text-muted-foreground">Run an initial scan to classify the last days of mail.</p>
-            )}
-          </CardContent>
-        </Card>
-        <InitialScanCard
-          connected={connected}
-          incremental={Boolean(gmailStatus.connection?.lastSuccessfulScanAt)}
-          latestScan={
-            latestScan
-              ? {
-                  id: String(latestScan.id),
-                  status: String(latestScan.status),
-                  threads_discovered: Number(latestScan.threads_discovered ?? 0),
-                  threads_checked: Number(latestScan.threads_checked ?? 0),
-                }
-              : null
-          }
-        />
-      </div>
+      <DigestReportCard digest={latestDigest} variant="compact" />
 
-      <DigestReportCard digest={latestDigest} />
-      {latestDigest ? (
-        <p className="text-sm">
-          <Link href="/digests" className="text-primary font-medium hover:underline">
-            View digest history
+      {connected && gmailStatus.connection?.gmailEmail ? (
+        <p className="text-muted-foreground text-sm">
+          Gmail connected as{" "}
+          <span className="text-foreground font-medium">{gmailStatus.connection.gmailEmail}</span>
+          {" · "}
+          <Link href="/settings" className="text-primary font-medium hover:underline">
+            Manage in Settings
           </Link>
         </p>
       ) : null}
-    </AppShell>
+    </AppChrome>
   );
 }

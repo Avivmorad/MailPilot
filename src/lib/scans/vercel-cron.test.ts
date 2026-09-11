@@ -33,3 +33,14 @@ describe("scan-dispatcher maxDuration", () => {
     expect(maxDuration).toBeLessThanOrEqual(300);
   });
 });
+
+describe("manual scan route maxDuration", () => {
+  it("stays within the Vercel Hobby Serverless Function range (1–300)", () => {
+    const source = readFileSync(path.join(process.cwd(), "src/app/api/scans/route.ts"), "utf8");
+    const match = source.match(/export const maxDuration = (\d+);/);
+    expect(match).not.toBeNull();
+    const maxDuration = Number(match?.[1]);
+    expect(maxDuration).toBeGreaterThanOrEqual(1);
+    expect(maxDuration).toBeLessThanOrEqual(300);
+  });
+});

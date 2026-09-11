@@ -3,7 +3,7 @@ import Link from "next/link";
 
 import { EmptyState } from "@/components/layout/empty-state";
 import { CollapsibleTopicGroups } from "@/components/layout/collapsible-topic-groups";
-import { MetaBadge } from "@/components/ui/meta-badge";
+import { ThreadTags } from "@/components/ui/thread-tags";
 import { groupByTopic } from "@/lib/actions/topics";
 import type { RecentThreadRow } from "@/lib/threads/queries";
 import { formatRelativeTime } from "@/lib/ui/format";
@@ -47,8 +47,12 @@ export function InboxSummary({
                     >
                       {thread.shortDisplayTitle ?? thread.summary ?? "Thread"}
                     </p>
-                    <div className="flex shrink-0 items-center gap-2">
-                      {thread.status ? <MetaBadge kind="status" value={thread.status} /> : null}
+                    <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
+                      <ThreadTags
+                        category={thread.category}
+                        status={thread.status}
+                        importance={thread.importance}
+                      />
                       <span className="text-muted-foreground text-xs">
                         {formatRelativeTime(thread.latestMessageAt)}
                       </span>

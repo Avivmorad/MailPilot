@@ -1,3 +1,4 @@
+import { normalizeCategory } from "@/lib/ai/categories";
 import { threadAnalysisSchema, type ThreadAnalysis } from "@/lib/ai/schemas";
 import type { ActionRecord } from "@/lib/actions/reconcile-action";
 import { parseAddressList, parseEmailAddress } from "@/lib/gmail/addresses";
@@ -33,7 +34,7 @@ function analysisFromRow(row: Record<string, unknown>): ThreadAnalysis | null {
     urgency: row.urgency ?? "normal",
     deadline: row.deadline,
     deadline_text: row.deadline_text,
-    category: row.category ?? "other",
+    category: normalizeCategory(typeof row.category === "string" ? row.category : null),
     sender_name: null,
     organization: null,
     confidence: row.confidence ?? 0,

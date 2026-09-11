@@ -26,7 +26,7 @@ function validAnalysis(overrides: Partial<ThreadAnalysis> = {}): ThreadAnalysis 
     urgency: "soon",
     deadline: null,
     deadline_text: null,
-    category: "work",
+    category: "other",
     sender_name: "Ada",
     organization: null,
     confidence: 0.88,

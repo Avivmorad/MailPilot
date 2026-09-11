@@ -1,4 +1,7 @@
+import { CATEGORY_LABELS } from "@/lib/ai/categories";
+
 const LABEL_OVERRIDES: Record<string, string> = {
+  ...CATEGORY_LABELS,
   action_required: "Needs action",
   informational: "FYI",
   follow_up: "Follow up",
@@ -73,48 +76,6 @@ export function labelForScanStatus(value: string | null | undefined): string {
 
 export function labelForDirection(value: string | null | undefined): string {
   return humanizeToken(value);
-}
-
-export type BadgeTone = "danger" | "warning" | "success" | "info" | "accent" | "neutral" | "muted";
-
-export function toneForUrgency(value: string | null | undefined): BadgeTone {
-  switch (value?.toLowerCase()) {
-    case "urgent":
-    case "expired":
-      return "danger";
-    case "soon":
-      return "warning";
-    case "later":
-      return "info";
-    case "normal":
-      return "accent";
-    default:
-      return "muted";
-  }
-}
-
-export function toneForImportance(value: string | null | undefined): BadgeTone {
-  switch (value?.toLowerCase()) {
-    case "high":
-      return "danger";
-    case "medium":
-      return "warning";
-    default:
-      return "muted";
-  }
-}
-
-export function toneForThreadStatus(value: string | null | undefined): BadgeTone {
-  switch (value?.toLowerCase()) {
-    case "action_required":
-      return "danger";
-    case "waiting":
-      return "warning";
-    case "informational":
-      return "accent";
-    default:
-      return "muted";
-  }
 }
 
 export function accentForUrgency(value: string | null | undefined): string {

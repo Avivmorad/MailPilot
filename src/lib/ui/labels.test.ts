@@ -14,6 +14,7 @@ describe("humanizeToken", () => {
     expect(humanizeToken("needs_review")).toBe("Needs review");
     expect(humanizeToken("expired")).toBe("Expired");
     expect(humanizeToken("later")).toBe("Later");
+    expect(humanizeToken("projects_development")).toBe("Projects & Development");
   });
 
   it("returns empty string for missing values", () => {

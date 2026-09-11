@@ -116,17 +116,30 @@ Mail tabs are derived from this single `status` (plus action workflow for waitin
 
 ## Open-task topics
 
-Within Open (and in the summary), group threads under:
+Within Open (and in the summary), group threads by the AI `category`. Use
+`other` only when nothing else fits. Headings:
 
-| Topic      | Label      | Typical mail                                      |
-| ---------- | ---------- | ------------------------------------------------- |
-| `security` | Security   | Account / login / session (not OTPs)              |
-| `payments` | Payments   | Charges, invoices, receipts                       |
-| `general`  | General    | Everything else that is still a real task or FYI  |
+| Category | Label | Typical mail |
+| -------- | ----- | ------------ |
+| `finance` | Finance | Banking, charges, receipts, invoices, billed subscriptions, investments, tax |
+| `security` | Security | Logins, authentication, passwords, OAuth, account access (not OTPs as Open tasks) |
+| `career` | Career | Jobs, recruiters, applications, interviews |
+| `education` | Education | Courses, exams, school or university enrollment |
+| `projects_development` | Projects & Development | Code, deployments, developer tooling |
+| `travel_transport` | Travel & Transport | Flights, hotels, transport, travel insurance |
+| `shopping_orders` | Shopping & Orders | Orders, deliveries, returns of goods |
+| `official_legal` | Official, Legal & Insurance | Government, contracts, insurance, pension |
+| `accounts_subscriptions` | Accounts & Subscriptions | Service-account notices, plan changes, product updates, non-security subscriptions |
+| `personal_health` | Personal & Health | Personal messages, appointments, medical, personal services |
+| `social_feeds` | Social & Feeds | Social networks, groups, social notifications |
+| `gaming_entertainment` | Gaming & Entertainment | Games and entertainment content |
+| `newsletters_promotions` | Newsletters & Promotions | Promotions, ads, newsletters with no operational content |
+| `other` | Other | Default only when none of the above fit |
 
-Mapping from spec `category`: `account` → security; `finance` / `shopping` → payments;
-otherwise general. Similar notices sit together under the same topic in the summary; they
-are not merged into a single Gmail thread.
+This replaces the spec §12 category enum (`work`, `school`, `account`, …) and the
+previous three UI buckets (Security / Payments / General). Stored legacy values
+map onto the new taxonomy at read/group time. Similar notices sit together under
+the same heading; they are not merged into a single Gmail thread.
 
 ## Placement map
 

@@ -48,7 +48,7 @@ function nonEmpty(value: string | null | undefined): string | null {
 }
 
 function isCriticalAccountMessage(analysis: ThreadAnalysis): boolean {
-  return analysis.category === "account" && analysis.importance === "high";
+  return analysis.category === "security" && analysis.importance === "high";
 }
 
 function senderMatches(list: string[] | undefined, from: string | null): boolean {
@@ -117,7 +117,7 @@ export function postProcessThreadAnalysis(
     next.status = "action_required";
     next.requires_action = true;
     if (isSecurityEventNotice(noticeParts)) {
-      next.category = "account";
+      next.category = "security";
     }
     if (next.action_type === "none") {
       next.action_type = isUserOwnedActionNotice(noticeParts)

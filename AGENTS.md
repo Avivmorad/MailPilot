@@ -21,7 +21,8 @@ does not apply Gmail labels. Phase 6: dashboard stats/scan cards; Mail tabs
 (Summary, Open, Waiting, Completed, Snoozed, Ignored); thread details, mark
 complete, snooze, Open in Gmail. Phase 7: subsequent scans use the History
 API; stale historyId recovers with a 1-hour overlap query. Open tasks are
-grouped (Security / Payments / General) and kept separate from the inbox
+grouped by category (Finance, Security, Career, and the rest of the taxonomy
+in PRODUCT_DECISIONS) and kept separate from the inbox
 summary; OTP and login-FYI notices are not open tasks.
 Phase 8: global cron dispatcher (`POST`/`GET` `/api/cron/scan-dispatcher`)
 claims due connections (`next_scan_at`), job lease, bounded retry, scan

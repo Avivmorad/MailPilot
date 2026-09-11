@@ -44,6 +44,8 @@ export interface ThreadDetail {
   urgency: string | null;
   deadline: string | null;
   deadlineText: string | null;
+  category: string | null;
+  actionType: string | null;
   confidence: number | null;
   latestMessageAt: string | null;
   actionId: string | null;
@@ -178,6 +180,8 @@ export async function getThreadDetailForUser(userId: string, threadId: string): 
     urgency: (thread.urgency as string | null) ?? null,
     deadline: (thread.deadline as string | null) ?? null,
     deadlineText: (thread.deadline_text as string | null) ?? null,
+    category: (thread.category as string | null) ?? null,
+    actionType: (thread.action_type as string | null) ?? null,
     confidence: thread.confidence == null ? null : Number(thread.confidence),
     latestMessageAt: (thread.latest_message_at as string | null) ?? null,
     actionId: action ? String(action.id) : null,

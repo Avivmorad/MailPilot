@@ -2,7 +2,7 @@ import Link from "next/link";
 
 import { ActionControls } from "@/components/actions/action-controls";
 import { LabeledField } from "@/components/ui/labeled-field";
-import { MetaBadge } from "@/components/ui/meta-badge";
+import { ThreadTags } from "@/components/ui/thread-tags";
 import type { ActionListItem } from "@/lib/actions/queries";
 import { classForDeadline, displayUrgencyForDeadline, formatDate, formatRelativeTime } from "@/lib/ui/format";
 import { accentForUrgency } from "@/lib/ui/labels";
@@ -37,12 +37,15 @@ export function ActionItemCard({ item }: { item: ActionListItem }) {
           </h3>
           {meta ? <p className="text-muted-foreground mt-0.5 text-sm">{meta}</p> : null}
         </div>
-        <div className="flex shrink-0 flex-wrap justify-end gap-1">
-          {urgencyLabel ? <MetaBadge kind="urgency" value={urgencyLabel} /> : null}
-          {item.importance && item.importance !== "low" ? (
-            <MetaBadge kind="importance" value={item.importance} />
-          ) : null}
-          {item.actionType ? <MetaBadge value={item.actionType} /> : null}
+        <div className="flex min-w-0 max-w-full shrink justify-end sm:max-w-[min(100%,20rem)]">
+          <ThreadTags
+            category={item.category}
+            importance={item.importance}
+            urgency={item.urgency}
+            deadline={item.deadline}
+            actionType={item.actionType}
+            showStatus={false}
+          />
         </div>
       </div>
 

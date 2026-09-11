@@ -59,6 +59,13 @@ describe("TRIAGE_SYSTEM_PROMPT", () => {
     expect(TRIAGE_SYSTEM_PROMPT).toContain("shared a document with you");
   });
 
+  it("lists the current category taxonomy", () => {
+    expect(TRIAGE_SYSTEM_PROMPT).toContain("Choose exactly one category");
+    expect(TRIAGE_SYSTEM_PROMPT).toContain("projects_development");
+    expect(TRIAGE_SYSTEM_PROMPT).toContain("newsletters_promotions");
+    expect(TRIAGE_SYSTEM_PROMPT).toContain("only when none of the above fit");
+  });
+
   it("classifies by remaining action ownership and keeps OTP ignore", () => {
     expect(TRIAGE_SYSTEM_PROMPT).toContain("remaining action and who owns it");
     expect(TRIAGE_SYSTEM_PROMPT).toContain("automated sender alone must not");

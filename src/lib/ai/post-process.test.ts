@@ -23,7 +23,7 @@ function analysis(overrides: Partial<ThreadAnalysis> = {}): ThreadAnalysis {
     urgency: "normal",
     deadline: null,
     deadline_text: null,
-    category: "work",
+    category: "other",
     sender_name: null,
     organization: null,
     confidence: 0.9,
@@ -91,7 +91,7 @@ describe("postProcessThreadAnalysis", () => {
   });
 
   it("applies VIP and ignore sender overrides", () => {
-    const ignored = postProcessThreadAnalysis(analysis({ importance: "medium", category: "work" }), {
+    const ignored = postProcessThreadAnalysis(analysis({ importance: "medium", category: "other" }), {
       latestFrom: "Ada <noise@example.com>",
       preferences: { ignoreSenders: ["noise@example.com"] },
     });
@@ -114,7 +114,7 @@ describe("postProcessThreadAnalysis", () => {
   it("does not ignore a critical account message", () => {
     const processed = postProcessThreadAnalysis(
       analysis({
-        category: "account",
+        category: "security",
         importance: "high",
         status: "action_required",
         requires_action: true,
@@ -166,12 +166,12 @@ describe("postProcessThreadAnalysis", () => {
         status: "informational",
         requires_action: false,
         importance: "medium",
-        category: "notification",
+        category: "accounts_subscriptions",
         summary: "Google security alert: new device login",
       }),
     );
     expect(processed.status).toBe("action_required");
-    expect(processed.category).toBe("account");
+    expect(processed.category).toBe("security");
     expect(processed.requires_action).toBe(true);
   });
 
@@ -234,7 +234,7 @@ describe("postProcessThreadAnalysis", () => {
         status: "informational",
         requires_action: false,
         importance: "high",
-        category: "account",
+        category: "security",
         summary: "כניסה חדשה ב-Windows. אם הכניסה בוצעה על ידך, אין צורך לעשות דבר.",
       }),
     );
@@ -248,7 +248,7 @@ describe("postProcessThreadAnalysis", () => {
         status: "informational",
         requires_action: false,
         importance: "high",
-        category: "account",
+        category: "security",
         summary: "התראת אבטחה קריטית: חסמנו ניסיון כניסה לחשבון שלך.",
       }),
     );
@@ -262,7 +262,7 @@ describe("postProcessThreadAnalysis", () => {
         status: "action_required",
         requires_action: true,
         importance: "high",
-        category: "account",
+        category: "security",
         action_type: "review",
         action_summary: "אבטח את החשבון",
         summary: "Unusual sign-in detected. Secure your account now.",

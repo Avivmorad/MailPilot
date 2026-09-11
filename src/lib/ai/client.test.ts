@@ -30,7 +30,7 @@ const validPayload: ThreadAnalysis = {
   urgency: "soon",
   deadline: null,
   deadline_text: "today",
-  category: "work",
+  category: "other",
   sender_name: "Ada",
   organization: null,
   confidence: 0.8,

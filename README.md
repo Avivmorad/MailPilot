@@ -160,6 +160,10 @@ relying on scheduled scans.
 Deploy on Vercel. Configure all environment variables in the project settings and add the cron
 schedule. Ensure `GOOGLE_REDIRECT_URI` and `NEXT_PUBLIC_APP_URL` match the deployed domain.
 
+If you deploy on the Vercel Hobby plan, function durations must stay at or below 300 seconds and
+built-in cron jobs are limited to once per day. More frequent scheduler triggers require Vercel Pro
+or an external scheduler that calls the dispatcher endpoint securely.
+
 ## OAuth production considerations
 
 `gmail.modify` is a sensitive/restricted Gmail scope. Before a public launch you must complete

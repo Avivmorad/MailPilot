@@ -11,7 +11,7 @@ import {
 } from "@/lib/scans/manual";
 import { runScanInBackground } from "@/lib/scans/runtime";
 
-export const maxDuration = 800;
+export const maxDuration = 300;
 
 export async function GET() {
   const user = await getSessionUser();

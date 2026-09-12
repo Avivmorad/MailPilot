@@ -1,9 +1,12 @@
 import Link from "next/link";
 
 import { ActionControls } from "@/components/actions/action-controls";
+import { ThreadPlacementCorrection } from "@/components/threads/thread-placement-correction";
 import { LabeledField } from "@/components/ui/labeled-field";
 import { ThreadTags } from "@/components/ui/thread-tags";
 import type { ActionListItem } from "@/lib/actions/queries";
+import { mailBucketForThread } from "@/lib/mail/buckets";
+import { threadPlacementReason } from "@/lib/mail/placement";
 import { classForDeadline, displayUrgencyForDeadline, formatDate, formatRelativeTime } from "@/lib/ui/format";
 import { accentForUrgency } from "@/lib/ui/labels";
 import { cn } from "@/lib/utils";
@@ -17,6 +20,11 @@ export function ActionItemCard({ item }: { item: ActionListItem }) {
     ((doText && item.actionReason.trim() === doText.trim()) || item.actionReason.trim() === item.title.trim())
       ? null
       : item.actionReason;
+  const tab = mailBucketForThread({
+    status: item.status === "WAITING" ? "waiting" : "action_required",
+    actionStatus: item.status,
+  });
+  const placement = threadPlacementReason({ tab, evidence: whyText });
   const meta = [item.sender, item.latestMessageAt ? formatRelativeTime(item.latestMessageAt) : null]
     .filter(Boolean)
     .join(" · ");
@@ -64,25 +72,26 @@ export function ActionItemCard({ item }: { item: ActionListItem }) {
             {formatDate(item.deadline)}
           </LabeledField>
         ) : null}
-        {whyText ? (
-          <LabeledField label="Why" dir="auto">
-            {whyText}
-          </LabeledField>
-        ) : null}
+        <LabeledField label="Why this tab" dir="auto">
+          {placement}
+        </LabeledField>
         {item.waitingFor ? <LabeledField label="Waiting on">{item.waitingFor}</LabeledField> : null}
       </div>
 
-      <div className="mt-3 flex flex-wrap items-center gap-3 border-t pt-3">
-        <ActionControls actionId={item.id} status={item.status} />
-        <a
-          href={item.gmailUrl}
-          target="_blank"
-          rel="noreferrer"
-          className="text-muted-foreground hover:text-foreground focus-visible:ring-ring rounded-sm text-sm underline-offset-4 hover:underline focus-visible:ring-3 focus-visible:outline-none"
-          aria-label="Open in Gmail"
-        >
-          Open in Gmail
-        </a>
+      <div className="mt-3 space-y-3 border-t pt-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <ActionControls actionId={item.id} status={item.status} />
+          <a
+            href={item.gmailUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="text-muted-foreground hover:text-foreground focus-visible:ring-ring rounded-sm text-sm underline-offset-4 hover:underline focus-visible:ring-3 focus-visible:outline-none"
+            aria-label="Open in Gmail"
+          >
+            Open in Gmail
+          </a>
+        </div>
+        <ThreadPlacementCorrection threadId={item.threadId} tab={tab} />
       </div>
     </article>
   );

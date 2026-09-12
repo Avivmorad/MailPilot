@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LabeledField } from "@/components/ui/labeled-field";
 import { ThreadTags } from "@/components/ui/thread-tags";
 import { mailBucketForThread } from "@/lib/mail/buckets";
+import { threadPlacementReason } from "@/lib/mail/placement";
 import { getSessionUser } from "@/lib/supabase/auth";
 import { getThreadDetailForUser } from "@/lib/threads/queries";
 import { classForDeadline, formatDate, formatDateTime } from "@/lib/ui/format";
@@ -92,11 +93,9 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
                 {thread.deadlineText ? ` (${thread.deadlineText})` : ""}
               </LabeledField>
             ) : null}
-            {whyText ? (
-              <LabeledField label="Why" dir="auto">
-                {whyText}
-              </LabeledField>
-            ) : null}
+            <LabeledField label="Why this tab" dir="auto">
+              {threadPlacementReason({ tab: backTab, evidence: whyText })}
+            </LabeledField>
             {thread.waitingFor ? <LabeledField label="Waiting on">{thread.waitingFor}</LabeledField> : null}
           </div>
           {lowConfidence ? (

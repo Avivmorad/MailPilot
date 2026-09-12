@@ -74,6 +74,8 @@ export interface ScanGmailPort {
   getProfileHistoryId(): Promise<string | null>;
   loadLabelMap(): Promise<Map<MailPilotLogicalLabel, string>>;
   modifyThreadLabels(threadId: string, addLabelIds: string[], removeLabelIds: string[]): Promise<void>;
+  /** Optional: Gmail sendAs aliases. Missing or failing implementations keep the primary address only. */
+  listSendAsEmails?(): Promise<string[]>;
 }
 
 export interface ScanStorePort {

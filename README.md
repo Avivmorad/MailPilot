@@ -64,6 +64,7 @@ migration applied to your Supabase project. Phase 5 also needs
    - `TOKEN_ENCRYPTION_KEY` — generate with `openssl rand -hex 32`
 6. Restart `npm run dev`, sign in, complete `/onboarding`, and click **Connect Gmail**.
 7. Scope requested: `https://www.googleapis.com/auth/gmail.modify` (minimum needed to read mail and apply labels).
+   Scans also read Gmail `sendAs` aliases so mail sent from those addresses is treated as the user.
 
 Production OAuth: add the deployed callback
 (`https://<your-domain>/api/gmail/callback`) as an Authorized redirect URI and

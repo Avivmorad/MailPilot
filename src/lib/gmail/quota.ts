@@ -11,6 +11,7 @@ export const GMAIL_UNITS = {
   historyList: 2,
   labelsList: 1,
   labelsCreate: 5,
+  sendAsList: 1,
 } as const;
 
 export class GmailMinuteQuota {

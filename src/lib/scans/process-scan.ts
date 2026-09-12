@@ -5,6 +5,7 @@ import { threadAnalysisInputFromContext } from "@/lib/ai/types";
 import { reconcileActionItem } from "@/lib/actions/reconcile-action";
 import { getContextLimits, type ContextLimits } from "@/lib/config/env";
 import { classifyDirection, parseAddressList, parseEmailAddress } from "@/lib/gmail/addresses";
+import { mergeUserEmails, safeListSendAsEmails } from "@/lib/gmail/aliases";
 import type { MailPilotLogicalLabel } from "@/lib/gmail/constants";
 import { labelDiff, logicalLabelsForAnalysis } from "@/lib/gmail/label-plan";
 import type { ParsedGmailMessage } from "@/lib/gmail/parser";
@@ -233,6 +234,7 @@ export async function openGmailScan(input: ProcessGmailScanInput): Promise<Prepa
   });
 
   const settings = await input.store.getSettings(input.userId);
+  const sendAsEmails = await safeListSendAsEmails(input.gmail.listSendAsEmails?.bind(input.gmail));
   return {
     scanId,
     lookbackDays,
@@ -243,7 +245,7 @@ export async function openGmailScan(input: ProcessGmailScanInput): Promise<Prepa
     limits,
     state,
     settings,
-    userEmails: [input.gmailEmail],
+    userEmails: mergeUserEmails([input.gmailEmail], sendAsEmails),
     userId: input.userId,
     connectionId: input.connectionId,
     gmail: input.gmail,

@@ -29,6 +29,19 @@ describe("vercel.json crons", () => {
     expect(scans).toMatch(/export const maxDuration = 300;/);
     expect(scans).not.toMatch(/maxDuration = 800/);
   });
+
+  it("claims only due CONNECTED Gmail accounts", () => {
+    const sql = readFileSync(
+      path.join(process.cwd(), "supabase/migrations/0007_scan_scheduling.sql"),
+      "utf8",
+    );
+    const leases = readFileSync(path.join(process.cwd(), "src/lib/scans/leases.ts"), "utf8");
+    expect(sql).toContain("c.status = 'CONNECTED'");
+    expect(sql).toContain("c.next_scan_at <= now()");
+    expect(sql).toContain("for update skip locked");
+    expect(leases).toContain('.eq("status", "CONNECTED")');
+    expect(leases).toContain('.lte("next_scan_at", nowIso)');
+  });
 });
 
 describe("scan-dispatcher maxDuration", () => {

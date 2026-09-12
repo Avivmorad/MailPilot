@@ -1,0 +1,66 @@
+import { NextResponse, type NextRequest } from "next/server";
+import { z } from "zod";
+
+import { parseAuthOtpType, safeAuthNext } from "@/lib/auth/redirects";
+import { createClient } from "@/lib/supabase/server";
+
+const confirmQuerySchema = z.object({
+  token_hash: z.string().min(1).optional(),
+  type: z.string().min(1).optional(),
+  code: z.string().min(1).optional(),
+  next: z.string().min(1).optional(),
+});
+
+export async function GET(request: NextRequest) {
+  const parsed = confirmQuerySchema.safeParse({
+    token_hash: request.nextUrl.searchParams.get("token_hash") ?? undefined,
+    type: request.nextUrl.searchParams.get("type") ?? undefined,
+    code: request.nextUrl.searchParams.get("code") ?? undefined,
+    next: request.nextUrl.searchParams.get("next") ?? undefined,
+  });
+
+  const destination = request.nextUrl.clone();
+  destination.hash = "";
+  destination.search = "";
+
+  if (!parsed.success) {
+    destination.pathname = "/login";
+    destination.searchParams.set("error", "auth_link");
+    return NextResponse.redirect(destination);
+  }
+
+  const otpType = parseAuthOtpType(parsed.data.type ?? null);
+  destination.pathname = safeAuthNext(parsed.data.next, otpType);
+
+  try {
+    const supabase = await createClient();
+    if (parsed.data.token_hash && otpType) {
+      const { error } = await supabase.auth.verifyOtp({
+        type: otpType,
+        token_hash: parsed.data.token_hash,
+      });
+      if (error) {
+        throw error;
+      }
+    } else if (parsed.data.code) {
+      const { error } = await supabase.auth.exchangeCodeForSession(parsed.data.code);
+      if (error) {
+        throw error;
+      }
+    } else {
+      destination.pathname = "/login";
+      destination.searchParams.set("error", "auth_link");
+      return NextResponse.redirect(destination);
+    }
+  } catch {
+    destination.pathname = "/login";
+    destination.searchParams.set("error", "auth_link");
+    return NextResponse.redirect(destination);
+  }
+
+  if (destination.pathname === "/login") {
+    destination.searchParams.set("notice", otpType === "recovery" ? "reset_ready" : "confirmed");
+  }
+
+  return NextResponse.redirect(destination);
+}

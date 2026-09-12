@@ -324,8 +324,10 @@ export function createSupabaseScanStore(): ScanStorePort {
     async updateConnectionScan(input) {
       const patch: Record<string, unknown> = {
         last_attempted_scan_at: input.lastAttemptedScanAt,
-        next_scan_at: input.nextScanAt,
       };
+      if (input.nextScanAt !== undefined) {
+        patch.next_scan_at = input.nextScanAt;
+      }
       if (input.historyId) {
         patch.gmail_history_id = input.historyId;
       }
@@ -335,6 +337,16 @@ export function createSupabaseScanStore(): ScanStorePort {
       const { error } = await db.from("gmail_connections").update(patch).eq("id", input.connectionId);
       if (error) {
         failStore("Failed to update Gmail connection scan state", error);
+      }
+    },
+
+    async markConnectionReauthRequired(connectionId) {
+      const { error } = await db
+        .from("gmail_connections")
+        .update({ status: "REAUTH_REQUIRED" })
+        .eq("id", connectionId);
+      if (error) {
+        failStore("Failed to mark Gmail reconnection required", error);
       }
     },
   };

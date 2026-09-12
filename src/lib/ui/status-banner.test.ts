@@ -12,6 +12,23 @@ describe("appStatusBanner", () => {
     expect(banner?.title).toContain("refreshed");
   });
 
+  it("uses quota and AI-unavailable copy for failed scans", () => {
+    expect(
+      appStatusBanner({
+        connectionStatus: "CONNECTED",
+        scanStatus: "FAILED",
+        errorCode: "gmail_quota",
+      })?.title,
+    ).toContain("quota");
+    expect(
+      appStatusBanner({
+        connectionStatus: "CONNECTED",
+        scanStatus: "FAILED",
+        errorCode: "ai_unavailable",
+      })?.title,
+    ).toContain("temporarily unavailable");
+  });
+
   it("uses spec copy for a partial scan", () => {
     const banner = appStatusBanner({
       connectionStatus: "CONNECTED",

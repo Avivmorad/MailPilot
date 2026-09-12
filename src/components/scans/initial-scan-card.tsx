@@ -25,6 +25,7 @@ import {
   startScanResponseSchema,
   type ScanRunSnapshot,
 } from "@/lib/scans/progress";
+import { scanUserMessage } from "@/lib/scans/errors";
 import { formatDateTime } from "@/lib/ui/format";
 import { labelForScanStatus } from "@/lib/ui/labels";
 
@@ -62,6 +63,7 @@ export function InitialScanCard({
   );
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState(false);
+  const [errorCode, setErrorCode] = useState<string | null>(null);
 
   useEffect(() => {
     if (!busy || !watchId) {
@@ -88,7 +90,8 @@ export function InitialScanCard({
       setWatchId(null);
       if (scan.status === "FAILED") {
         setError(true);
-        setMessage(scan.error_message ?? scan.error_code ?? "Scan failed.");
+        setErrorCode(scan.error_code ?? "scan_failed");
+        setMessage(scanUserMessage(scan.error_code, scan.error_message));
         return;
       }
       router.push("/dashboard?scan=done");
@@ -109,6 +112,7 @@ export function InitialScanCard({
     setBusy(true);
     setMessage(null);
     setError(false);
+    setErrorCode(null);
     setProgress({ id: "pending", status: "RUNNING", threads_discovered: 0, threads_checked: 0 });
     try {
       const response = await fetch("/api/scans", {
@@ -120,7 +124,8 @@ export function InitialScanCard({
       if (!response.ok) {
         const failed = payload as { error?: string; message?: string };
         setError(true);
-        setMessage(failed.message ?? failed.error ?? "Scan failed.");
+        setErrorCode(failed.error ?? "scan_failed");
+        setMessage(scanUserMessage(failed.error, failed.message));
         setBusy(false);
         setProgress(null);
         return;
@@ -186,7 +191,17 @@ export function InitialScanCard({
           </Button>
         </div>
         {message ? (
-          <p className={error ? "text-destructive text-sm" : "text-sm"}>{message}</p>
+          <p className={error ? "text-destructive text-sm" : "text-sm"}>
+            {message}
+            {error && errorCode === "reauth_required" ? (
+              <>
+                {" "}
+                <a className="underline" href="/api/gmail/connect">
+                  Reconnect Gmail
+                </a>
+              </>
+            ) : null}
+          </p>
         ) : null}
         {!connected ? (
           <p className="text-muted-foreground text-sm">Connect Gmail before running a scan.</p>

@@ -2,6 +2,7 @@ import { google, type gmail_v1 } from "googleapis";
 
 import { getGmailEnv } from "@/lib/config/env";
 import { createOAuth2Client, GmailConnectError } from "@/lib/gmail/oauth";
+import { SCAN_USER_MESSAGES } from "@/lib/scans/errors";
 import { decryptSecret } from "@/lib/security/encryption";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -11,7 +12,7 @@ export async function createGmailApi(refreshToken: string): Promise<gmail_v1.Gma
   try {
     await auth.getAccessToken();
   } catch {
-    throw new GmailConnectError("reauth_required", "Gmail access token refresh failed");
+    throw new GmailConnectError("reauth_required", SCAN_USER_MESSAGES.reauth_required);
   }
   return google.gmail({ version: "v1", auth });
 }

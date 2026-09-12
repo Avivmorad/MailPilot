@@ -70,6 +70,23 @@ describe("GeminiEmailTriageProvider", () => {
     expect(attempts).toBe(2);
   });
 
+  it("retries Gemini 503 then succeeds", async () => {
+    let attempts = 0;
+    const provider = new GeminiEmailTriageProvider(env, async () => {
+      attempts += 1;
+      if (attempts === 1) {
+        const error = new Error("overloaded") as Error & { status: number };
+        error.status = 503;
+        throw error;
+      }
+      return JSON.stringify(validPayload);
+    });
+
+    const result = await provider.analyzeThread(input);
+    expect(result.summary).toBe(validPayload.summary);
+    expect(attempts).toBe(2);
+  });
+
   it("fails closed on empty or invalid JSON", async () => {
     const empty = new GeminiEmailTriageProvider(env, async () => "");
     await expect(empty.analyzeThread(input)).rejects.toThrow(/empty/i);

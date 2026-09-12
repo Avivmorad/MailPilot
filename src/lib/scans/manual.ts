@@ -4,14 +4,14 @@ import { createEmailTriageProvider } from "@/lib/ai/client";
 import { getGeminiEnv, isGeminiConfigured, isGmailConfigured } from "@/lib/config/env";
 import { createGmailApiForUser } from "@/lib/gmail/client";
 import { GmailConnectError } from "@/lib/gmail/oauth";
-import { GMAIL_QUOTA_USER_MESSAGE, isGmailQuotaError } from "@/lib/gmail/retry";
+import { isGmailQuotaError } from "@/lib/gmail/retry";
 import { createGmailScanPort } from "@/lib/scans/gmail-port";
 import {
   DEFAULT_LOOKBACK_DAYS,
   INITIAL_LOOKBACK_DAYS,
   type InitialLookbackDays,
 } from "@/lib/scans/lookback";
-import { isMissingScanSchemaError, SCAN_IN_PROGRESS, SCAN_SCHEMA_MISSING_MESSAGE } from "@/lib/scans/errors";
+import { isMissingScanSchemaError, SCAN_IN_PROGRESS, SCAN_SCHEMA_MISSING_MESSAGE, scanUserMessage } from "@/lib/scans/errors";
 import { openGmailScan, executeGmailScan } from "@/lib/scans/process-scan";
 import { createSupabaseScanStore } from "@/lib/scans/store";
 import { persistDigestAfterScan } from "@/lib/digest/build-digest";
@@ -69,7 +69,7 @@ export async function beginManualInitialScan(
     connection = await createGmailApiForUser(userId);
   } catch (error) {
     if (error instanceof GmailConnectError) {
-      throw new ScanRequestError(409, error.reason, error.message);
+    throw new ScanRequestError(409, error.reason, scanUserMessage(error.reason, error.message));
     }
     throw error;
   }
@@ -88,7 +88,7 @@ export async function beginManualInitialScan(
     throw new ScanRequestError(
       429,
       "rate_limited",
-      "A scan was started too recently. Please wait two minutes before scanning again.",
+      scanUserMessage("rate_limited"),
     );
   }
 
@@ -136,10 +136,10 @@ export async function startManualInitialScan(
 
 function remapScanStartError(error: unknown): never {
   if (error instanceof Error && error.message === SCAN_IN_PROGRESS) {
-    throw new ScanRequestError(409, "scan_in_progress", "A scan is already running for this Gmail account.");
+    throw new ScanRequestError(409, "scan_in_progress", scanUserMessage("scan_in_progress"));
   }
   if (isGmailQuotaError(error)) {
-    throw new ScanRequestError(429, "gmail_quota", GMAIL_QUOTA_USER_MESSAGE);
+    throw new ScanRequestError(429, "gmail_quota", scanUserMessage("gmail_quota"));
   }
   if (isMissingScanSchemaError(error)) {
     throw new ScanRequestError(503, "scan_schema_missing", SCAN_SCHEMA_MISSING_MESSAGE);

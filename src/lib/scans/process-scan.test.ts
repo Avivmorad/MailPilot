@@ -73,6 +73,7 @@ function createMemoryStore(): ScanStorePort & {
     lastSuccessfulScanAt: string | null;
     lastAttemptedScanAt: string | null;
     historyId: string | null;
+    status: string;
   };
   scanRuns: Array<{
     id: string;
@@ -102,6 +103,7 @@ function createMemoryStore(): ScanStorePort & {
     lastSuccessfulScanAt: null as string | null,
     lastAttemptedScanAt: null as string | null,
     historyId: null as string | null,
+    status: "CONNECTED",
   };
   const settings: ScanSettings = {
     vipSenders: [],
@@ -220,6 +222,9 @@ function createMemoryStore(): ScanStorePort & {
       if (input.lastSuccessfulScanAt !== undefined) {
         connection.lastSuccessfulScanAt = input.lastSuccessfulScanAt;
       }
+    },
+    async markConnectionReauthRequired() {
+      connection.status = "REAUTH_REQUIRED";
     },
   };
 
@@ -417,6 +422,37 @@ describe("processInitialScan", () => {
     expect(profileReads).toBe(1);
   });
 
+  it("marks REAUTH_REQUIRED when Gmail returns 401 mid-scan", async () => {
+    const store = createMemoryStore();
+    const message = parsedMessage();
+    const modifyThreadLabels = vi.fn(async () => undefined);
+    const gmail: ScanGmailPort = {
+      listMessageRefs: async () => [{ id: message.gmailMessageId, threadId: message.gmailThreadId }],
+      listHistoryChanges: async () => {
+        throw new Error("history should not run on the initial scan");
+      },
+      fetchThread: async () => {
+        throw { response: { status: 401 }, message: "invalid_grant" };
+      },
+      getProfileHistoryId: async () => "hist-1",
+      loadLabelMap: async () => LABEL_MAP,
+      modifyThreadLabels,
+    };
+
+    await expect(
+      runScan({
+        store,
+        gmail,
+        analyze: async () => ({ ok: true as const, analysis: validAnalysis() }),
+      }),
+    ).rejects.toMatchObject({ response: { status: 401 } });
+
+    expect(store.connection.status).toBe("REAUTH_REQUIRED");
+    expect(store.scanRuns.at(-1)?.errorCode).toBe("reauth_required");
+    expect(store.scanRuns.at(-1)?.errorMessage).not.toMatch(/invalid_grant/);
+    expect(modifyThreadLabels).not.toHaveBeenCalled();
+  });
+
   it("does not overwrite last_successful_scan_at when a new scan fails outright", async () => {
     const store = createMemoryStore();
     const message = parsedMessage();
@@ -596,6 +632,7 @@ describe("openGmailScan admission", () => {
   it("rejects a second scan while one is already running", async () => {
     const store = createMemoryStore();
     await admit(store);
+    expect(store.connection.lastAttemptedScanAt).toBeTruthy();
     await expect(admit(store)).rejects.toThrow("SCAN_IN_PROGRESS");
     expect(store.scanRuns.filter((run) => run.status === "RUNNING")).toHaveLength(1);
   });

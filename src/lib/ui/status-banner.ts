@@ -11,13 +11,14 @@ export interface AppBanner {
 export function appStatusBanner(input: {
   connectionStatus: string | null;
   scanStatus: string | null;
+  errorCode?: string | null;
   suppressRunning?: boolean;
 }): AppBanner | null {
   if (input.connectionStatus === "REAUTH_REQUIRED") {
     return {
       kind: "warning",
       title: "Your Gmail connection needs to be refreshed.",
-      body: "Reconnect Gmail to continue scanning.",
+      body: "Reconnect Gmail to continue scanning. Your existing summaries were kept.",
       href: "/api/gmail/connect",
       actionLabel: "Reconnect Gmail",
     };
@@ -32,6 +33,24 @@ export function appStatusBanner(input: {
     };
   }
   if (input.scanStatus === "FAILED") {
+    if (input.errorCode === "gmail_quota") {
+      return {
+        kind: "error",
+        title: "Gmail quota paused this scan.",
+        body: "Wait a minute and try a shorter lookback. Your existing summaries were kept.",
+        href: "/dashboard",
+        actionLabel: "Go to dashboard",
+      };
+    }
+    if (input.errorCode === "ai_unavailable") {
+      return {
+        kind: "error",
+        title: "Email analysis is temporarily unavailable.",
+        body: "Try again in a few minutes. Your existing summaries were kept.",
+        href: "/dashboard",
+        actionLabel: "Go to dashboard",
+      };
+    }
     return {
       kind: "error",
       title: "The last scan failed.",

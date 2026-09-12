@@ -155,7 +155,9 @@ export function InitialScanCard({
     }
   }
 
-  const bar = progress ? snapshotProgress(progress) : { threadsDiscovered: 0, threadsChecked: 0 };
+  const bar = progress
+    ? snapshotProgress(progress)
+    : { threadsDiscovered: 0, threadsChecked: 0, status: null, errorCode: null };
   const statusLabel = lastRunStatus ? labelForScanStatus(lastRunStatus) : null;
 
   return (
@@ -170,7 +172,12 @@ export function InitialScanCard({
       </CardHeader>
       <CardContent className="space-y-4">
         {busy ? (
-          <ScanProgressBar threadsChecked={bar.threadsChecked} threadsDiscovered={bar.threadsDiscovered} />
+          <ScanProgressBar
+            threadsChecked={bar.threadsChecked}
+            threadsDiscovered={bar.threadsDiscovered}
+            status={bar.status}
+            errorCode={bar.errorCode}
+          />
         ) : null}
         <div className="flex flex-wrap items-end gap-3">
           <label className="block min-w-40 flex-1 text-sm">
@@ -225,6 +232,7 @@ export function InitialScanCard({
               Last run {formatDateTime(lastRunAt)}
               {statusLabel ? ` · ${statusLabel}` : ""}
               {typeof messagesProcessed === "number" ? ` · ${messagesProcessed} emails` : ""}
+              {lastRunStatus === "PARTIAL" ? " · Retries queued" : ""}
             </span>
           ) : busy ? (
             <span>In progress</span>

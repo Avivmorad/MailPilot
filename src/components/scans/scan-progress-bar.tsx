@@ -5,11 +5,15 @@ import { scanProgressView } from "@/lib/scans/progress";
 export function ScanProgressBar({
   threadsChecked,
   threadsDiscovered,
+  status,
+  errorCode,
 }: {
   threadsChecked: number;
   threadsDiscovered: number;
+  status?: string | null;
+  errorCode?: string | null;
 }) {
-  const view = scanProgressView({ threadsChecked, threadsDiscovered });
+  const view = scanProgressView({ threadsChecked, threadsDiscovered, status, errorCode });
 
   return (
     <div className="space-y-2">

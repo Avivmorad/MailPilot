@@ -237,7 +237,9 @@ export function createSupabaseScanStore(): ScanStorePort {
     async getThread(connectionId, gmailThreadId) {
       const { data, error } = await db
         .from("email_threads")
-        .select("*")
+        .select(
+          "id, last_analyzed_message_id, prompt_version, summary, importance, importance_reason, status, requires_action, requires_reply, action_type, action_summary, action_reason, waiting_for, waiting_since, urgency, deadline, deadline_text, category, confidence, short_display_title",
+        )
         .eq("gmail_connection_id", connectionId)
         .eq("gmail_thread_id", gmailThreadId)
         .maybeSingle();
@@ -289,7 +291,13 @@ export function createSupabaseScanStore(): ScanStorePort {
     },
 
     async getAction(threadId) {
-      const { data, error } = await db.from("action_items").select("*").eq("thread_id", threadId).maybeSingle();
+      const { data, error } = await db
+        .from("action_items")
+        .select(
+          "status, title, description, action_type, waiting_for, deadline, urgency, source, manual_override, completed_at, snoozed_until",
+        )
+        .eq("thread_id", threadId)
+        .maybeSingle();
       if (error) {
         failStore("Failed to load action item", error);
       }

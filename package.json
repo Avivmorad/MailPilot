@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "eval:scorecard": "vitest run src/lib/ai/eval-scorecard.test.ts",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },

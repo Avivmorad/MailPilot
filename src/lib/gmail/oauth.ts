@@ -4,6 +4,7 @@ import { google } from "googleapis";
 
 import { getGmailEnv } from "@/lib/config/env";
 import { GMAIL_MODIFY_SCOPE } from "@/lib/gmail/constants";
+import { emitProductEvent } from "@/lib/observability/events";
 import { GMAIL_UNITS } from "@/lib/gmail/quota";
 import { withGmailRetry } from "@/lib/gmail/retry";
 import { timingSafeStringEqual } from "@/lib/security/encryption";
@@ -100,7 +101,7 @@ export async function fetchGmailIdentity(
       throw err;
     }
     const status = googleErrorStatus(err);
-    console.error("[gmail.connect]", { step: "profile", status });
+    emitProductEvent({ type: "gmail.connect_failed", step: "profile", errorCode: status ? String(status) : "gmail_api" });
     throw new GmailConnectError(
       "gmail_api",
       "Gmail API profile lookup failed. Enable the Gmail API in Google Cloud.",

@@ -24,6 +24,7 @@ import {
 import { plannedDiscoveryMode } from "@/lib/scans/mode";
 import { mapPool } from "@/lib/scans/pool";
 import { nextDailyScanAt } from "@/lib/scans/schedule";
+import { emitProductEvent } from "@/lib/observability/events";
 import {
   countersFromAnalyses,
   EMPTY_SCAN_COUNTERS,
@@ -279,6 +280,13 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
     store,
     forceLookback,
   } = prepared;
+  const startedMs = Date.now();
+  emitProductEvent({
+    type: "scan.started",
+    scanId,
+    connectionId,
+    lookbackDays,
+  });
 
   try {
     const historyBoundary = await gmail.getProfileHistoryId();
@@ -394,6 +402,14 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
           }
           analysis = outcome.analysis;
           threadsAnalyzed += 1;
+          emitProductEvent({
+            type: "thread.analyzed",
+            scanId,
+            threadReused: 0,
+            status: analysis.status,
+            category: analysis.category,
+            requiresAction: analysis.requires_action,
+          });
         }
 
         const threadId = await store.upsertThread({
@@ -439,6 +455,12 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
             latestMessageAt: latestAt,
           });
           if (nextAction) {
+            emitProductEvent({
+              type: "action.upserted",
+              threadId,
+              status: nextAction.status,
+              created: existingAction ? 0 : 1,
+            });
             await store.upsertAction(userId, threadId, nextAction);
           }
 
@@ -496,6 +518,16 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
       nextScanAt: nextScanAt.toISOString(),
     });
 
+    emitProductEvent({
+      type: status === "PARTIAL" ? "scan.partial" : "scan.completed",
+      scanId,
+      status,
+      threadsAnalyzed,
+      threadFailures,
+      durationMs: Date.now() - startedMs,
+      errorCode: status === "PARTIAL" ? "partial_thread_failures" : null,
+    });
+
     return { scanId, status, counters, lookbackDays, mode: discovery.mode };
   } catch (error) {
     const reauth =
@@ -524,6 +556,13 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
       historyId: null,
       lastAttemptedScanAt: new Date().toISOString(),
       nextScanAt: null,
+    });
+    emitProductEvent({
+      type: "scan.failed",
+      scanId,
+      connectionId,
+      errorCode,
+      durationMs: Date.now() - startedMs,
     });
     throw error;
   }

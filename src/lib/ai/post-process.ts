@@ -1,4 +1,4 @@
-import { normalizeDeadline } from "@/lib/ai/deadlines";
+import { groundDeadline } from "@/lib/ai/deadlines";
 import {
   isEphemeralAuthNotice,
   isIgnoreFamilyNotice,
@@ -91,7 +91,7 @@ export function postProcessThreadAnalysis(
 ): ThreadAnalysis {
   const next: ThreadAnalysis = { ...analysis };
 
-  next.deadline = normalizeDeadline(next.deadline);
+  next.deadline = groundDeadline(next.deadline, options.threadText);
   next.deadline_text = nonEmpty(next.deadline_text);
   next.action_summary = nonEmpty(next.action_summary);
   next.action_reason = nonEmpty(next.action_reason);
@@ -246,7 +246,7 @@ export function assertThreadAnalysisInvariants(analysis: ThreadAnalysis): void {
       throw new Error("Invariant C: requires_reply requires action_type=reply");
     }
   }
-  if (analysis.deadline !== null && normalizeDeadline(analysis.deadline) === null) {
+  if (analysis.deadline !== null && groundDeadline(analysis.deadline, null) === null) {
     throw new Error("Invariant D: deadline must be YYYY-MM-DD or null");
   }
   if (analysis.confidence < 0 || analysis.confidence > 1) {

@@ -1,6 +1,7 @@
 import { createEmailTriageProvider } from "@/lib/ai/client";
 import { getGeminiEnv, isGeminiConfigured, isGmailConfigured } from "@/lib/config/env";
 import { persistDigestAfterScan } from "@/lib/digest/build-digest";
+import { emitProductEvent } from "@/lib/observability/events";
 import { createGmailApiForConnection } from "@/lib/gmail/client";
 import { GmailConnectError } from "@/lib/gmail/oauth";
 import { authorizeCronRequest } from "@/lib/scans/cron-auth";
@@ -95,11 +96,8 @@ async function runClaimedConnection(
     if (result.status === "SUCCESS" || result.status === "PARTIAL") {
       try {
         await persistDigestAfterScan({ userId: api.userId, scanId: prepared.scanId });
-      } catch (error) {
-        console.error("[digest]", {
-          scanId: prepared.scanId,
-          error: error instanceof Error ? error.message : "digest_failed",
-        });
+      } catch {
+        emitProductEvent({ type: "digest.created", scanId: prepared.scanId, persisted: 0 });
       }
     }
 

@@ -1,4 +1,39 @@
 const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
+const INJECTION_LINE = /ignore previous instructions/i;
+
+/**
+ * ISO calendar dates that appear in the thread, excluding prompt-injection lines.
+ * Used so a model cannot keep a deadline that only exists in an instruction override.
+ */
+export function groundedIsoDates(threadText: string): Set<string> {
+  const dates = new Set<string>();
+  for (const line of threadText.split(/\r?\n/)) {
+    if (INJECTION_LINE.test(line)) {
+      continue;
+    }
+    for (const match of line.matchAll(/\b(\d{4}-\d{2}-\d{2})\b/g)) {
+      const normalized = normalizeDeadline(match[1]);
+      if (normalized) {
+        dates.add(normalized);
+      }
+    }
+  }
+  return dates;
+}
+
+export function groundDeadline(
+  deadline: string | null | undefined,
+  threadText: string | null | undefined,
+): string | null {
+  const iso = normalizeDeadline(deadline);
+  if (!iso) {
+    return null;
+  }
+  if (threadText == null) {
+    return iso;
+  }
+  return groundedIsoDates(threadText).has(iso) ? iso : null;
+}
 
 /**
  * Accept only calendar dates in YYYY-MM-DD. Relative phrases, marketing

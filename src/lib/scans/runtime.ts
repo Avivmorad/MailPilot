@@ -1,3 +1,5 @@
+import { emitProductEvent } from "@/lib/observability/events";
+
 const inflight = new Map<string, Promise<void>>();
 
 /**
@@ -16,9 +18,10 @@ export function runScanInBackground(
     .then(() => execute())
     .then(() => undefined)
     .catch((error: unknown) => {
-      console.error("[scan]", {
+      emitProductEvent({
+        type: "scan.failed",
         scanId,
-        error: error instanceof Error ? error.message : "scan_failed",
+        errorCode: error instanceof Error ? error.name : "scan_failed",
       });
     })
     .finally(() => {

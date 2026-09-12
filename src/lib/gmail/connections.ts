@@ -16,6 +16,7 @@ import { cancelActiveJobsForConnection } from "@/lib/scans/jobs";
 import { nextDailyScanAt } from "@/lib/scans/schedule";
 import { getScanPreferences } from "@/lib/settings/preferences";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { emitProductEvent } from "@/lib/observability/events";
 
 interface ConnectionRow {
   id: string;
@@ -81,7 +82,7 @@ export async function getGmailStatusForUser(userId: string): Promise<GmailStatus
       .maybeSingle();
 
     if (error) {
-      console.error("[gmail.status]", { code: error.code, message: error.message });
+      emitProductEvent({ type: "gmail.connect_failed", step: "status", errorCode: error.code ?? "status" });
       return {
         configured: true,
         connection: null,
@@ -94,9 +95,8 @@ export async function getGmailStatusForUser(userId: string): Promise<GmailStatus
       connection: data ? toPublicConnection(data as ConnectionRow) : null,
       loadError: null,
     };
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "unknown";
-    console.error("[gmail.status]", { message });
+  } catch {
+    emitProductEvent({ type: "gmail.connect_failed", step: "status", errorCode: "status" });
     return {
       configured: true,
       connection: null,
@@ -123,7 +123,7 @@ export async function completeGmailOAuth(userId: string, code: string): Promise<
   const db = createAdminClient();
   const { error: profileError } = await db.from("profiles").upsert({ id: userId }, { onConflict: "id" });
   if (profileError) {
-    console.error("[gmail.connect]", { step: "profile", code: profileError.code, message: profileError.message });
+    emitProductEvent({ type: "gmail.connect_failed", step: "profile", errorCode: profileError.code ?? "persist" });
     throw new GmailConnectError("persist", "Failed to persist profile for Gmail connection");
   }
 
@@ -143,7 +143,11 @@ export async function completeGmailOAuth(userId: string, code: string): Promise<
     .single();
 
   if (error || !data) {
-    console.error("[gmail.connect]", { step: "connection", code: error?.code, message: error?.message });
+    emitProductEvent({
+      type: "gmail.connect_failed",
+      step: "connection",
+      errorCode: error?.code ?? "persist",
+    });
     throw new GmailConnectError("persist", "Failed to persist Gmail connection");
   }
 
@@ -175,6 +179,7 @@ export async function completeGmailOAuth(userId: string, code: string): Promise<
     // Connection is still valid; labels can be reconciled on the next scan.
   }
 
+  emitProductEvent({ type: "gmail.connected", connectionId: row.id });
   return toPublicConnection(row);
 }
 
@@ -231,6 +236,7 @@ export async function disconnectGmailForUser(userId: string): Promise<void> {
 
     await cancelActiveJobsForConnection(row.id, "gmail_disconnected");
   }
+  emitProductEvent({ type: "gmail.disconnected" });
 }
 
 export function gmailCallbackErrorRedirect(origin: string, reason: string): URL {

@@ -15,3 +15,7 @@ and `expected_summary` (in English, per `docs/PRODUCT_DECISIONS.md`).
 The combined harness in `src/lib/ai/eval-fixtures.ts` loads both JSON files and
 requires schema-valid gold analyses. Deadlines are `null` unless the thread
 contains an explicit `YYYY-MM-DD` date — fixtures must not invent dates.
+
+`src/lib/ai/eval-scorecard.ts` scores a confused-model baseline after
+post-processing. Curated MVP gates: schema validity 100%, action recall ≥ 90%,
+deadline hallucination 0. Run `npm run eval:scorecard`.

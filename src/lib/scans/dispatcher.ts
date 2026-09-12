@@ -4,6 +4,11 @@ import { persistDigestAfterScan } from "@/lib/digest/build-digest";
 import { createGmailApiForConnection } from "@/lib/gmail/client";
 import { GmailConnectError } from "@/lib/gmail/oauth";
 import { authorizeCronRequest } from "@/lib/scans/cron-auth";
+import {
+  DISPATCH_DEFAULT_LIMIT,
+  DISPATCH_LEASE_SECONDS,
+  hasDispatchBudget,
+} from "@/lib/scans/dispatch-budget";
 import { createGmailScanPort } from "@/lib/scans/gmail-port";
 import {
   createScanJob,
@@ -12,7 +17,7 @@ import {
   incrementScanJobAttempt,
   markScanJobRunning,
 } from "@/lib/scans/jobs";
-import { claimDueConnections, releaseConnectionLease, SCAN_LEASE_SECONDS } from "@/lib/scans/leases";
+import { claimDueConnections, releaseConnectionLease } from "@/lib/scans/leases";
 import { DEFAULT_LOOKBACK_DAYS } from "@/lib/scans/lookback";
 import { openGmailScan, executeGmailScan } from "@/lib/scans/process-scan";
 import { nextScanAfterFailure } from "@/lib/scans/schedule";
@@ -43,7 +48,7 @@ async function runClaimedConnection(
   workerId: string,
   now: Date,
 ): Promise<DispatcherConnectionResult> {
-  const leaseExpiresAt = new Date(now.getTime() + SCAN_LEASE_SECONDS * 1000).toISOString();
+  const leaseExpiresAt = new Date(now.getTime() + DISPATCH_LEASE_SECONDS * 1000).toISOString();
   let jobId: string | null = null;
   let attempt = 0;
 
@@ -147,15 +152,28 @@ export async function dispatchDueScans(options: {
 } = {}): Promise<{ claimed: number; results: DispatcherConnectionResult[] }> {
   const now = options.now ?? new Date();
   const workerId = options.workerId ?? `dispatcher:${crypto.randomUUID()}`;
-  const claimed = await claimDueConnections({
-    workerId,
-    limit: options.limit ?? 3,
-    now,
-  });
-
+  const startedAt = Date.now();
+  const maxClaims = options.limit ?? DISPATCH_DEFAULT_LIMIT;
   const results: DispatcherConnectionResult[] = [];
-  for (const connection of claimed) {
+
+  while (results.length < maxClaims) {
+    if (!hasDispatchBudget(startedAt)) {
+      break;
+    }
+
+    const claimed = await claimDueConnections({
+      workerId,
+      limit: 1,
+      now,
+      leaseSeconds: DISPATCH_LEASE_SECONDS,
+    });
+    const connection = claimed[0];
+    if (!connection) {
+      break;
+    }
+
     results.push(await runClaimedConnection(connection, workerId, now));
   }
-  return { claimed: claimed.length, results };
+
+  return { claimed: results.length, results };
 }

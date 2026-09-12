@@ -18,4 +18,12 @@ describe("vercel.json crons", () => {
     expect(parts[3]).toBe("*");
     expect(parts[4]).toBe("*");
   });
+
+  it("caps the scan dispatcher at the Hobby maxDuration", () => {
+    const raw = readFileSync(
+      path.join(process.cwd(), "src/app/api/cron/scan-dispatcher/route.ts"),
+      "utf8",
+    );
+    expect(raw).toMatch(/export const maxDuration = 300;/);
+  });
 });

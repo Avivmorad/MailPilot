@@ -4,7 +4,7 @@ import { isCronConfigured, isGeminiConfigured, isGmailConfigured } from "@/lib/c
 import { authorizeCronRequest } from "@/lib/scans/cron-auth";
 import { dispatchDueScans } from "@/lib/scans/dispatcher";
 
-export const maxDuration = 800;
+export const maxDuration = 300;
 
 async function handle(request: Request) {
   if (!isCronConfigured()) {

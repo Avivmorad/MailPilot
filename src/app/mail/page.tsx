@@ -8,6 +8,7 @@ import { InboxSummary } from "@/components/threads/inbox-summary";
 import { buttonVariants } from "@/components/ui/button";
 import { listActionsForUser } from "@/lib/actions/queries";
 import { getGmailStatusForUser } from "@/lib/gmail/connections";
+import { isStaleWaiting, isUncertainClassification, parseUncertainFilter } from "@/lib/mail/filters";
 import { actionStatusForMailTab, MAIL_TABS, mailTabEmptyCopy, parseMailTab } from "@/lib/mail/tabs";
 import { getSessionUser } from "@/lib/supabase/auth";
 import { listIgnoredThreadsForUser, listRecentThreadsForUser } from "@/lib/threads/queries";
@@ -35,7 +36,7 @@ function tabDescription(tab: ReturnType<typeof parseMailTab>): string {
 export default async function MailPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string }>;
+  searchParams: Promise<{ tab?: string; uncertain?: string }>;
 }) {
   const user = await getSessionUser();
   if (!user) {
@@ -43,6 +44,7 @@ export default async function MailPage({
   }
   const params = await searchParams;
   const tab = parseMailTab(params.tab);
+  const uncertainOnly = parseUncertainFilter(params.uncertain);
   const actionStatus = actionStatusForMailTab(tab);
   const empty = mailTabEmptyCopy(tab);
 
@@ -52,6 +54,11 @@ export default async function MailPage({
     tab === "ignored" ? listIgnoredThreadsForUser(user.id, 50) : Promise.resolve([]),
     getGmailStatusForUser(user.id),
   ]);
+  const uncertainCount = actionItems.filter((item) => isUncertainClassification(item.confidence)).length;
+  const visibleItems =
+    uncertainOnly && actionStatus ? actionItems.filter((item) => isUncertainClassification(item.confidence)) : actionItems;
+  const staleWaitingCount =
+    tab === "waiting" ? actionItems.filter((item) => isStaleWaiting(item.updatedAt)).length : 0;
   const connected = gmailStatus.connection?.status === "CONNECTED";
   const emptyAction = connected ? (
     <Link href="/dashboard#scan" className={buttonVariants({ size: "sm" })}>
@@ -83,6 +90,31 @@ export default async function MailPage({
           </Link>
         ))}
       </nav>
+      {actionStatus && (uncertainCount > 0 || uncertainOnly) ? (
+        <p className="text-muted-foreground text-sm">
+          {uncertainOnly ? (
+            <>
+              Showing {visibleItems.length} uncertain{" "}
+              {visibleItems.length === 1 ? "classification" : "classifications"}.{" "}
+              <Link href={`/mail?tab=${tab}`} className="text-primary font-medium hover:underline">
+                Show all
+              </Link>
+            </>
+          ) : (
+            <>
+              {uncertainCount} classification{uncertainCount === 1 ? " is" : "s are"} uncertain.{" "}
+              <Link href={`/mail?tab=${tab}&uncertain=1`} className="text-primary font-medium hover:underline">
+                Show uncertain only
+              </Link>
+            </>
+          )}
+        </p>
+      ) : null}
+      {staleWaitingCount > 0 ? (
+        <p className="text-muted-foreground text-sm">
+          {staleWaitingCount} waiting item{staleWaitingCount === 1 ? " has" : "s have"} been quiet for a week or more.
+        </p>
+      ) : null}
       {tab === "summary" ? (
         <InboxSummary
           threads={summaryThreads}
@@ -103,10 +135,14 @@ export default async function MailPage({
       ) : null}
       {actionStatus ? (
         <GroupedActionList
-          items={actionItems}
-          storageKey={`mail-${tab}`}
-          emptyTitle={empty.title}
-          emptyDescription={empty.description}
+          items={visibleItems}
+          storageKey={`mail-${tab}${uncertainOnly ? "-uncertain" : ""}`}
+          emptyTitle={uncertainOnly ? "No uncertain classifications in this view." : empty.title}
+          emptyDescription={
+            uncertainOnly
+              ? "Threads the classifier is unsure about would appear here so you can double-check them."
+              : empty.description
+          }
           emptyAction={emptyAction}
         />
       ) : null}

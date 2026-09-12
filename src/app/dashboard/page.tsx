@@ -12,6 +12,7 @@ import { InitialScanCard } from "@/components/scans/initial-scan-card";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { listActionsForUser } from "@/lib/actions/queries";
+import { getDashboardChangesForUser } from "@/lib/dashboard/queries";
 import { ensureDigestForLatestScan } from "@/lib/digest/build-digest";
 import { getGmailStatusForUser } from "@/lib/gmail/connections";
 import { getOnboardingStepForUser } from "@/lib/onboarding/load";
@@ -36,7 +37,10 @@ function dashboardDescription({
     return "Connect Gmail to start triaging your inbox.";
   }
   if (scanDone) {
-    return "Scan finished. Open tasks are first — FYI and waiting stay in Mail.";
+    return "Scan finished. New and overdue work is first — FYI and waiting stay in Mail.";
+  }
+  if (latestStatus === "PARTIAL") {
+    return "Last scan finished with some threads still pending. New and overdue work is listed first.";
   }
   if (latestStatus === "RUNNING") {
     return "A scan is running. You can keep working while it classifies mail.";
@@ -124,7 +128,8 @@ export default async function DashboardPage({
     gmailStatus.connection.status === "DISCONNECTED";
   const emptyCounts = { processed: 0, important: 0, needAction: 0, waiting: 0, ignored: 0, fyi: 0 };
   const latestScan = connected ? await getLatestScanRunForUser(user.id) : null;
-  const [counts, openActions, latestDigest] = connected
+  const since = gmailStatus.connection?.lastSuccessfulScanAt ?? null;
+  const [counts, openActions, latestDigest, dashboardChanges] = connected
     ? await Promise.all([
         getInboxCountsForUser(user.id),
         listActionsForUser(user.id, "OPEN"),
@@ -133,11 +138,22 @@ export default async function DashboardPage({
           latestScan ? String(latestScan.id) : null,
           latestScan ? String(latestScan.status) : null,
         ).catch(() => null),
+        getDashboardChangesForUser(user.id, since),
       ])
-    : [emptyCounts, [], null];
+    : [
+        emptyCounts,
+        [],
+        null,
+        {
+          summary: { since: null, newOpen: 0, completed: 0, reopened: 0, staleWaiting: 0, overdueOpen: 0 },
+          line: null,
+        },
+      ];
   const latestStatus = latestScan ? String(latestScan.status) : null;
   const openCount = openActions.length;
   const attentionItems = openActions.slice(0, ATTENTION_PREVIEW);
+  const changeLine = dashboardChanges.line;
+  const overdueOpen = dashboardChanges.summary.overdueOpen;
 
   const step = nextStep({
     connected,
@@ -171,6 +187,9 @@ export default async function DashboardPage({
           <div className="min-w-0">
             <p className="font-medium tracking-tight">{step.title}</p>
             <p className="text-muted-foreground mt-0.5 text-sm leading-relaxed">{step.body}</p>
+            {changeLine ? (
+              <p className="text-muted-foreground mt-1 text-sm leading-relaxed">{changeLine}</p>
+            ) : null}
           </div>
           <Link href={step.href} className={buttonVariants()}>
             {step.label}
@@ -198,7 +217,11 @@ export default async function DashboardPage({
         <div className="flex flex-wrap items-end justify-between gap-2">
           <div>
             <h2 className="text-foreground text-lg font-semibold tracking-tight">Needs your attention</h2>
-            <p className="text-muted-foreground text-sm">Top open tasks. Full list lives in Mail.</p>
+            <p className="text-muted-foreground text-sm">
+              {overdueOpen > 0
+                ? "Overdue and urgent first. Full list lives in Mail."
+                : "Top open tasks. Full list lives in Mail."}
+            </p>
           </div>
           {openCount > 0 ? (
             <Link href="/mail?tab=open" className="text-primary text-sm font-medium hover:underline">

@@ -128,6 +128,8 @@ async function runClaimedConnection(
       timezone: "Asia/Jerusalem",
       vipSenders: [],
       ignoredSenders: [],
+      ignoredDomains: [],
+      customAiInstructions: "",
     }));
     const retryAt = nextScanAfterFailure(
       now,

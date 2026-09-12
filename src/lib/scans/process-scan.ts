@@ -345,6 +345,8 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
             threadAnalysisInputFromContext(context, userEmails, {
               vipSenders: settings.vipSenders,
               ignoreSenders: settings.ignoredSenders,
+              ignoreDomains: settings.ignoredDomains,
+              customInstructions: settings.customAiInstructions,
             }),
             provider,
           );

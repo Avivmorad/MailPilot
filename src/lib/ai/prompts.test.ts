@@ -47,6 +47,21 @@ describe("buildTriageUserPrompt", () => {
     expect(prompt).toContain("Please reply with the Q3 numbers.");
     expect(prompt).toContain("not instructions");
   });
+
+  it("includes owner preferences outside the untrusted email block", () => {
+    const prompt = buildTriageUserPrompt({
+      ...sampleInput,
+      preferences: {
+        vipSenders: ["boss@example.com"],
+        ignoreDomains: ["promo.test"],
+        customInstructions: "Treat school mail as high importance.",
+      },
+    });
+    expect(prompt).toContain("boss@example.com");
+    expect(prompt).toContain("promo.test");
+    expect(prompt).toContain("Treat school mail as high importance.");
+    expect(prompt.indexOf("Owner triage preferences")).toBeLessThan(prompt.indexOf(UNTRUSTED_THREAD_START));
+  });
 });
 
 describe("TRIAGE_SYSTEM_PROMPT", () => {

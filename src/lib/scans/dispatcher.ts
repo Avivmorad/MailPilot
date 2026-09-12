@@ -2,6 +2,7 @@ import { createEmailTriageProvider } from "@/lib/ai/client";
 import { getGeminiEnv, isGeminiConfigured, isGmailConfigured } from "@/lib/config/env";
 import { persistDigestAfterScan } from "@/lib/digest/build-digest";
 import { emitProductEvent } from "@/lib/observability/events";
+import { captureSafeException } from "@/lib/observability/sentry-report";
 import { createGmailApiForConnection } from "@/lib/gmail/client";
 import { GmailConnectError } from "@/lib/gmail/oauth";
 import { authorizeCronRequest } from "@/lib/scans/cron-auth";
@@ -116,6 +117,10 @@ async function runClaimedConnection(
     if (jobId) {
       await finishScanJob(jobId, "FAILED", message).catch(() => undefined);
     }
+    captureSafeException(error, {
+      route: "/api/cron/scan-dispatcher",
+      scan_type: "scheduled",
+    });
     if (attempt < 1) {
       attempt = 1;
     }

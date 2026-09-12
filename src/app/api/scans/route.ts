@@ -9,6 +9,7 @@ import {
   manualScanRequestSchema,
   ScanRequestError,
 } from "@/lib/scans/manual";
+import { sentryScanType } from "@/lib/observability/sentry-privacy";
 import { runScanInBackground } from "@/lib/scans/runtime";
 
 export const maxDuration = 300;
@@ -47,7 +48,9 @@ export async function POST(request: Request) {
 
   try {
     const job = await beginManualInitialScan(user.id, parsed.data.lookbackDays);
-    const running = runScanInBackground(job.scanId, job.execute);
+    const running = runScanInBackground(job.scanId, job.execute, {
+      scanType: sentryScanType(job.triggerType),
+    });
     after(async () => {
       await running;
     });

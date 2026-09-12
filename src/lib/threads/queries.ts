@@ -52,6 +52,7 @@ export interface ThreadDetail {
   latestMessageAt: string | null;
   actionId: string | null;
   actionStatus: string | null;
+  snoozedUntil: string | null;
   messages: ThreadMessageMeta[];
 }
 
@@ -153,7 +154,7 @@ export async function getThreadDetailForUser(userId: string, threadId: string): 
       .eq("thread_id", threadId)
       .eq("user_id", userId)
       .order("received_at", { ascending: true }),
-    db.from("action_items").select("id, status").eq("thread_id", threadId).eq("user_id", userId).maybeSingle(),
+    db.from("action_items").select("id, status, waiting_for, snoozed_until").eq("thread_id", threadId).eq("user_id", userId).maybeSingle(),
     db
       .from("gmail_connections")
       .select("gmail_email")
@@ -178,7 +179,7 @@ export async function getThreadDetailForUser(userId: string, threadId: string): 
     requiresReply: Boolean(thread.requires_reply),
     actionSummary: (thread.action_summary as string | null) ?? null,
     actionReason: (thread.action_reason as string | null) ?? null,
-    waitingFor: (thread.waiting_for as string | null) ?? null,
+    waitingFor: (typeof action?.waiting_for === "string" ? action.waiting_for : null) ?? (thread.waiting_for as string | null) ?? null,
     urgency: (thread.urgency as string | null) ?? null,
     deadline: (thread.deadline as string | null) ?? null,
     deadlineText: (thread.deadline_text as string | null) ?? null,
@@ -188,6 +189,7 @@ export async function getThreadDetailForUser(userId: string, threadId: string): 
     latestMessageAt: (thread.latest_message_at as string | null) ?? null,
     actionId: action ? String(action.id) : null,
     actionStatus: action ? String(action.status) : null,
+    snoozedUntil: typeof action?.snoozed_until === "string" ? action.snoozed_until : null,
     messages: (messages ?? []).map((message) => ({
       id: String(message.id),
       direction: String(message.direction),

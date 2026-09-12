@@ -1,5 +1,5 @@
 import type { ActionPatch } from "@/lib/actions/patch-schema";
-import { nextActionState } from "@/lib/actions/next-state";
+import { ActionPatchError, nextActionState } from "@/lib/actions/next-state";
 import type { ActionRecord, ActionStatus } from "@/lib/actions/reconcile-action";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { emitProductEvent } from "@/lib/observability/events";
@@ -45,7 +45,15 @@ export async function patchActionForUser(
   if (!data) {
     throw new ActionMutationError(404, "not_found", "Action not found.");
   }
-  const next = nextActionState(rowToRecord(data as Record<string, unknown>), patch, now);
+  let next;
+  try {
+    next = nextActionState(rowToRecord(data as Record<string, unknown>), patch, now);
+  } catch (error) {
+    if (error instanceof ActionPatchError) {
+      throw new ActionMutationError(400, "invalid_patch", error.message);
+    }
+    throw error;
+  }
   const { error: updateError } = await db
     .from("action_items")
     .update({
@@ -53,6 +61,7 @@ export async function patchActionForUser(
       manual_override: next.manualOverride,
       completed_at: next.completedAt,
       snoozed_until: next.snoozedUntil,
+      waiting_for: next.waitingFor,
       source: next.source,
     })
     .eq("id", actionId)

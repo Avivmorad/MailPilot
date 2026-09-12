@@ -654,6 +654,58 @@ describe("processInitialScan", () => {
   });
 });
 
+describe("openGmailScan user emails", () => {
+  it("merges Gmail sendAs aliases into the authenticated address list", async () => {
+    const store = createMemoryStore();
+    const prepared = await openGmailScan({
+      userId: "user-1",
+      connectionId: "conn-1",
+      gmailEmail: "me@example.com",
+      lookbackDays: 7,
+      now: new Date("2026-09-10T12:00:00.000Z"),
+      gmail: {
+        listMessageRefs: async () => [],
+        listHistoryChanges: async () => ({ ok: true, refs: [], latestHistoryId: "1" }),
+        fetchThread: async () => [],
+        getProfileHistoryId: async () => "hist-1",
+        loadLabelMap: async () => LABEL_MAP,
+        modifyThreadLabels: async () => undefined,
+        listSendAsEmails: async () => ["me@example.com", "alias@example.com"],
+      },
+      store,
+      provider: unusedProvider(),
+      modelName: "gemini-test",
+    });
+    expect(prepared.userEmails).toEqual(["me@example.com", "alias@example.com"]);
+  });
+
+  it("keeps the primary address when sendAs listing fails", async () => {
+    const store = createMemoryStore();
+    const prepared = await openGmailScan({
+      userId: "user-1",
+      connectionId: "conn-1",
+      gmailEmail: "me@example.com",
+      lookbackDays: 7,
+      now: new Date("2026-09-10T12:00:00.000Z"),
+      gmail: {
+        listMessageRefs: async () => [],
+        listHistoryChanges: async () => ({ ok: true, refs: [], latestHistoryId: "1" }),
+        fetchThread: async () => [],
+        getProfileHistoryId: async () => "hist-1",
+        loadLabelMap: async () => LABEL_MAP,
+        modifyThreadLabels: async () => undefined,
+        listSendAsEmails: async () => {
+          throw new Error("sendAs unavailable");
+        },
+      },
+      store,
+      provider: unusedProvider(),
+      modelName: "gemini-test",
+    });
+    expect(prepared.userEmails).toEqual(["me@example.com"]);
+  });
+});
+
 describe("openGmailScan admission", () => {
   const dummyGmail: ScanGmailPort = {
     listMessageRefs: async () => [],

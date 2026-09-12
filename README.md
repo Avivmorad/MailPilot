@@ -1,186 +1,120 @@
 # MailPilot
 
-> Turn your Gmail inbox into a **triage system** that answers three questions:
-> _What happened? What do I need to do? What am I waiting for?_
+Gmail inbox triage that answers three questions: **what happened, what do I need to do, and what am I waiting for?**
 
-MailPilot connects to Gmail, scans messages over a chosen time window, analyzes each
-**thread in context** with an LLM, classifies it, syncs managed Gmail labels, and produces an
-Inbox Digest, an Action Center, and a Waiting list.
+MailPilot connects a Gmail account, scans threads over a chosen window, classifies them with Gemini (structured JSON, validated with Zod), applies `MailPilot/*` labels, and shows an inbox summary, open tasks, a waiting list, and an in-app digest. It never auto-sends, deletes, or archives mail.
 
-The complete product and technical specification is in
-[`docs/PROJECT_SPEC.md`](docs/PROJECT_SPEC.md); product-level decisions that refine it are in
-[`docs/PRODUCT_DECISIONS.md`](docs/PRODUCT_DECISIONS.md). Together they are the source of truth
-for the build. (`MailPilot` is the chosen product name; the spec was written under the temporary
-name "Inbox Triage AI".)
+**Live app:** [mail-pilot-avivmoradteam.vercel.app](https://mail-pilot-avivmoradteam.vercel.app)
 
----
+The product and technical spec is [`docs/PROJECT_SPEC.md`](docs/PROJECT_SPEC.md). Owner decisions that override it are in [`docs/PRODUCT_DECISIONS.md`](docs/PRODUCT_DECISIONS.md). (The spec still uses the working name “Inbox Triage AI”.)
 
-## Project status
+## What it does
 
-Built **phase by phase** (spec §63).
+- **Scan now** with lookback of 1–4 days, 1–3 weeks, or 1 month (default 7 days)
+- **Incremental sync** via the Gmail History API after the first successful scan
+- **Daily scheduled scan** (default 08:00 Asia/Jerusalem) through a global cron dispatcher
+- **Mail tabs** for inbox summary vs open tasks (grouped by category) vs ignored noise
+- **Gmail labels:** `MailPilot/Important`, `MailPilot/Action Required`, `MailPilot/Low Priority`, `MailPilot/Processed`
+- **In-app digest** after each successful or partial scan (email digest is not in the MVP)
+- **Privacy:** no long-term storage of full email bodies; failed AI does not apply labels
 
-- **Phase 0 — Bootstrap:** complete.
-- **Phase 1 — Auth + DB:** login works; `profiles` + RLS applied.
-- **Phase 2 — Gmail OAuth:** Connect / callback / status / disconnect, encrypted refresh tokens,
-  and automatic `MailPilot/*` labels.
-- **Phase 3 — Parser:** MIME parser, attachment metadata (no binary), thread context with
-  INBOUND/OUTBOUND direction.
-- **Phase 4 — AI triage:** Gemini structured JSON (`GEMINI_API_KEY` / `GEMINI_MODEL`),
-  Zod schema, deterministic post-processing, prompt-injection wrapping, and eval
-  fixtures.
-- **Phase 5 — Initial scan:** dashboard **Scan now** (lookback up to a month),
-  Gmail list + thread analysis, idempotent DB upserts, action and
-  MailPilot label reconciliation, and inbox counters. Failed AI does not apply
-  labels.
-- **Phase 6–7 — Dashboard + incremental sync:** Mail tabs, thread actions,
-  History API with stale-history recovery.
-- **Phase 8 — Daily scheduled scan:** global cron dispatcher, job lease, bounded
-  retry, scan preferences, and scan history. Default 08:00 Asia/Jerusalem.
-  Apply `0007_scan_scheduling.sql`.
-- **Phase 9 — Digest:** in-app digest after each successful/partial scan
-  (period counts from the DB, unique top open tasks, history on `/digests`).
-  Apply `0006_digest_reports.sql`. Email delivery is not in the MVP.
+OTP / login-FYI notices are not open tasks. The MVP does not send replies on the user’s behalf.
 
-Phase 2 requires Google OAuth credentials in `.env.local` and the `0002_gmail_connections.sql`
-migration applied to your Supabase project. Phase 5 also needs
-`0003_initial_scan.sql` and a configured `GEMINI_API_KEY`.
+## Status
 
-## Google Cloud / Gmail setup
+Phases 0–9 of the spec are implemented (auth, Gmail OAuth, MIME/thread parser, Gemini triage, dashboard, incremental sync, daily scans, in-app digests). Phase 10 is hardening (signup-function lockdown, recovery, quality gates)—not new product surface.
 
-1. Create a Google Cloud project and enable the **Gmail API**.
-2. Configure the OAuth consent screen (External + Testing is fine). Add your Gmail as a test user.
-3. Create OAuth client credentials of type **Web application**.
-4. Authorized redirect URI must match exactly:
-   `http://localhost:3000/api/gmail/callback`
-5. Put these in `.env.local`:
-   - `GOOGLE_CLIENT_ID`
-   - `GOOGLE_CLIENT_SECRET`
-   - `GOOGLE_REDIRECT_URI=http://localhost:3000/api/gmail/callback`
-   - `TOKEN_ENCRYPTION_KEY` — generate with `openssl rand -hex 32`
-6. Restart `npm run dev`, sign in, and click **Connect Gmail** on `/dashboard`.
-7. Scope requested: `https://www.googleapis.com/auth/gmail.modify` (minimum needed to read mail and apply labels).
+## Stack
 
-On first connect, MailPilot creates these labels if they are missing:
-
-- `MailPilot/Important`
-- `MailPilot/Action Required`
-- `MailPilot/Low Priority`
-- `MailPilot/Processed`
-
-The refresh token is encrypted (AES-256-GCM) and never sent to the browser.
-
-## Migrations
-
-Apply SQL in the Supabase SQL Editor, in order:
-
-1. `supabase/migrations/0001_profiles.sql`
-2. `supabase/migrations/0002_gmail_connections.sql`
-3. `supabase/migrations/0003_initial_scan.sql`
-
-## Architecture
-
-- **Frontend:** Next.js (App Router) + React + TypeScript + Tailwind CSS + shadcn/ui.
-- **Backend:** Next.js Route Handlers / server-side services under `src/lib/**`.
-- **Database:** Supabase PostgreSQL (with Row Level Security).
-- **Auth:** Supabase Auth for the app account; a separate Google OAuth flow for Gmail authorization.
-- **AI:** Google Gemini with JSON Schema structured output, validated with Zod.
-- **Scheduler:** a single global cron dispatcher that claims due connections (not per-user cron).
-- **Hosting:** Vercel.
+| Layer | Choice |
+| ----- | ------ |
+| App | Next.js (App Router), React, TypeScript, Tailwind CSS, shadcn/ui |
+| Data / auth | Supabase Postgres + RLS; Supabase Auth for the app account |
+| Gmail | Separate Google OAuth (`gmail.modify`); refresh tokens encrypted AES-256-GCM |
+| AI | Google Gemini with JSON Schema output, Zod validation |
+| Hosting | Vercel (Hobby-safe dispatcher: one connection per run, `maxDuration` 300s) |
 
 ## Prerequisites
 
-- Node.js 22+ and npm.
-- A Supabase project (for Phase 1+).
-- A Google Cloud project with the Gmail API enabled and OAuth credentials (for Phase 2+).
-- A Gemini API key (`GEMINI_API_KEY`) and model (`GEMINI_MODEL`, for Phase 4+).
+- Node.js 22+ and npm
+- A [Supabase](https://supabase.com) project
+- A Google Cloud project with the **Gmail API** enabled and OAuth **Web application** credentials
+- A Gemini API key (`GEMINI_API_KEY`) and model (`GEMINI_MODEL`)
 
 ## Local setup
 
 ```bash
 npm install
-cp .env.example .env.local   # then fill in values (see below)
+cp .env.example .env.local   # fill in real values; never commit .env.local
 npm run dev                  # http://localhost:3000
 ```
 
-The landing page runs without any secrets configured. Features that need secrets validate
-them lazily and fail fast with a clear message when they are missing.
+The landing page runs without secrets. Features that need configuration fail fast with a clear message.
 
-## Environment variables
+### Google Cloud / Gmail
 
-Copy `.env.example` to `.env.local` and fill in values. Never commit real secrets.
+1. Enable the Gmail API and configure the OAuth consent screen (External + Testing is fine). Add your Gmail as a test user.
+2. Create **Web application** OAuth client credentials.
+3. Set the authorized redirect URI to exactly `http://localhost:3000/api/gmail/callback` (and the production URL in Vercel).
+4. Put `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI`, and `TOKEN_ENCRYPTION_KEY` (`openssl rand -hex 32`) in `.env.local`.
+5. Restart the app, sign in, and click **Connect Gmail** on `/dashboard`.
 
-| Variable                                                                                | Purpose                                                 |
-| --------------------------------------------------------------------------------------- | ------------------------------------------------------- |
-| `NEXT_PUBLIC_APP_URL`                                                                   | Public base URL for links and OAuth redirects.          |
-| `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY`                            | Supabase public client config.                          |
-| `SUPABASE_SERVICE_ROLE_KEY`                                                             | Server-only privileged key. Never expose to the client. |
-| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` / `GOOGLE_REDIRECT_URI`                     | Gmail OAuth.                                            |
-| `TOKEN_ENCRYPTION_KEY`                                                                  | 32-byte key for AES-256-GCM refresh-token encryption.   |
-| `GEMINI_API_KEY` / `GEMINI_MODEL`                                                       | Gemini access; model is configurable, not hard-coded.   |
-| `CRON_SECRET`                                                                           | Protects the cron dispatcher endpoint.                  |
-| `MAX_THREAD_MESSAGES` / `MAX_MESSAGE_CHARS` / `MAX_THREAD_CHARS` / `AI_MAX_CONCURRENCY` | Context and cost controls.                              |
+Scope requested: `https://www.googleapis.com/auth/gmail.modify` (read mail and apply labels). Labels above are created on first connect if missing.
 
-## Supabase setup
+### Environment variables
 
-1. Create a Supabase project and copy its URL and keys into `.env.local`.
-2. Apply the SQL files in `supabase/migrations/` (SQL Editor), in numeric order.
-3. Row Level Security is required on all user-accessible tables (`user_id = auth.uid()`).
+Copy from [`.env.example`](.env.example). Server secrets must never use a `NEXT_PUBLIC_` prefix.
 
-## Running & scripts
+| Variable | Purpose |
+| -------- | ------- |
+| `NEXT_PUBLIC_APP_URL` | Public base URL for links and OAuth redirects |
+| `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase public client |
+| `SUPABASE_SERVICE_ROLE_KEY` | Server-only privileged key |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` / `GOOGLE_REDIRECT_URI` | Gmail OAuth |
+| `TOKEN_ENCRYPTION_KEY` | 32-byte key for AES-256-GCM refresh-token encryption |
+| `GEMINI_API_KEY` / `GEMINI_MODEL` | Gemini access; model is configurable, not hard-coded |
+| `CRON_SECRET` | Protects `/api/cron/scan-dispatcher` |
+| `MAX_THREAD_MESSAGES` / `MAX_MESSAGE_CHARS` / `MAX_THREAD_CHARS` / `AI_MAX_CONCURRENCY` | Context and cost controls |
+
+### Migrations
+
+Apply SQL in the Supabase SQL Editor, in this order:
+
+1. `supabase/migrations/0001_profiles.sql`
+2. `supabase/migrations/0002_gmail_connections.sql`
+3. `supabase/migrations/0003_initial_scan.sql`
+4. `supabase/migrations/0004_classification_feedback.sql`
+5. `supabase/migrations/0005_scan_progress.sql`
+6. `supabase/migrations/0006_digest_reports.sql`
+7. `supabase/migrations/0007_scan_scheduling.sql`
+8. `supabase/migrations/0008_scan_admission.sql` — one RUNNING scan per Gmail connection
+9. `supabase/migrations/0009_function_hardening.sql` — signup trigger not callable via the Data API
+
+RLS is required on user-accessible tables (`user_id = auth.uid()`).
+
+## Scripts
 
 ```bash
-npm run dev         # start the dev server
+npm run dev         # development server
 npm run build       # production build
 npm run start       # run the production build
 npm run lint        # ESLint
 npm run typecheck   # tsc --noEmit
-npm test            # Vitest (run once)
-npm run test:watch  # Vitest (watch mode)
+npm test            # Vitest (Windows uses scripts/run-vitest.mjs)
+npm run test:watch  # Vitest watch
 npm run format      # Prettier write
 ```
 
-## Testing
+Unit tests live next to the code they cover as `*.test.ts(x)`. Eval fixtures are in `tests/fixtures/` and `tests/evals/`.
 
-Unit tests use Vitest with a jsdom environment and Testing Library. Test files live next to the
-code they cover as `*.test.ts(x)`. Phase 4 eval fixtures live in `tests/fixtures/` and
-`tests/evals/` (spec §48). See `docs/PROJECT_SPEC.md` §50–52 for the full test plan
-(MIME parsing, encryption, reconciliation, idempotency, etc.) added in later phases.
+## Cron and deployment
 
-## Cron configuration
+`GET`/`POST` `/api/cron/scan-dispatcher` claims due Gmail connections (`next_scan_at`), holds a job lease, and runs incremental scans. Protect it with `CRON_SECRET` (`Authorization: Bearer …` or `x-cron-secret`). `vercel.json` schedules it so daily 08:00 Asia/Jerusalem (and bounded retries) are picked up.
 
-A single global dispatcher (`GET`/`POST` `/api/cron/scan-dispatcher`) selects due Gmail
-connections (`next_scan_at <= now()`), claims them with a job lease, and runs incremental
-scans. It is protected by `CRON_SECRET` (`Authorization: Bearer …` or `x-cron-secret`) and
-must never be publicly executable. `vercel.json` schedules it hourly so daily 08:00
-Asia/Jerusalem (and bounded retries) are picked up. Apply `0007_scan_scheduling.sql` before
-relying on scheduled scans.
+On Vercel, set the same environment variables, and make `GOOGLE_REDIRECT_URI` and `NEXT_PUBLIC_APP_URL` match the deployed domain. Hobby plans cap function duration at 300 seconds and built-in cron at once per day.
 
-## Deployment
+`gmail.modify` is a sensitive Gmail scope. A public launch needs Google OAuth verification, a privacy policy, and a clear explanation of Gmail data use. See spec §38.
 
-Deploy on Vercel. Configure all environment variables in the project settings and add the cron
-schedule. Ensure `GOOGLE_REDIRECT_URI` and `NEXT_PUBLIC_APP_URL` match the deployed domain.
+## Security
 
-If you deploy on the Vercel Hobby plan, function durations must stay at or below 300 seconds and
-built-in cron jobs are limited to once per day. More frequent scheduler triggers require Vercel Pro
-or an external scheduler that calls the dispatcher endpoint securely.
-
-## OAuth production considerations
-
-`gmail.modify` is a sensitive/restricted Gmail scope. Before a public launch you must complete
-Google's OAuth verification, publish a privacy policy (and terms if required), clearly explain
-Gmail data use, request the minimum scope, and review Google's restricted-scope/security-assessment
-requirements for your deployment. See spec §38.
-
-## Troubleshooting
-
-- **App fails to start complaining about environment variables:** a server feature needs a secret
-  that isn't set. Fill in `.env.local` from `.env.example`.
-- **Supabase/Google/Gemini calls fail:** verify the corresponding keys. For Gmail OAuth, the
-  redirect URI must match the OAuth client exactly. For Gemini, confirm `GEMINI_API_KEY` and
-  `GEMINI_MODEL`.
-- **Type or lint errors after adding code:** run `npm run typecheck` and `npm run lint` locally.
-
-## Security notes
-
-Never log email bodies, OAuth tokens, authorization codes, or API keys. Refresh tokens are stored
-encrypted server-side and never returned to the client. See spec §37 for the full policy.
+Never log email bodies, OAuth tokens, authorization codes, or API keys. Refresh tokens are stored encrypted server-side and never returned to the client. See spec §37.

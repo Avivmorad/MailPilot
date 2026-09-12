@@ -37,7 +37,9 @@ structured observability, and skip-to-content / labeled nav.
 4. Route handlers must be thin.
 5. Business logic belongs in services (`src/lib/**`).
 6. Never expose server secrets to client components.
-7. Never log email bodies or OAuth tokens.
+7. Never log email bodies or OAuth tokens. Optional Sentry (`NEXT_PUBLIC_SENTRY_DSN`)
+   uses the same rule: no Gmail content, tokens, keys, or email PII. Allowed tags only:
+   `environment`, `route`, `provider`, `scan_type`, `error_category`.
 8. All DB schema changes require Supabase migrations (`supabase/migrations`).
 9. All Gmail processing must be idempotent.
 10. Every non-trivial bug fix needs a regression test.

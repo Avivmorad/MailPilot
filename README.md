@@ -137,6 +137,8 @@ Copy `.env.example` to `.env.local` and fill in values. Never commit real secret
 | `CRON_SECRET`                                                                           | Protects the cron dispatcher (`Authorization: Bearer` or `x-cron-secret`). |
 | `MAX_THREAD_MESSAGES` / `MAX_MESSAGE_CHARS` / `MAX_THREAD_CHARS` / `AI_MAX_CONCURRENCY` | Context and cost controls.                              |
 | `GMAIL_QUOTA_UNITS_PER_MINUTE`                                                          | Optional local Gmail quota budget (default 12000).      |
+| `NEXT_PUBLIC_SENTRY_DSN`                                                                | Optional Sentry DSN (public). App runs without it.      |
+| `SENTRY_ORG` / `SENTRY_PROJECT` / `SENTRY_AUTH_TOKEN`                                   | Optional build-only source-map upload. Never `NEXT_PUBLIC_`. |
 
 ## Supabase setup
 
@@ -230,4 +232,7 @@ This is owner work in Google Cloud. Shipping `/privacy` and `/terms` does not re
 ## Security notes
 
 Never log email bodies, OAuth tokens, authorization codes, or API keys. Refresh tokens are stored
-encrypted server-side and never returned to the client. See spec §37 for the full policy.
+encrypted server-side and never returned to the client. Sentry is optional and must not receive
+Gmail content, OAuth tokens, API keys, email bodies, or personally identifiable email data; only
+`environment`, `route`, `provider`, `scan_type`, and `error_category` tags are allowed. See spec
+§37 for the full policy.

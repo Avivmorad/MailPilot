@@ -119,6 +119,16 @@ describe("parseClientEnv", () => {
     });
 
     expect(env.NEXT_PUBLIC_SUPABASE_URL).toBe("https://example.supabase.co");
+    expect(env.NEXT_PUBLIC_SENTRY_DSN).toBeUndefined();
+  });
+
+  it("accepts an optional Sentry DSN without requiring it", () => {
+    const env = parseClientEnv({
+      NEXT_PUBLIC_SUPABASE_URL: "https://example.supabase.co",
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: "anon-key",
+      NEXT_PUBLIC_SENTRY_DSN: "https://public@o0.ingest.sentry.io/1",
+    });
+    expect(env.NEXT_PUBLIC_SENTRY_DSN).toBe("https://public@o0.ingest.sentry.io/1");
   });
 
   it("throws when a public variable is missing", () => {

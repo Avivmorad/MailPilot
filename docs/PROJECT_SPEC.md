@@ -261,7 +261,7 @@ next_scan_at <= now()
 
 - Queue/job orchestration: Inngest / QStash / dedicated worker
 - Transactional email provider for digest emails (not in the MVP; overlay: in-app digest only)
-- Sentry
+- Sentry (optional DSN; client/server/edge errors only, no Gmail/PII payloads)
 - PostHog
 
 ---

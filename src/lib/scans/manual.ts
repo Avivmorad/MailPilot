@@ -56,7 +56,7 @@ export class ScanRequestError extends Error {
 export async function beginManualInitialScan(
   userId: string,
   lookbackDays: InitialLookbackDays = DEFAULT_LOOKBACK_DAYS,
-): Promise<{ scanId: string; execute: () => Promise<ScanRunResult> }> {
+): Promise<{ scanId: string; triggerType: "INITIAL" | "MANUAL"; execute: () => Promise<ScanRunResult> }> {
   if (!isGmailConfigured()) {
     throw new ScanRequestError(503, "gmail_not_configured", "Gmail OAuth is not configured.");
   }
@@ -110,6 +110,7 @@ export async function beginManualInitialScan(
 
   return {
     scanId: prepared.scanId,
+    triggerType,
     execute: async () => {
       const result = await executeGmailScan(prepared);
       if (result.status === "SUCCESS" || result.status === "PARTIAL") {

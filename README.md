@@ -212,7 +212,7 @@ requirements for your deployment. See spec §38.
   `GEMINI_MODEL`.
 - **Type or lint errors after adding code:** run `npm run typecheck` and `npm run lint` locally.
 - **Leaked password protection warning in Supabase:** enable it under Authentication → Attack Protection
-  (HaveIBeenPwned). This is a dashboard setting, not a SQL migration.
+  (HaveIBeenPwned). This is a dashboard setting, not a SQL migration, and requires the Supabase Pro plan.
 
 ## Security notes
 

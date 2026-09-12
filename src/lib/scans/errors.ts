@@ -1,6 +1,18 @@
+export const SCAN_IN_PROGRESS = "SCAN_IN_PROGRESS";
+
 export function scanStoreFailure(operation: string, detail: string | undefined): Error {
   const suffix = detail?.trim() ? `: ${detail.trim()}` : "";
   return new Error(`${operation}${suffix}`);
+}
+
+export function isScanRunUniqueViolation(error: { code?: string; message?: string } | null): boolean {
+  if (!error) {
+    return false;
+  }
+  if (error.code === "23505") {
+    return true;
+  }
+  return /scan_runs_one_running_per_connection/i.test(error.message ?? "");
 }
 
 export function isMissingScanSchemaError(error: unknown): boolean {

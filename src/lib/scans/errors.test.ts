@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   isMissingScanSchemaError,
+  isScanRunUniqueViolation,
   scanStoreFailure,
 } from "@/lib/scans/errors";
 
@@ -24,5 +25,13 @@ describe("scanStoreFailure", () => {
     expect(scanStoreFailure("Failed to load running scan", "relation scan_runs does not exist").message).toContain(
       "scan_runs",
     );
+  });
+});
+
+describe("isScanRunUniqueViolation", () => {
+  it("detects Postgres unique_violation and the admission index name", () => {
+    expect(isScanRunUniqueViolation({ code: "23505" })).toBe(true);
+    expect(isScanRunUniqueViolation({ message: "duplicate key value violates unique constraint \"scan_runs_one_running_per_connection\"" })).toBe(true);
+    expect(isScanRunUniqueViolation({ code: "42501", message: "permission denied" })).toBe(false);
   });
 });

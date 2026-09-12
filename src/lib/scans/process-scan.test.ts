@@ -7,7 +7,7 @@ import { threadAnalysisSchema, type ThreadAnalysis } from "@/lib/ai/schemas";
 import type { MailPilotLogicalLabel } from "@/lib/gmail/constants";
 import type { ParsedGmailMessage } from "@/lib/gmail/parser";
 import type { InitialLookbackDays } from "@/lib/scans/lookback";
-import { processInitialScan, shouldReuseStoredAnalysis } from "@/lib/scans/process-scan";
+import { openGmailScan, processInitialScan, shouldReuseStoredAnalysis } from "@/lib/scans/process-scan";
 import type { ScanGmailPort, ScanSettings, ScanStorePort, StoredThreadRow } from "@/lib/scans/types";
 
 function validAnalysis(overrides: Partial<ThreadAnalysis> = {}): ThreadAnalysis {
@@ -77,6 +77,8 @@ function createMemoryStore(): ScanStorePort & {
   scanRuns: Array<{
     id: string;
     status: string;
+    startedAt: string;
+    connectionId?: string;
     errorCode?: string | null;
     errorMessage?: string | null;
   }>;
@@ -91,6 +93,7 @@ function createMemoryStore(): ScanStorePort & {
     startedAt: string;
     threadsDiscovered?: number;
     threadsChecked?: number;
+    connectionId?: string;
     errorCode?: string | null;
     errorMessage?: string | null;
   }> = [];
@@ -115,6 +118,8 @@ function createMemoryStore(): ScanStorePort & {
     scanRuns: Array<{
       id: string;
       status: string;
+      startedAt: string;
+      connectionId?: string;
       errorCode?: string | null;
       errorMessage?: string | null;
     }>;
@@ -126,8 +131,10 @@ function createMemoryStore(): ScanStorePort & {
     connection,
     scanRuns,
     progressChecks,
-    async findRunningScan() {
-      const running = scanRuns.find((run) => run.status === "RUNNING");
+    async findRunningScan(connectionId) {
+      const running = scanRuns.find(
+        (run) => run.status === "RUNNING" && (run.connectionId ?? "conn-1") === connectionId,
+      );
       return running ? { id: running.id, startedAt: running.startedAt } : null;
     },
     async failScan(scanId) {
@@ -136,9 +143,17 @@ function createMemoryStore(): ScanStorePort & {
         run.status = "FAILED";
       }
     },
-    async insertScanRun() {
+    async insertScanRun(input) {
+      if (scanRuns.some((run) => run.status === "RUNNING" && run.connectionId === input.connectionId)) {
+        throw new Error("SCAN_IN_PROGRESS");
+      }
       const id = crypto.randomUUID();
-      scanRuns.push({ id, status: "RUNNING", startedAt: new Date().toISOString() });
+      scanRuns.push({
+        id,
+        status: "RUNNING",
+        startedAt: new Date().toISOString(),
+        connectionId: input.connectionId,
+      });
       return id;
     },
     async updateScanRun(scanId, patch) {
@@ -549,6 +564,77 @@ describe("processInitialScan", () => {
     expect(store.progressChecks[0]).toBe(0);
     expect(store.progressChecks).toContain(1);
     expect(store.progressChecks.at(-1)).toBe(2);
+  });
+});
+
+describe("openGmailScan admission", () => {
+  const dummyGmail: ScanGmailPort = {
+    listMessageRefs: async () => [],
+    listHistoryChanges: async () => ({ ok: true, refs: [], latestHistoryId: "1" }),
+    fetchThread: async () => [],
+    getProfileHistoryId: async () => "hist-1",
+    loadLabelMap: async () => LABEL_MAP,
+    modifyThreadLabels: async () => undefined,
+  };
+
+  async function admit(store: ReturnType<typeof createMemoryStore>, now = new Date("2026-09-10T12:00:00.000Z")) {
+    return openGmailScan({
+      userId: "user-1",
+      connectionId: "conn-1",
+      gmailEmail: "me@example.com",
+      lookbackDays: 7,
+      now,
+      gmail: dummyGmail,
+      store,
+      provider: unusedProvider(),
+      modelName: "gemini-test",
+    });
+  }
+
+  it("rejects a second scan while one is already running", async () => {
+    const store = createMemoryStore();
+    await admit(store);
+    await expect(admit(store)).rejects.toThrow("SCAN_IN_PROGRESS");
+    expect(store.scanRuns.filter((run) => run.status === "RUNNING")).toHaveLength(1);
+  });
+
+  it("rejects concurrent inserts for the same connection", async () => {
+    const store = createMemoryStore();
+    const first = store.insertScanRun({
+      userId: "user-1",
+      connectionId: "conn-1",
+      triggerType: "MANUAL",
+      windowStart: "2026-09-10T00:00:00.000Z",
+      windowEnd: "2026-09-10T12:00:00.000Z",
+    });
+    const second = store.insertScanRun({
+      userId: "user-1",
+      connectionId: "conn-1",
+      triggerType: "SCHEDULED",
+      windowStart: "2026-09-10T00:00:00.000Z",
+      windowEnd: "2026-09-10T12:00:00.000Z",
+    });
+    const results = await Promise.allSettled([first, second]);
+    const accepted = results.filter((result) => result.status === "fulfilled");
+    const rejected = results.filter((result) => result.status === "rejected");
+    expect(accepted).toHaveLength(1);
+    expect(rejected).toHaveLength(1);
+    expect(rejected[0]).toMatchObject({ status: "rejected", reason: expect.objectContaining({ message: "SCAN_IN_PROGRESS" }) });
+  });
+
+  it("fails a stale running scan and then admits a new one", async () => {
+    const store = createMemoryStore();
+    const now = new Date("2026-09-10T12:00:00.000Z");
+    store.scanRuns.push({
+      id: "stale",
+      status: "RUNNING",
+      startedAt: new Date(now.getTime() - 21 * 60_000).toISOString(),
+      connectionId: "conn-1",
+    });
+    const prepared = await admit(store, now);
+    expect(prepared.scanId).not.toBe("stale");
+    expect(store.scanRuns.find((run) => run.id === "stale")?.status).toBe("FAILED");
+    expect(store.scanRuns.filter((run) => run.status === "RUNNING")).toHaveLength(1);
   });
 });
 

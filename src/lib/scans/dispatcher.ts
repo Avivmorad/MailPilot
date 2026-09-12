@@ -9,6 +9,7 @@ import {
   DISPATCH_LEASE_SECONDS,
   hasDispatchBudget,
 } from "@/lib/scans/dispatch-budget";
+import { SCAN_IN_PROGRESS } from "@/lib/scans/errors";
 import { createGmailScanPort } from "@/lib/scans/gmail-port";
 import {
   createScanJob,
@@ -17,7 +18,7 @@ import {
   incrementScanJobAttempt,
   markScanJobRunning,
 } from "@/lib/scans/jobs";
-import { claimDueConnections, releaseConnectionLease } from "@/lib/scans/leases";
+import { claimDueConnections, releaseConnectionLease, type ClaimedConnection } from "@/lib/scans/leases";
 import { DEFAULT_LOOKBACK_DAYS } from "@/lib/scans/lookback";
 import { openGmailScan, executeGmailScan } from "@/lib/scans/process-scan";
 import { nextScanAfterFailure } from "@/lib/scans/schedule";
@@ -106,7 +107,7 @@ async function runClaimedConnection(
     return { connectionId: claimed.id, status: result.status, scanId: prepared.scanId };
   } catch (error) {
     const message = error instanceof Error ? error.message : "scan_failed";
-    if (message === "SCAN_IN_PROGRESS") {
+    if (message === SCAN_IN_PROGRESS) {
       if (jobId) {
         await finishScanJob(jobId, "FAILED", "scan_in_progress");
       }
@@ -149,11 +150,20 @@ export async function dispatchDueScans(options: {
   now?: Date;
   limit?: number;
   workerId?: string;
+  startedAtMs?: number;
+  claimDueConnections?: typeof claimDueConnections;
+  runClaimedConnection?: (
+    claimed: ClaimedConnection,
+    workerId: string,
+    now: Date,
+  ) => Promise<DispatcherConnectionResult>;
 } = {}): Promise<{ claimed: number; results: DispatcherConnectionResult[] }> {
   const now = options.now ?? new Date();
   const workerId = options.workerId ?? `dispatcher:${crypto.randomUUID()}`;
-  const startedAt = Date.now();
+  const startedAt = options.startedAtMs ?? Date.now();
   const maxClaims = options.limit ?? DISPATCH_DEFAULT_LIMIT;
+  const claim = options.claimDueConnections ?? claimDueConnections;
+  const run = options.runClaimedConnection ?? runClaimedConnection;
   const results: DispatcherConnectionResult[] = [];
 
   while (results.length < maxClaims) {
@@ -161,7 +171,7 @@ export async function dispatchDueScans(options: {
       break;
     }
 
-    const claimed = await claimDueConnections({
+    const claimed = await claim({
       workerId,
       limit: 1,
       now,
@@ -172,7 +182,7 @@ export async function dispatchDueScans(options: {
       break;
     }
 
-    results.push(await runClaimedConnection(connection, workerId, now));
+    results.push(await run(connection, workerId, now));
   }
 
   return { claimed: results.length, results };

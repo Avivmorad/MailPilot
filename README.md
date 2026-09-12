@@ -80,7 +80,7 @@ The refresh token is encrypted (AES-256-GCM) and never sent to the browser.
 
 ## Migrations
 
-Apply SQL in the Supabase SQL Editor, **in this order** (all eight files):
+Apply SQL in the Supabase SQL Editor, **in this order** (all nine files):
 
 1. `supabase/migrations/0001_profiles.sql` — app profiles.
 2. `supabase/migrations/0002_gmail_connections.sql` — Gmail OAuth connections and labels.
@@ -90,8 +90,9 @@ Apply SQL in the Supabase SQL Editor, **in this order** (all eight files):
 6. `supabase/migrations/0006_digest_reports.sql` — in-app digest snapshots.
 7. `supabase/migrations/0007_scan_scheduling.sql` — leases, `scan_jobs`, dispatcher claim.
 8. `supabase/migrations/0008_scan_admission.sql` — unique RUNNING scan per Gmail connection.
+9. `supabase/migrations/0009_function_hardening.sql` — pin trigger `search_path` and revoke Data API execute on `handle_new_user`.
 
-Do not skip later files: scheduled scans need 0007+0008; digests need 0006.
+Do not skip later files: scheduled scans need 0007+0008; digests need 0006. Apply 0009 on any project that already ran 0001.
 
 ## Architecture
 
@@ -191,7 +192,7 @@ Deploy on Vercel. Configure every variable from `.env.example` in the project se
 - Set `GOOGLE_REDIRECT_URI` to `{NEXT_PUBLIC_APP_URL}/api/gmail/callback` and add the
   same URI in Google Cloud.
 - Set `CRON_SECRET` and keep the `vercel.json` cron path as `/api/cron/scan-dispatcher`.
-- Apply all eight migrations to the production Supabase project before the first scan.
+- Apply all nine migrations to the production Supabase project before the first scan.
 
 There is no digest email to configure. Digests appear in the app after scans.
 
@@ -214,6 +215,8 @@ requirements for your deployment. See spec §38.
   redirect URI must match the OAuth client exactly. For Gemini, confirm `GEMINI_API_KEY` and
   `GEMINI_MODEL`.
 - **Type or lint errors after adding code:** run `npm run typecheck` and `npm run lint` locally.
+- **Leaked password protection warning in Supabase:** enable it under Authentication → Attack Protection
+  (HaveIBeenPwned). This is a dashboard setting, not a SQL migration.
 
 ## Security notes
 

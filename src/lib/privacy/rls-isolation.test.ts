@@ -12,6 +12,7 @@ describe("RLS isolation", () => {
       "0004_classification_feedback.sql",
       "0006_digest_reports.sql",
       "0007_scan_scheduling.sql",
+      "0009_function_hardening.sql",
     ]
       .map((name) => readFileSync(path.join(migrationsDir, name), "utf8"))
       .join("\n");
@@ -31,5 +32,7 @@ describe("RLS isolation", () => {
     }
     expect(sql).toMatch(/auth\.uid\(\)\s*=\s*user_id/);
     expect(sql).not.toMatch(/using\s*\(\s*true\s*\)/);
+    expect(sql).toContain("revoke execute on function public.handle_new_user()");
+    expect(sql).toContain("set search_path = ''");
   });
 });

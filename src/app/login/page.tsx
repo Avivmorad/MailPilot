@@ -39,7 +39,7 @@ export default function LoginPage() {
           password,
         });
         if (signInError) throw signInError;
-        router.push("/dashboard");
+        router.push("/onboarding");
         router.refresh();
       } else {
         const { error: signUpError } = await supabase.auth.signUp({ email, password });

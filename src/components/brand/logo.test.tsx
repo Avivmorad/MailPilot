@@ -1,7 +1,13 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+/** @vitest-environment jsdom */
+
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it } from "vitest";
 
 import { Logo } from "@/components/brand/logo";
+
+afterEach(() => {
+  cleanup();
+});
 
 describe("Logo", () => {
   it("renders the wordmark by default", () => {

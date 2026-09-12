@@ -12,7 +12,7 @@ const NAV = [
   { href: "settings", label: "Settings", path: "/settings" },
 ] as const;
 
-export type AppNavCurrent = (typeof NAV)[number]["href"] | "thread";
+export type AppNavCurrent = (typeof NAV)[number]["href"] | "thread" | "onboarding";
 
 export function AppHeader({
   email,

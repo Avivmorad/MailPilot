@@ -14,6 +14,8 @@ export const config = {
     "/digests",
     "/digests/:path*",
     "/settings/:path*",
+    "/onboarding",
+    "/onboarding/:path*",
     "/thread/:path*",
   ],
 };

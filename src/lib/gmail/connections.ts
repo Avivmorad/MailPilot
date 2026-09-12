@@ -12,6 +12,7 @@ import {
   revokeRefreshToken,
 } from "@/lib/gmail/oauth";
 import { decryptSecret, encryptSecret } from "@/lib/security/encryption";
+import { cancelActiveJobsForConnection } from "@/lib/scans/jobs";
 import { nextDailyScanAt } from "@/lib/scans/schedule";
 import { getScanPreferences } from "@/lib/settings/preferences";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -218,17 +219,22 @@ export async function disconnectGmailForUser(userId: string): Promise<void> {
         status: "DISCONNECTED",
         encrypted_refresh_token: null,
         next_scan_at: null,
+        locked_at: null,
+        locked_by: null,
+        lease_expires_at: null,
       })
       .eq("id", row.id);
 
     if (updateError) {
       throw new Error("Failed to disconnect Gmail");
     }
+
+    await cancelActiveJobsForConnection(row.id, "gmail_disconnected");
   }
 }
 
 export function gmailCallbackErrorRedirect(origin: string, reason: string): URL {
-  const url = new URL("/dashboard", origin);
+  const url = new URL("/onboarding", origin);
   url.searchParams.set("gmail", "error");
   url.searchParams.set("reason", reason);
   return url;

@@ -10,11 +10,11 @@ export async function GET(request: Request) {
   const origin = new URL(request.url).origin;
   const user = await getSessionUser();
   if (!user) {
-    return NextResponse.redirect(new URL("/login?redirectedFrom=/dashboard", origin));
+    return NextResponse.redirect(new URL("/login?redirectedFrom=/onboarding", origin));
   }
 
   if (!isGmailConfigured()) {
-    const url = new URL("/dashboard", origin);
+    const url = new URL("/onboarding", origin);
     url.searchParams.set("gmail", "error");
     url.searchParams.set("reason", "not_configured");
     return NextResponse.redirect(url);

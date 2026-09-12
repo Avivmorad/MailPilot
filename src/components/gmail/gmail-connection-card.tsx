@@ -1,3 +1,4 @@
+import { DisconnectGmailButton } from "@/components/gmail/disconnect-gmail-button";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import type { GmailStatusPayload } from "@/lib/gmail/constants";
@@ -102,6 +103,8 @@ export function GmailConnectionCard({
   const isActive = connection?.status === "CONNECTED";
   const needsReconnect =
     connection?.status === "REAUTH_REQUIRED" || connection?.status === "ERROR";
+  const canDisconnect =
+    Boolean(connection) && connection?.status !== "DISCONNECTED";
   const canConnect = status.configured && !status.loadError;
 
   return (
@@ -123,17 +126,12 @@ export function GmailConnectionCard({
           ) : null}
 
           {canConnect && isActive ? (
-            <>
-              <a href="/api/gmail/connect" className={buttonVariants({ variant: "outline" })}>
-                Reconnect
-              </a>
-              <form action="/api/gmail/disconnect" method="post">
-                <Button type="submit" variant="destructive">
-                  Disconnect Gmail
-                </Button>
-              </form>
-            </>
+            <a href="/api/gmail/connect" className={buttonVariants({ variant: "outline" })}>
+              Reconnect
+            </a>
           ) : null}
+
+          {canConnect && canDisconnect ? <DisconnectGmailButton /> : null}
 
           {!canConnect ? (
             <Button type="button" disabled>

@@ -98,6 +98,27 @@ export async function incrementScanJobAttempt(jobId: string): Promise<number> {
   return next;
 }
 
+export async function cancelActiveJobsForConnection(
+  connectionId: string,
+  lastError: string,
+): Promise<void> {
+  const db = createAdminClient();
+  const { error } = await db
+    .from("scan_jobs")
+    .update({
+      status: "FAILED",
+      last_error: lastError,
+      locked_at: null,
+      locked_by: null,
+      lease_expires_at: null,
+    })
+    .eq("gmail_connection_id", connectionId)
+    .in("status", ["QUEUED", "RUNNING"]);
+  if (error) {
+    throw new Error("Failed to cancel active scan jobs");
+  }
+}
+
 export async function finishScanJob(
   jobId: string,
   status: "SUCCESS" | "FAILED",

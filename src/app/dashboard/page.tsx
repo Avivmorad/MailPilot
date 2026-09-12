@@ -14,6 +14,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { listActionsForUser } from "@/lib/actions/queries";
 import { ensureDigestForLatestScan } from "@/lib/digest/build-digest";
 import { getGmailStatusForUser } from "@/lib/gmail/connections";
+import { getOnboardingStepForUser } from "@/lib/onboarding/load";
 import { getInboxCountsForUser, getLatestScanRunForUser } from "@/lib/scans/manual";
 import { getSessionUser } from "@/lib/supabase/auth";
 import { cn } from "@/lib/utils";
@@ -97,6 +98,20 @@ export default async function DashboardPage({
   const user = await getSessionUser();
   if (!user) {
     redirect("/login");
+  }
+
+  const onboardingStep = await getOnboardingStepForUser(user.id);
+  if (onboardingStep !== "complete") {
+    const next = new URLSearchParams();
+    const pending = await searchParams;
+    if (pending.gmail) {
+      next.set("gmail", pending.gmail);
+    }
+    if (pending.reason) {
+      next.set("reason", pending.reason);
+    }
+    const query = next.toString();
+    redirect(query ? `/onboarding?${query}` : "/onboarding");
   }
 
   const [params, gmailStatus] = await Promise.all([searchParams, getGmailStatusForUser(user.id)]);

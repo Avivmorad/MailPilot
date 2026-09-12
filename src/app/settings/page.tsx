@@ -4,6 +4,7 @@ import { GmailConnectionCard } from "@/components/gmail/gmail-connection-card";
 import { AppChrome } from "@/components/layout/app-chrome";
 import { PageHeader } from "@/components/layout/page-header";
 import { ScanHistoryList } from "@/components/scans/scan-history-list";
+import { PrivacyControls } from "@/components/settings/privacy-controls";
 import { ScanPreferencesForm } from "@/components/settings/scan-preferences-form";
 import { TriagePreferencesForm } from "@/components/settings/triage-preferences-form";
 import { getGmailStatusForUser } from "@/lib/gmail/connections";
@@ -34,7 +35,7 @@ export default async function SettingsPage({
     <AppChrome user={user} current="settings" width="narrow">
       <PageHeader
         title="Settings"
-        description="Connect Gmail, set the daily scan time, and tune who MailPilot treats as VIP, ignore, or digest-worthy."
+        description="Connect Gmail, set the daily scan time, tune triage, and delete analysis data or your account."
       />
       <GmailConnectionCard status={gmailStatus} gmailFlash={params.gmail} reason={params.reason} />
       <ScanPreferencesForm dailyScanTime={preferences.dailyScanTime} timezone={preferences.timezone} />
@@ -45,6 +46,7 @@ export default async function SettingsPage({
         customAiInstructions={preferences.customAiInstructions}
         digestEnabled={preferences.digestEnabled}
       />
+      <PrivacyControls />
       <ScanHistoryList
         scans={scans.map((scan) => ({
           id: String(scan.id),

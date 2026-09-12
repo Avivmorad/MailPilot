@@ -44,6 +44,7 @@ export function InitialScanCard({
   nextScanAt,
   lastRunStatus,
   messagesProcessed,
+  completeHref = "/dashboard?scan=done",
 }: {
   connected: boolean;
   incremental: boolean;
@@ -52,6 +53,7 @@ export function InitialScanCard({
   nextScanAt?: string | null;
   lastRunStatus?: string | null;
   messagesProcessed?: number | null;
+  completeHref?: string;
 }) {
   const router = useRouter();
   const resumeId = latestScan?.status === "RUNNING" ? latestScan.id : null;
@@ -94,7 +96,7 @@ export function InitialScanCard({
         setMessage(scanUserMessage(scan.error_code, scan.error_message));
         return;
       }
-      router.push("/dashboard?scan=done");
+      router.push(completeHref);
       router.refresh();
     }
 
@@ -106,7 +108,7 @@ export function InitialScanCard({
       cancelled = true;
       clearInterval(timer);
     };
-  }, [busy, watchId, router]);
+  }, [busy, watchId, router, completeHref]);
 
   async function runScan() {
     setBusy(true);

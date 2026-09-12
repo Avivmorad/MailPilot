@@ -30,7 +30,14 @@ export default async function DigestsPage() {
     latestScan ? String(latestScan.id) : null,
     latestScan ? String(latestScan.status) : null,
   ).catch(() => null);
-  const digests = await listDigestsForUser(user.id, 20).catch(() => []);
+
+  let digests: Awaited<ReturnType<typeof listDigestsForUser>> = [];
+  let loadFailed = false;
+  try {
+    digests = await listDigestsForUser(user.id, 20);
+  } catch {
+    loadFailed = true;
+  }
   const needsGmailRecovery = shouldShowGmailRecoveryCard(gmailStatus);
 
   return (
@@ -39,7 +46,18 @@ export default async function DigestsPage() {
         title="Digests"
         description="In-app history of period counts and top open tasks after each successful scan. Email delivery is not in the MVP."
       />
-      {digests.length === 0 && needsGmailRecovery ? (
+      {loadFailed ? (
+        <EmptyState
+          variant="error"
+          title="Could not load digests"
+          description="A temporary database error prevented loading your digest history."
+          action={
+            <Link href="/digests" className={buttonVariants({ variant: "outline", size: "sm" })}>
+              Reload digests
+            </Link>
+          }
+        />
+      ) : digests.length === 0 && needsGmailRecovery ? (
         <EmptyState
           title="Connect Gmail to get digests"
           description="Digests appear after a successful or partial scan. Connect or reconnect Gmail first — existing summaries stay until you delete them."

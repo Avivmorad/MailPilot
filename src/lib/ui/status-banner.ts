@@ -47,8 +47,8 @@ export function appStatusBanner(input: {
         kind: "error",
         title: "Gmail quota paused this scan.",
         body: "Wait a minute and try a shorter lookback. Your existing summaries were kept.",
-        href: "/dashboard",
-        actionLabel: "Go to dashboard",
+        href: "/dashboard#scan",
+        actionLabel: "Try a shorter lookback",
       };
     }
     if (input.errorCode === "ai_unavailable") {
@@ -56,16 +56,16 @@ export function appStatusBanner(input: {
         kind: "error",
         title: "Email analysis is temporarily unavailable.",
         body: "Try again in a few minutes. Your existing summaries were kept.",
-        href: "/dashboard",
-        actionLabel: "Go to dashboard",
+        href: "/dashboard#scan",
+        actionLabel: "Try again",
       };
     }
     return {
       kind: "error",
       title: "The last scan failed.",
       body: "Try Scan now on the dashboard. Your existing summaries were kept.",
-      href: "/dashboard",
-      actionLabel: "Go to dashboard",
+      href: "/dashboard#scan",
+      actionLabel: "Scan again",
     };
   }
   if (input.scanStatus === "PARTIAL") {
@@ -73,6 +73,8 @@ export function appStatusBanner(input: {
       kind: "warning",
       title: "Most emails were processed, but a few could not be analyzed.",
       body: "The system will retry them.",
+      href: "/mail",
+      actionLabel: "View mail",
     };
   }
   if (input.scanStatus === "RUNNING" && !input.suppressRunning) {

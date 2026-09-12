@@ -36,6 +36,7 @@ yarn-error.log*
 .env*.local
 .env.development
 .env.production
+DELETE-AFTER-vercel-env.*
 # keep the template committed
 !.env.example
 

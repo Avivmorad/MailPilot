@@ -13,12 +13,15 @@ import {
 describe("formatDateTime", () => {
   it("formats UTC timestamps in Asia/Jerusalem", () => {
     expect(formatDateTime("2026-09-10T11:10:00.000Z")).toContain("14:10");
+    expect(formatDateTime("2026-09-10T11:10:00.000Z")).toContain("Sep");
+    expect(formatDateTime("2026-09-10T11:10:00.000Z")).not.toContain("Sept");
   });
 });
 
 describe("formatDate", () => {
   it("formats ISO calendar dates without the raw year-month-day string", () => {
     expect(formatDate("2026-09-12")).toBe("12 Sep");
+    expect(formatDate("2026-09-12")).not.toContain("Sept");
   });
 
   it("returns an em dash when missing", () => {

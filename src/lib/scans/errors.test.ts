@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   isMissingScanSchemaError,
+  SCAN_SCHEMA_MISSING_MESSAGE,
   scanStoreFailure,
 } from "@/lib/scans/errors";
 
@@ -24,5 +25,11 @@ describe("scanStoreFailure", () => {
     expect(scanStoreFailure("Failed to load running scan", "relation scan_runs does not exist").message).toContain(
       "scan_runs",
     );
+  });
+});
+
+describe("SCAN_SCHEMA_MISSING_MESSAGE", () => {
+  it("points operators at the full migration series", () => {
+    expect(SCAN_SCHEMA_MISSING_MESSAGE).toContain("0009_function_hardening.sql");
   });
 });

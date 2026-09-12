@@ -313,6 +313,38 @@ describe("processInitialScan", () => {
     expect([...store.threads.values()][0]?.analysis).toBeNull();
   });
 
+  it("does not advance gmail historyId when a scan is only partial", async () => {
+    const store = createMemoryStore();
+    store.connection.historyId = "hist-prior";
+    store.connection.lastSuccessfulScanAt = "2026-09-10T08:00:00.000Z";
+    const message = parsedMessage();
+    const getProfileHistoryId = vi.fn(async () => "hist-should-not-persist");
+
+    const result = await runScan({
+      store,
+      gmail: {
+        listMessageRefs: async () => {
+          throw new Error("window listing should not run in incremental mode");
+        },
+        listHistoryChanges: async () => ({
+          ok: true,
+          refs: [{ id: message.gmailMessageId, threadId: message.gmailThreadId }],
+          latestHistoryId: "hist-should-not-persist",
+        }),
+        fetchThread: async () => [message],
+        getProfileHistoryId,
+        loadLabelMap: async () => LABEL_MAP,
+        modifyThreadLabels: async () => undefined,
+      },
+      analyze: async () => ({ ok: false, error: new Error("gemini down") }),
+    });
+
+    expect(result.status).toBe("PARTIAL");
+    expect(getProfileHistoryId).not.toHaveBeenCalled();
+    expect(store.connection.historyId).toBe("hist-prior");
+    expect(store.connection.lastSuccessfulScanAt).toBe("2026-09-10T08:00:00.000Z");
+  });
+
   it("does not overwrite last_successful_scan_at when a new scan fails outright", async () => {
     const store = createMemoryStore();
     const message = parsedMessage();

@@ -124,7 +124,7 @@ export interface ScanStorePort {
   upsertAction(userId: string, threadId: string, action: ActionRecord): Promise<void>;
   updateConnectionScan(input: {
     connectionId: string;
-    historyId: string | null;
+    historyId?: string | null;
     lastSuccessfulScanAt?: string | null;
     lastAttemptedScanAt: string;
     nextScanAt: string | null;

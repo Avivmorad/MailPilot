@@ -171,7 +171,10 @@ code they cover as `*.test.ts(x)`. Phase 4 eval fixtures live in `tests/fixtures
 A single global dispatcher (`GET`/`POST` `/api/cron/scan-dispatcher`) selects due Gmail
 connections (`next_scan_at <= now()`), claims them with a job lease, and runs incremental
 scans. It is protected by `CRON_SECRET` (`Authorization: Bearer …` or `x-cron-secret`) and
-must never be publicly executable.
+must never be publicly executable. A request without that header returns `401 unauthorized`;
+that is expected when probing the URL in a browser. Vercel Cron injects
+`Authorization: Bearer $CRON_SECRET` automatically. To trigger the job on a deployment, use
+`vercel crons run /api/cron/scan-dispatcher` (do not paste the secret into chat or logs).
 
 `vercel.json` schedules `0 6 * * *` (06:00 UTC once per day). That is Hobby-safe (Vercel
 Hobby allows one cron). Combined with each user's `next_scan_at` (default 08:00
@@ -202,10 +205,20 @@ or an external scheduler that calls the dispatcher endpoint securely.
 
 ## OAuth production considerations
 
-`gmail.modify` is a sensitive/restricted Gmail scope. Before a public launch you must complete
-Google's OAuth verification, publish a privacy policy (and terms if required), clearly explain
-Gmail data use, request the minimum scope, and review Google's restricted-scope/security-assessment
-requirements for your deployment. See spec §38.
+`gmail.modify` is a restricted Gmail scope. Test users can connect before verification.
+A public launch still needs Google’s process, not a code change:
+
+1. OAuth consent screen: homepage, `/privacy`, and `/terms`, plus authorized domains that match
+   `NEXT_PUBLIC_APP_URL`.
+2. Keep requesting only `https://www.googleapis.com/auth/gmail.modify`.
+3. Follow [Limited Use](https://developers.google.com/terms/api-services-user-data-policy#additional_requirements_for_specific_api_scopes)
+   (no ads, no selling Gmail data, prominent user-facing features only). The in-app text is `/privacy`.
+4. Complete [restricted-scope verification](https://developers.google.com/identity/protocols/oauth2/production-readiness/restricted-scope-verification).
+   Because MailPilot stores and transmits Gmail data on servers, Google can require an annual
+   [CASA](https://support.google.com/cloud/answer/13465431) security assessment.
+5. See spec §38.
+
+This is owner work in Google Cloud. Shipping `/privacy` and `/terms` does not replace verification.
 
 ## Troubleshooting
 

@@ -111,6 +111,31 @@ describe("postProcessThreadAnalysis", () => {
     expect(vipHigh.importance).toBe("high");
   });
 
+  it("ignores matching sender domains unless the mail is a security action", () => {
+    const ignored = postProcessThreadAnalysis(analysis({ importance: "medium", category: "other" }), {
+      latestFrom: "promo@news.example.com",
+      preferences: { ignoreDomains: ["example.com"] },
+    });
+    expect(ignored.status).toBe("ignore");
+
+    const security = postProcessThreadAnalysis(
+      analysis({
+        category: "security",
+        importance: "high",
+        status: "action_required",
+        requires_action: true,
+        action_type: "review",
+        action_summary: "Review the new device login",
+      }),
+      {
+        latestFrom: "alerts@example.com",
+        latestSubject: "Google security alert: new device login",
+        preferences: { ignoreDomains: ["example.com"] },
+      },
+    );
+    expect(security.status).toBe("action_required");
+  });
+
   it("does not ignore a critical account message", () => {
     const processed = postProcessThreadAnalysis(
       analysis({

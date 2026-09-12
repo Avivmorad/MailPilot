@@ -20,6 +20,8 @@ export interface TriagePreferences {
   vipSenders: string[];
   vipAlwaysHigh: boolean;
   ignoreSenders: string[];
+  ignoreDomains: string[];
+  customInstructions: string;
 }
 
 const ACTION_SUMMARY_FALLBACK: Record<ActionType, string> = {
@@ -49,6 +51,21 @@ function nonEmpty(value: string | null | undefined): string | null {
 
 function isCriticalAccountMessage(analysis: ThreadAnalysis): boolean {
   return analysis.category === "security" && analysis.importance === "high";
+}
+
+function domainMatches(list: string[] | undefined, from: string | null): boolean {
+  if (!list || list.length === 0 || !from) {
+    return false;
+  }
+  const parsed = parseEmailAddress(from);
+  const host = parsed?.email.split("@")[1];
+  if (!host) {
+    return false;
+  }
+  return list.some((raw) => {
+    const domain = raw.replace(/^@/, "").toLowerCase();
+    return host === domain || host.endsWith(`.${domain}`);
+  });
 }
 
 function senderMatches(list: string[] | undefined, from: string | null): boolean {
@@ -184,7 +201,7 @@ export function postProcessThreadAnalysis(
   const from = options.latestFrom ?? null;
 
   if (
-    senderMatches(preferences?.ignoreSenders, from) &&
+    (senderMatches(preferences?.ignoreSenders, from) || domainMatches(preferences?.ignoreDomains, from)) &&
     !isCriticalAccountMessage(next) &&
     !isSecurityEventNotice(noticeParts)
   ) {

@@ -154,7 +154,7 @@ export function createSupabaseScanStore(): ScanStorePort {
           },
           { onConflict: "user_id" },
         )
-        .select("vip_senders, ignored_senders, timezone, daily_scan_time")
+        .select("vip_senders, ignored_senders, ignored_domains, custom_ai_instructions, timezone, daily_scan_time")
         .single();
       if (error || !data) {
         failStore("Failed to load triage settings", error);
@@ -162,6 +162,9 @@ export function createSupabaseScanStore(): ScanStorePort {
       const settings: ScanSettings = {
         vipSenders: asStringArray(data.vip_senders),
         ignoredSenders: asStringArray(data.ignored_senders),
+        ignoredDomains: asStringArray(data.ignored_domains),
+        customAiInstructions:
+          typeof data.custom_ai_instructions === "string" ? data.custom_ai_instructions : "",
         timezone: (data.timezone as string | null) || "Asia/Jerusalem",
         dailyScanTime: (data.daily_scan_time as string | null) ?? "08:00",
       };

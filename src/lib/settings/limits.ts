@@ -1,0 +1,2 @@
+export const CUSTOM_AI_INSTRUCTIONS_MAX = 4000;
+export const TRIAGE_LIST_MAX = 100;

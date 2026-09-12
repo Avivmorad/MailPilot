@@ -106,6 +106,8 @@ function createMemoryStore(): ScanStorePort & {
   const settings: ScanSettings = {
     vipSenders: [],
     ignoredSenders: [],
+    ignoredDomains: [],
+    customAiInstructions: "",
     timezone: "Asia/Jerusalem",
     dailyScanTime: "08:00",
   };

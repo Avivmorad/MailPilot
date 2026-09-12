@@ -53,6 +53,8 @@ export interface StoredThreadRow {
 export interface ScanSettings {
   vipSenders: string[];
   ignoredSenders: string[];
+  ignoredDomains: string[];
+  customAiInstructions: string;
   timezone: string;
   dailyScanTime: string | null;
 }

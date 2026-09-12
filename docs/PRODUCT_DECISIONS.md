@@ -19,7 +19,7 @@ must follow these.
 | Initial scan window  | Choose **1 / 2 / 3 / 4 days, 1 / 2 / 3 weeks, or 1 month** (default **7 days**) |
 | Subsequent scans     | Only changes since the last successful scan (incremental) |
 | Summary language     | **English**                                               |
-| Presentation         | Dashboard **and** an email digest                         |
+| Presentation         | Dashboard **and** an **in-app** digest (Phase 9); **email** digest delivery is a future extension (spec §72) |
 | Email body retention | Do **not** persist full email bodies long-term            |
 | Sending replies      | The system **never** sends replies on the user's behalf   |
 
@@ -58,8 +58,13 @@ Product-facing label names use the **`MailPilot/`** namespace instead of the spe
 
 Rules:
 
-- A single email/thread may carry **more than one** label
-  (e.g. `MailPilot/Important` + `MailPilot/Action Required` + `MailPilot/Processed`).
+- Every thread has **one canonical `status`** in the database (`action_required`, `waiting`,
+  `informational`, `resolved`, or `ignore`). Mail tabs, action workflow, and digests derive from
+  this single source of truth — a thread never has two competing statuses.
+- Gmail **`MailPilot/*` labels are presentation only**. A single thread may carry **more than
+  one** label at once (e.g. `MailPilot/Important` + `MailPilot/Action Required` +
+  `MailPilot/Processed`). This intentionally differs from the spec's mutually exclusive `AI/*`
+  state labels (§6).
 - The system **creates the labels if they are missing** on first connect, stores the
   `logical_name -> gmail_label_id` mapping (spec §6/§16.3), and never modifies user labels
   outside the `MailPilot/` namespace.

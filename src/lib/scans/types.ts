@@ -129,8 +129,9 @@ export interface ScanStorePort {
     historyId: string | null;
     lastSuccessfulScanAt?: string | null;
     lastAttemptedScanAt: string;
-    nextScanAt: string | null;
+    nextScanAt?: string | null;
   }): Promise<void>;
+  markConnectionReauthRequired(connectionId: string): Promise<void>;
 }
 
 export interface ScanRunResult {

@@ -8,8 +8,9 @@ import { classifyDirection, parseAddressList, parseEmailAddress } from "@/lib/gm
 import type { MailPilotLogicalLabel } from "@/lib/gmail/constants";
 import { labelDiff, logicalLabelsForAnalysis } from "@/lib/gmail/label-plan";
 import type { ParsedGmailMessage } from "@/lib/gmail/parser";
-import { GMAIL_QUOTA_USER_MESSAGE, isGmailQuotaError } from "@/lib/gmail/retry";
-import { SCAN_IN_PROGRESS } from "@/lib/scans/errors";
+import { GmailConnectError } from "@/lib/gmail/oauth";
+import { isGmailAuthError, isGmailQuotaError } from "@/lib/gmail/retry";
+import { isAiUnavailableError, SCAN_IN_PROGRESS, scanUserMessage } from "@/lib/scans/errors";
 import { buildThreadContext } from "@/lib/gmail/thread-context";
 import { messageContentHash } from "@/lib/scans/content-hash";
 import {
@@ -229,6 +230,11 @@ export async function openGmailScan(input: ProcessGmailScanInput): Promise<Prepa
     windowStart: plannedWindow.windowStart.toISOString(),
     windowEnd: plannedWindow.windowEnd.toISOString(),
   });
+  await input.store.updateConnectionScan({
+    connectionId: input.connectionId,
+    historyId: null,
+    lastAttemptedScanAt: now.toISOString(),
+  });
 
   const settings = await input.store.getSettings(input.userId);
   return {
@@ -444,7 +450,10 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
           const diff = labelDiff(currentIds, desiredIds);
           await gmail.modifyThreadLabels(gmailThreadId, diff.addLabelIds, diff.removeLabelIds);
         }
-      } catch {
+      } catch (error) {
+        if (isGmailAuthError(error) || (error instanceof GmailConnectError && error.reason === "reauth_required")) {
+          throw error;
+        }
         threadFailures += 1;
         failedGmailThreadIds.push(gmailThreadId);
       } finally {
@@ -489,12 +498,26 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
 
     return { scanId, status, counters, lookbackDays, mode: discovery.mode };
   } catch (error) {
+    const reauth =
+      isGmailAuthError(error) ||
+      (error instanceof GmailConnectError && error.reason === "reauth_required");
     const quota = isGmailQuotaError(error);
+    const aiDown = isAiUnavailableError(error);
+    const errorCode = reauth
+      ? "reauth_required"
+      : quota
+        ? "gmail_quota"
+        : aiDown
+          ? "ai_unavailable"
+          : "scan_failed";
+    if (reauth) {
+      await store.markConnectionReauthRequired(connectionId);
+    }
     await store.updateScanRun(scanId, {
       status: "FAILED",
       finishedAt: new Date().toISOString(),
-      errorCode: quota ? "gmail_quota" : "scan_failed",
-      errorMessage: quota ? GMAIL_QUOTA_USER_MESSAGE : error instanceof Error ? error.message : "scan_failed",
+      errorCode,
+      errorMessage: scanUserMessage(errorCode),
     });
     await store.updateConnectionScan({
       connectionId,

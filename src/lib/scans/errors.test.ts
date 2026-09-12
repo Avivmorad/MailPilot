@@ -4,6 +4,8 @@ import {
   isMissingScanSchemaError,
   isScanRunUniqueViolation,
   scanStoreFailure,
+  scanUserMessage,
+  SCAN_USER_MESSAGES,
 } from "@/lib/scans/errors";
 
 describe("isMissingScanSchemaError", () => {
@@ -33,5 +35,18 @@ describe("isScanRunUniqueViolation", () => {
     expect(isScanRunUniqueViolation({ code: "23505" })).toBe(true);
     expect(isScanRunUniqueViolation({ message: "duplicate key value violates unique constraint \"scan_runs_one_running_per_connection\"" })).toBe(true);
     expect(isScanRunUniqueViolation({ code: "42501", message: "permission denied" })).toBe(false);
+  });
+});
+
+describe("scanUserMessage", () => {
+  it("never returns raw provider or thread-id payloads", () => {
+    expect(scanUserMessage("reauth_required")).toBe(SCAN_USER_MESSAGES.reauth_required);
+    expect(scanUserMessage("gmail_quota")).toBe(SCAN_USER_MESSAGES.gmail_quota);
+    expect(scanUserMessage("scan_failed", "invalid_grant from googleapis.com")).toBe(
+      SCAN_USER_MESSAGES.scan_failed,
+    );
+    expect(scanUserMessage("partial_thread_failures", "thread_failures:1:t1")).toBe(
+      SCAN_USER_MESSAGES.partial_thread_failures,
+    );
   });
 });

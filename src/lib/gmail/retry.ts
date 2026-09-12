@@ -6,6 +6,15 @@ export const GMAIL_QUOTA_USER_MESSAGE =
 
 const DEFAULT_DELAYS_MS = [60_000, 60_000, 60_000];
 
+export function isGmailAuthError(error: unknown): boolean {
+  const status = httpStatus(error);
+  if (status === 401) {
+    return true;
+  }
+  const message = errorMessage(error);
+  return /invalid_grant|invalid credentials|token (has been )?revoked|unauthorized/i.test(message);
+}
+
 export function isGmailQuotaError(error: unknown): boolean {
   const status = httpStatus(error);
   if (status === 429) {
@@ -63,7 +72,7 @@ export async function withGmailRetry<T>(
       return await operation();
     } catch (error) {
       lastError = error;
-      if (!isGmailQuotaError(error) || attempt >= delays.length) {
+      if (isGmailAuthError(error) || !isGmailQuotaError(error) || attempt >= delays.length) {
         throw error;
       }
       quota.reset();

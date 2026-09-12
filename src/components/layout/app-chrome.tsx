@@ -25,6 +25,7 @@ export async function AppChrome({
   const banner = appStatusBanner({
     connectionStatus: gmailStatus.connection?.status ?? null,
     scanStatus: latestScan ? String(latestScan.status) : null,
+    errorCode: latestScan ? (latestScan.error_code as string | null) ?? null : null,
     suppressRunning: current === "dashboard",
   });
 

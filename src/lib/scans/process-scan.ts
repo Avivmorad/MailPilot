@@ -461,7 +461,6 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
 
     // Advance the History API cursor only after a fully successful scan. A PARTIAL
     // run must keep the previous historyId so failed threads are rediscovered.
-    const historyId = status === "SUCCESS" ? await gmail.getProfileHistoryId() : null;
     const nextScanAt = nextDailyScanAt(
       now,
       settings.dailyScanTime ?? "08:00",
@@ -469,8 +468,12 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
     );
     await store.updateConnectionScan({
       connectionId,
-      historyId,
-      lastSuccessfulScanAt: status === "SUCCESS" ? finishedAt : undefined,
+      ...(status === "SUCCESS"
+        ? {
+            historyId: await gmail.getProfileHistoryId(),
+            lastSuccessfulScanAt: finishedAt,
+          }
+        : {}),
       lastAttemptedScanAt: finishedAt,
       nextScanAt: nextScanAt.toISOString(),
     });

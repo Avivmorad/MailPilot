@@ -36,10 +36,13 @@ Built **phase by phase** (spec §63).
   History API with stale-history recovery.
 - **Phase 8 — Daily scheduled scan:** global cron dispatcher, job lease, bounded
   retry, scan preferences, and scan history. Default 08:00 Asia/Jerusalem.
-  Apply `0007_scan_scheduling.sql`.
+  Apply `0007_scan_scheduling.sql` and `0008_scan_admission.sql`.
 - **Phase 9 — Digest:** in-app digest after each successful/partial scan
   (period counts from the DB, unique top open tasks, history on `/digests`).
   Apply `0006_digest_reports.sql`. Email delivery is not in the MVP.
+- **Phase 10 — Hardening (in progress):** apply `0009_function_hardening.sql`
+  so signup triggers are not callable via the Data API. Next work is remaining
+  quality, recovery, and docs — not new product surface.
 
 Phase 2 requires Google OAuth credentials in `.env.local` and the `0002_gmail_connections.sql`
 migration applied to your Supabase project. Phase 5 also needs
@@ -71,11 +74,17 @@ The refresh token is encrypted (AES-256-GCM) and never sent to the browser.
 
 ## Migrations
 
-Apply SQL in the Supabase SQL Editor, in order:
+Apply SQL in the Supabase SQL Editor, **in this order** (all nine files):
 
-1. `supabase/migrations/0001_profiles.sql`
-2. `supabase/migrations/0002_gmail_connections.sql`
-3. `supabase/migrations/0003_initial_scan.sql`
+1. `supabase/migrations/0001_profiles.sql` — app profiles.
+2. `supabase/migrations/0002_gmail_connections.sql` — Gmail OAuth connections and labels.
+3. `supabase/migrations/0003_initial_scan.sql` — threads, messages (no bodies), actions, scan runs, triage settings.
+4. `supabase/migrations/0004_classification_feedback.sql` — thread classification feedback.
+5. `supabase/migrations/0005_scan_progress.sql` — live scan progress counters.
+6. `supabase/migrations/0006_digest_reports.sql` — in-app digest snapshots.
+7. `supabase/migrations/0007_scan_scheduling.sql` — leases, `scan_jobs`, dispatcher claim.
+8. `supabase/migrations/0008_scan_admission.sql` — unique RUNNING scan per Gmail connection.
+9. `supabase/migrations/0009_function_hardening.sql` — pin trigger `search_path` and revoke Data API execute on `handle_new_user`.
 
 ## Architecture
 
@@ -134,7 +143,7 @@ npm run build       # production build
 npm run start       # run the production build
 npm run lint        # ESLint
 npm run typecheck   # tsc --noEmit
-npm test            # Vitest (run once)
+npm test            # Vitest (run once; Windows uses scripts/run-vitest.mjs)
 npm run test:watch  # Vitest (watch mode)
 npm run format      # Prettier write
 ```

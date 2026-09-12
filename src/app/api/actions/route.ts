@@ -13,6 +13,10 @@ export async function GET(request: Request) {
   if (!isActionTab(status)) {
     return NextResponse.json({ error: "invalid_status" }, { status: 400 });
   }
-  const items = await listActionsForUser(user.id, status);
-  return NextResponse.json({ items });
+  try {
+    const items = await listActionsForUser(user.id, status);
+    return NextResponse.json({ items });
+  } catch {
+    return NextResponse.json({ error: "load_failed" }, { status: 500 });
+  }
 }

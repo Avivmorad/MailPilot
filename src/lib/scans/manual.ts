@@ -195,22 +195,16 @@ export async function getInboxCountsForUser(userId: string) {
     .from("email_threads")
     .select("importance, status, requires_action")
     .eq("user_id", userId);
-  if (error || !data) {
-    return {
-      processed: 0,
-      important: 0,
-      needAction: 0,
-      waiting: 0,
-      ignored: 0,
-      fyi: 0,
-    };
+  if (error) {
+    throw new Error("Failed to load inbox counts");
   }
+  const rows = data ?? [];
   return {
-    processed: data.length,
-    important: data.filter((row) => row.importance === "high").length,
-    needAction: data.filter((row) => row.requires_action === true).length,
-    waiting: data.filter((row) => row.status === "waiting").length,
-    ignored: data.filter((row) => row.status === "ignore").length,
-    fyi: data.filter((row) => row.status === "informational" || row.status === "resolved").length,
+    processed: rows.length,
+    important: rows.filter((row) => row.importance === "high").length,
+    needAction: rows.filter((row) => row.requires_action === true).length,
+    waiting: rows.filter((row) => row.status === "waiting").length,
+    ignored: rows.filter((row) => row.status === "ignore").length,
+    fyi: rows.filter((row) => row.status === "informational" || row.status === "resolved").length,
   };
 }

@@ -11,7 +11,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { InitialScanCard } from "@/components/scans/initial-scan-card";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { listActionsForUser } from "@/lib/actions/queries";
+import { listActionsForUser, type ActionListItem } from "@/lib/actions/queries";
 import { getDashboardChangesForUser } from "@/lib/dashboard/queries";
 import { ensureDigestForLatestScan } from "@/lib/digest/build-digest";
 import { getGmailStatusForUser } from "@/lib/gmail/connections";
@@ -125,16 +125,28 @@ export default async function DashboardPage({
   const emptyCounts = { processed: 0, important: 0, needAction: 0, waiting: 0, ignored: 0, fyi: 0 };
   const latestScan = connected ? await getLatestScanRunForUser(user.id) : null;
   const since = gmailStatus.connection?.lastSuccessfulScanAt ?? null;
+  let actionsLoadError = false;
+  let countsLoadError = false;
+
   const [counts, openActions, latestDigest, dashboardChanges] = connected
     ? await Promise.all([
-        getInboxCountsForUser(user.id),
-        listActionsForUser(user.id, "OPEN"),
+        getInboxCountsForUser(user.id).catch(() => {
+          countsLoadError = true;
+          return emptyCounts;
+        }),
+        listActionsForUser(user.id, "OPEN").catch(() => {
+          actionsLoadError = true;
+          return [] as ActionListItem[];
+        }),
         ensureDigestForLatestScan(
           user.id,
           latestScan ? String(latestScan.id) : null,
           latestScan ? String(latestScan.status) : null,
         ).catch(() => null),
-        getDashboardChangesForUser(user.id, since),
+        getDashboardChangesForUser(user.id, since).catch(() => ({
+          summary: { since: null, newOpen: 0, completed: 0, reopened: 0, staleWaiting: 0, overdueOpen: 0 },
+          line: null,
+        })),
       ])
     : [
         emptyCounts,
@@ -151,16 +163,19 @@ export default async function DashboardPage({
   const changeLine = dashboardChanges.line;
   const overdueOpen = dashboardChanges.summary.overdueOpen;
 
-  const step = nextStep({
-    connected,
-    openCount,
-    processed: counts.processed,
-    scanRunning: latestStatus === "RUNNING",
-  });
+  const step =
+    countsLoadError
+      ? null
+      : nextStep({
+          connected,
+          openCount,
+          processed: counts.processed,
+          scanRunning: latestStatus === "RUNNING",
+        });
   const stats = [
-    { label: "Open tasks", value: connected ? String(openCount) : "—", href: "/mail?tab=open", icon: ListChecks, hero: true },
-    { label: "Waiting", value: connected ? String(counts.waiting) : "—", href: "/mail?tab=waiting", icon: Clock3, hero: false },
-    { label: "FYI", value: connected ? String(counts.fyi) : "—", href: "/mail?tab=summary", icon: Inbox, hero: false },
+    { label: "Open tasks", value: connected && !actionsLoadError ? String(openCount) : "—", href: "/mail?tab=open", icon: ListChecks, hero: true },
+    { label: "Waiting", value: connected && !countsLoadError ? String(counts.waiting) : "—", href: "/mail?tab=waiting", icon: Clock3, hero: false },
+    { label: "FYI", value: connected && !countsLoadError ? String(counts.fyi) : "—", href: "/mail?tab=summary", icon: Inbox, hero: false },
   ];
 
   return (
@@ -225,7 +240,18 @@ export default async function DashboardPage({
             </Link>
           ) : null}
         </div>
-        {attentionItems.length > 0 ? (
+        {actionsLoadError ? (
+          <EmptyState
+            variant="error"
+            title="Could not load open tasks"
+            description="We had trouble reaching the database. Reload to try again. Your mailbox data is safe."
+            action={
+              <Link href="/dashboard" className={buttonVariants({ size: "sm", variant: "outline" })}>
+                Reload
+              </Link>
+            }
+          />
+        ) : attentionItems.length > 0 ? (
           <div className="space-y-3">
             {attentionItems.map((item) => (
               <ActionItemCard key={item.id} item={item} />

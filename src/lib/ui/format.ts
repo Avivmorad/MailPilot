@@ -16,6 +16,11 @@ function parseInstant(iso: string): Date | null {
   return Number.isFinite(date.getTime()) ? date : null;
 }
 
+/** ICU en-GB can emit "Sept"; keep a stable 3-letter month for UI and tests. */
+function normalizeShortMonth(formatted: string): string {
+  return formatted.replace(/\bSept\b/g, "Sep");
+}
+
 export function formatDateTime(iso: string | null | undefined): string {
   if (!iso) {
     return "—";
@@ -24,14 +29,16 @@ export function formatDateTime(iso: string | null | undefined): string {
   if (!date) {
     return "—";
   }
-  return new Intl.DateTimeFormat("en-GB", {
-    timeZone: DISPLAY_TZ,
-    day: "numeric",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-    hourCycle: "h23",
-  }).format(date);
+  return normalizeShortMonth(
+    new Intl.DateTimeFormat("en-GB", {
+      timeZone: DISPLAY_TZ,
+      day: "numeric",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+    }).format(date),
+  );
 }
 
 export function formatDate(isoDate: string | null | undefined): string {
@@ -43,11 +50,13 @@ export function formatDate(isoDate: string | null | undefined): string {
   if (!date) {
     return "—";
   }
-  return new Intl.DateTimeFormat("en-GB", {
-    timeZone: dateOnly ? "UTC" : DISPLAY_TZ,
-    day: "numeric",
-    month: "short",
-  }).format(date);
+  return normalizeShortMonth(
+    new Intl.DateTimeFormat("en-GB", {
+      timeZone: dateOnly ? "UTC" : DISPLAY_TZ,
+      day: "numeric",
+      month: "short",
+    }).format(date),
+  );
 }
 
 export function formatRelativeTime(

@@ -36,6 +36,12 @@ import {
 } from "@/lib/scans/types";
 
 const STALE_RUNNING_MS = 20 * 60 * 1000;
+const MAX_RECORDED_FAILED_THREADS = 50;
+
+function failedThreadsErrorMessage(gmailThreadIds: string[]): string {
+  const unique = [...new Set(gmailThreadIds)].slice(0, MAX_RECORDED_FAILED_THREADS);
+  return `thread_failures:${gmailThreadIds.length}:${unique.join(",")}`;
+}
 
 function receivedAtIso(internalDate: string | null): string {
   const millis = Number(internalDate);
@@ -268,6 +274,7 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
   } = prepared;
 
   try {
+    const historyBoundary = await gmail.getProfileHistoryId();
     const discovery = await discoverChangedMessages({
       gmail,
       lookbackDays,
@@ -278,6 +285,7 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
     const refs = discovery.refs;
     const threadIds = uniqueThreadIds(refs);
     const analyses: ThreadAnalysis[] = [];
+    const failedGmailThreadIds: string[] = [];
     let threadsAnalyzed = 0;
     let threadsChecked = 0;
     let threadFailures = 0;
@@ -341,6 +349,7 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
           );
           if (!outcome.ok) {
             threadFailures += 1;
+            failedGmailThreadIds.push(gmailThreadId);
             const threadId = await store.upsertThread({
               userId,
               connectionId,
@@ -434,6 +443,7 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
         }
       } catch {
         threadFailures += 1;
+        failedGmailThreadIds.push(gmailThreadId);
       } finally {
         threadsChecked += 1;
         persistProgress();
@@ -457,9 +467,10 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
       finishedAt,
       threadsDiscovered: threadIds.length,
       threadsChecked,
+      errorCode: status === "PARTIAL" ? "partial_thread_failures" : null,
+      errorMessage: status === "PARTIAL" ? failedThreadsErrorMessage(failedGmailThreadIds) : null,
     });
 
-    const historyId = await gmail.getProfileHistoryId();
     const nextScanAt = nextDailyScanAt(
       now,
       settings.dailyScanTime ?? "08:00",
@@ -467,8 +478,8 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
     );
     await store.updateConnectionScan({
       connectionId,
-      historyId,
-      lastSuccessfulScanAt: finishedAt,
+      historyId: status === "SUCCESS" ? historyBoundary : null,
+      lastSuccessfulScanAt: status === "SUCCESS" ? finishedAt : undefined,
       lastAttemptedScanAt: finishedAt,
       nextScanAt: nextScanAt.toISOString(),
     });

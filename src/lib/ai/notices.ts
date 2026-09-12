@@ -106,7 +106,7 @@ const DOCUMENT_SHARE_FYI = [
 const APPLICATION_FOLLOW_UP = [
   /interview (invitation|availability|schedule|scheduling)/,
   /schedule (an |your )?interview/,
-  /(complete|take|start) (the |your )?(assessment|coding (test|challenge)|homework)/,
+  /(complete|take|start) (the |your )?([\w.-]+ )?(assessment|coding (test|challenge)|homework)/,
   /assessment (is )?(ready|required|due|waiting)/,
   /missing (documents?|information|paperwork)/,
   /please (upload|send|attach|provide) .{0,40}(resume|cv|documents?|diploma|transcript)/,
@@ -237,7 +237,7 @@ const MARKETING_OR_JOB = [
 ];
 
 const RECEIPT_OR_ROUTINE = [
-  /payment (received|successful|posted|confirmed)/,
+  /payment (was )?(received|successful|posted|confirmed)/,
   /order confirmation/,
   /thanks for your (order|purchase|payment)/,
   /refund (issued|processed)/,
@@ -400,7 +400,7 @@ export function isLoginFyiNotice(parts: Array<string | null | undefined>): boole
 }
 
 const PAID_RECEIPT = [
-  /payment (received|successful|posted|confirmed)/,
+  /payment (was )?(received|successful|posted|confirmed)/,
   /order confirmation/,
   /thanks for your (order|purchase|payment)/,
   /refund (issued|processed)/,

@@ -74,7 +74,12 @@ function createMemoryStore(): ScanStorePort & {
     lastAttemptedScanAt: string | null;
     historyId: string | null;
   };
-  scanRuns: Array<{ id: string; status: string }>;
+  scanRuns: Array<{
+    id: string;
+    status: string;
+    errorCode?: string | null;
+    errorMessage?: string | null;
+  }>;
   progressChecks: number[];
 } {
   const threads = new Map<string, StoredThreadRow & { gmailThreadId: string; subject: string | null }>();
@@ -86,6 +91,8 @@ function createMemoryStore(): ScanStorePort & {
     startedAt: string;
     threadsDiscovered?: number;
     threadsChecked?: number;
+    errorCode?: string | null;
+    errorMessage?: string | null;
   }> = [];
   const progressChecks: number[] = [];
   const connection = {
@@ -105,7 +112,12 @@ function createMemoryStore(): ScanStorePort & {
     messages: typeof messages;
     actions: typeof actions;
     connection: typeof connection;
-    scanRuns: Array<{ id: string; status: string }>;
+    scanRuns: Array<{
+      id: string;
+      status: string;
+      errorCode?: string | null;
+      errorMessage?: string | null;
+    }>;
     progressChecks: number[];
   } = {
     threads,
@@ -139,6 +151,12 @@ function createMemoryStore(): ScanStorePort & {
         if (patch.threadsChecked !== undefined) {
           run.threadsChecked = patch.threadsChecked;
           progressChecks.push(patch.threadsChecked);
+        }
+        if (patch.errorCode !== undefined) {
+          run.errorCode = patch.errorCode;
+        }
+        if (patch.errorMessage !== undefined) {
+          run.errorMessage = patch.errorMessage;
         }
       }
     },
@@ -311,6 +329,75 @@ describe("processInitialScan", () => {
     expect(modifyThreadLabels).not.toHaveBeenCalled();
     expect(store.actions.size).toBe(0);
     expect([...store.threads.values()][0]?.analysis).toBeNull();
+    expect(store.connection.historyId).toBeNull();
+    expect(store.connection.lastSuccessfulScanAt).toBeNull();
+    expect(store.scanRuns.at(-1)?.errorCode).toBe("partial_thread_failures");
+    expect(store.scanRuns.at(-1)?.errorMessage).toBe("thread_failures:1:t1");
+  });
+
+  it("does not advance the Gmail history checkpoint after a partial incremental scan", async () => {
+    const store = createMemoryStore();
+    store.connection.historyId = "hist-1";
+    store.connection.lastSuccessfulScanAt = "2026-09-10T08:00:00.000Z";
+    const failed = parsedMessage({ gmailMessageId: "m-fail", gmailThreadId: "t-fail" });
+    let profileReads = 0;
+    const gmail: ScanGmailPort = {
+      listMessageRefs: async () => {
+        throw new Error("incremental scan must not list the lookback window");
+      },
+      listHistoryChanges: async (startHistoryId) => {
+        expect(startHistoryId).toBe("hist-1");
+        return { ok: true, refs: [{ id: failed.gmailMessageId, threadId: failed.gmailThreadId }], latestHistoryId: "hist-9" };
+      },
+      fetchThread: async () => [failed],
+      getProfileHistoryId: async () => {
+        profileReads += 1;
+        return profileReads === 1 ? "hist-boundary" : "hist-should-not-persist";
+      },
+      loadLabelMap: async () => LABEL_MAP,
+      modifyThreadLabels: async () => undefined,
+    };
+
+    const result = await runScan({
+      store,
+      gmail,
+      analyze: async () => ({ ok: false, error: new Error("gemini down") }),
+    });
+
+    expect(result.status).toBe("PARTIAL");
+    expect(result.mode).toBe("INCREMENTAL");
+    expect(store.connection.historyId).toBe("hist-1");
+    expect(store.connection.lastSuccessfulScanAt).toBe("2026-09-10T08:00:00.000Z");
+    expect(store.connection.lastAttemptedScanAt).toBeTruthy();
+  });
+
+  it("persists the history boundary captured before processing, not a later profile id", async () => {
+    const store = createMemoryStore();
+    const message = parsedMessage();
+    let profileReads = 0;
+    const gmail: ScanGmailPort = {
+      listMessageRefs: async () => [{ id: message.gmailMessageId, threadId: message.gmailThreadId }],
+      listHistoryChanges: async () => {
+        throw new Error("history should not run on the initial scan");
+      },
+      fetchThread: async () => [message],
+      getProfileHistoryId: async () => {
+        profileReads += 1;
+        return profileReads === 1 ? "hist-before" : "hist-after";
+      },
+      loadLabelMap: async () => LABEL_MAP,
+      modifyThreadLabels: async () => undefined,
+    };
+
+    const result = await runScan({
+      store,
+      gmail,
+      analyze: async () => ({ ok: true as const, analysis: validAnalysis() }),
+    });
+
+    expect(result.status).toBe("SUCCESS");
+    expect(store.connection.historyId).toBe("hist-before");
+    expect(profileReads).toBe(1);
   });
 
   it("does not overwrite last_successful_scan_at when a new scan fails outright", async () => {

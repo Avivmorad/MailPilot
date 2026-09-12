@@ -86,7 +86,10 @@ export async function loadLabelIdMap(
   const map = new Map<MailPilotLogicalLabel, string>();
   for (const row of data ?? []) {
     const logical = row.logical_name as MailPilotLogicalLabel;
-    if (MAILPILOT_LABELS.some((spec) => spec.logicalName === logical) && typeof row.gmail_label_id === "string") {
+    if (
+      MAILPILOT_LABELS.some((spec) => spec.logicalName === logical) &&
+      typeof row.gmail_label_id === "string"
+    ) {
       map.set(logical, row.gmail_label_id);
     }
   }

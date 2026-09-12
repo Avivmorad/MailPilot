@@ -64,10 +64,15 @@ function decodeHtmlEntities(value: string): string {
     .replace(/&quot;/gi, '"')
     .replace(/&#39;/gi, "'")
     .replace(/&#(\d+);/g, (_, digits: string) => String.fromCharCode(Number(digits)))
-    .replace(/&#x([0-9a-f]+);/gi, (_, hex: string) => String.fromCharCode(Number.parseInt(hex, 16)));
+    .replace(/&#x([0-9a-f]+);/gi, (_, hex: string) =>
+      String.fromCharCode(Number.parseInt(hex, 16)),
+    );
 }
 
-function headerValue(headers: gmail_v1.Schema$MessagePartHeader[] | undefined, name: string): string | null {
+function headerValue(
+  headers: gmail_v1.Schema$MessagePartHeader[] | undefined,
+  name: string,
+): string | null {
   const match = headers?.find((header) => header.name?.toLowerCase() === name.toLowerCase());
   const value = match?.value?.trim();
   return value ? value : null;
@@ -137,7 +142,11 @@ function walkParts(
 export function parseGmailMessage(message: gmail_v1.Schema$Message): ParsedGmailMessage {
   const payload = message.payload;
   const headers = payload?.headers;
-  const acc = { plains: [] as string[], htmls: [] as string[], attachments: [] as AttachmentMetadata[] };
+  const acc = {
+    plains: [] as string[],
+    htmls: [] as string[],
+    attachments: [] as AttachmentMetadata[],
+  };
   walkParts(payload, acc);
 
   let plainText = acc.plains.map(normalizeWhitespace).filter(Boolean).join("\n\n");

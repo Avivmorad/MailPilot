@@ -16,7 +16,9 @@ describe("gmailThreadUrl", () => {
 
 describe("gmailSearchFallbackUrl", () => {
   it("builds a subject search link", () => {
-    expect(gmailSearchFallbackUrl("user@example.com", "Invoice")).toContain("authuser=user%40example.com");
+    expect(gmailSearchFallbackUrl("user@example.com", "Invoice")).toContain(
+      "authuser=user%40example.com",
+    );
     expect(gmailSearchFallbackUrl("user@example.com", "Invoice")).toContain("q=subject%3AInvoice");
   });
 });

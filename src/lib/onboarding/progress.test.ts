@@ -16,9 +16,9 @@ describe("resolveOnboardingStep", () => {
   });
 
   it("asks connected users without a completed scan to configure and scan", () => {
-    expect(
-      resolveOnboardingStep({ connectionStatus: "CONNECTED", latestScanStatus: null }),
-    ).toBe("configure_and_scan");
+    expect(resolveOnboardingStep({ connectionStatus: "CONNECTED", latestScanStatus: null })).toBe(
+      "configure_and_scan",
+    );
     expect(
       resolveOnboardingStep({ connectionStatus: "CONNECTED", latestScanStatus: "RUNNING" }),
     ).toBe("configure_and_scan");

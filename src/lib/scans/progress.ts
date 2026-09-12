@@ -31,7 +31,10 @@ export function scanProgressView(input: ScanProgressInput): {
     }
     return {
       percent: 0,
-      label: status === "RUNNING" ? "Discovering conversations in Gmail…" : "Finding conversations in Gmail…",
+      label:
+        status === "RUNNING"
+          ? "Discovering conversations in Gmail…"
+          : "Finding conversations in Gmail…",
       indeterminate: true,
     };
   }

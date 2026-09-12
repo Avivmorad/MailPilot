@@ -19,7 +19,9 @@ describe("listHistoryChanges", () => {
                   nextPageToken: "p2",
                   history: [
                     {
-                      messagesAdded: [{ message: { id: "m1", threadId: "t1", labelIds: ["INBOX"] } }],
+                      messagesAdded: [
+                        { message: { id: "m1", threadId: "t1", labelIds: ["INBOX"] } },
+                      ],
                     },
                   ],
                 },

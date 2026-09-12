@@ -45,9 +45,13 @@ export function CollapsibleBlock({
               aria-hidden
             />
             <span className="text-foreground text-lg font-bold tracking-tight">{title}</span>
-            <span className="text-muted-foreground text-xs font-normal">{open ? "Hide" : "Show"}</span>
+            <span className="text-muted-foreground text-xs font-normal">
+              {open ? "Hide" : "Show"}
+            </span>
           </span>
-          {description ? <p className="text-muted-foreground mt-0.5 ps-6 text-sm">{description}</p> : null}
+          {description ? (
+            <p className="text-muted-foreground mt-0.5 ps-6 text-sm">{description}</p>
+          ) : null}
         </button>
         {action}
       </div>

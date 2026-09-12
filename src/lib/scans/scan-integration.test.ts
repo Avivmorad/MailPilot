@@ -7,9 +7,20 @@ import type { MailPilotLogicalLabel } from "@/lib/gmail/constants";
 import { MAILPILOT_LABELS } from "@/lib/gmail/constants";
 import type { ParsedGmailMessage } from "@/lib/gmail/parser";
 import { uniqueTopActions } from "@/lib/digest/build-digest";
+import {
+  deleteAnalysisDataForUser,
+  type AnalysisDeletionPort,
+  type UserScopedTable,
+} from "@/lib/privacy/deletion";
+import { SCAN_IN_PROGRESS } from "@/lib/scans/errors";
 import { processInitialScan } from "@/lib/scans/process-scan";
 import { parseThreadFailureIds } from "@/lib/scans/thread-failures";
-import type { ScanGmailPort, ScanSettings, ScanStorePort, StoredThreadRow } from "@/lib/scans/types";
+import type {
+  ScanGmailPort,
+  ScanSettings,
+  ScanStorePort,
+  StoredThreadRow,
+} from "@/lib/scans/types";
 
 function analysis(overrides: Partial<ThreadAnalysis> = {}): ThreadAnalysis {
   return threadAnalysisSchema.parse({
@@ -59,12 +70,24 @@ function message(overrides: Partial<ParsedGmailMessage> = {}): ParsedGmailMessag
   };
 }
 
-function createMemoryStore(userId: string, connectionId: string): ScanStorePort & {
+function createMemoryStore(
+  userId: string,
+  connectionId: string,
+): ScanStorePort & {
   userId: string;
   connectionId: string;
   threads: Map<string, StoredThreadRow>;
   messages: Map<string, string>;
   actions: Map<string, ActionRecord>;
+  connection: { historyId: string | null; status: string; lastSuccessfulScanAt: string | null };
+  scanRuns: Array<{
+    id: string;
+    status: string;
+    startedAt: string;
+    connectionId: string;
+    errorCode?: string | null;
+    errorMessage?: string | null;
+  }>;
 } {
   const threads = new Map<string, StoredThreadRow>();
   const messages = new Map<string, string>();
@@ -97,18 +120,24 @@ function createMemoryStore(userId: string, connectionId: string): ScanStorePort 
     threads,
     messages,
     actions,
+    connection,
+    scanRuns,
     async findRunningScan(id) {
       const running = scanRuns.find((run) => run.status === "RUNNING" && run.connectionId === id);
       return running ? { id: running.id, startedAt: running.startedAt } : null;
     },
-    async failScan(scanId) {
+    async failScan(scanId, errorCode, errorMessage) {
       const run = scanRuns.find((item) => item.id === scanId);
       if (run) {
         run.status = "FAILED";
+        run.errorCode = errorCode;
+        run.errorMessage = errorMessage;
       }
     },
     async insertScanRun(input) {
-      if (scanRuns.some((run) => run.status === "RUNNING" && run.connectionId === input.connectionId)) {
+      if (
+        scanRuns.some((run) => run.status === "RUNNING" && run.connectionId === input.connectionId)
+      ) {
         throw new Error("SCAN_IN_PROGRESS");
       }
       const id = crypto.randomUUID();
@@ -124,6 +153,9 @@ function createMemoryStore(userId: string, connectionId: string): ScanStorePort 
       const run = scanRuns.find((item) => item.id === scanId);
       if (run) {
         run.status = patch.status;
+        if (patch.errorCode !== undefined) {
+          run.errorCode = patch.errorCode;
+        }
         if (patch.errorMessage !== undefined) {
           run.errorMessage = patch.errorMessage;
         }
@@ -174,7 +206,9 @@ function createMemoryStore(userId: string, connectionId: string): ScanStorePort 
     async listPendingFailedThreadIds(id, excludeScanId) {
       const latest = [...scanRuns]
         .reverse()
-        .find((run) => run.id !== excludeScanId && run.status === "PARTIAL" && run.connectionId === id);
+        .find(
+          (run) => run.id !== excludeScanId && run.status === "PARTIAL" && run.connectionId === id,
+        );
       return parseThreadFailureIds(latest?.errorMessage);
     },
     async markConnectionReauthRequired() {
@@ -329,8 +363,20 @@ describe("scan integration", () => {
     expect(digests.size).toBe(1);
     expect(
       uniqueTopActions([
-        { threadId: [...store.threads.values()][0]!.id, title: "השב", urgency: "soon", deadline: null, category: "other" },
-        { threadId: [...store.threads.values()][0]!.id, title: "השב שוב", urgency: "soon", deadline: null, category: "other" },
+        {
+          threadId: [...store.threads.values()][0]!.id,
+          title: "השב",
+          urgency: "soon",
+          deadline: null,
+          category: "other",
+        },
+        {
+          threadId: [...store.threads.values()][0]!.id,
+          title: "השב שוב",
+          urgency: "soon",
+          deadline: null,
+          category: "other",
+        },
       ]),
     ).toHaveLength(1);
   });

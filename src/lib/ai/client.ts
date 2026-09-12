@@ -2,7 +2,11 @@ import { GoogleGenAI } from "@google/genai";
 
 import { ThreadTriageError, type EmailTriageProvider } from "@/lib/ai/analyze-thread";
 import { buildTriageUserPrompt, TRIAGE_SYSTEM_PROMPT } from "@/lib/ai/prompts";
-import { threadAnalysisJsonSchema, threadAnalysisSchema, type ThreadAnalysis } from "@/lib/ai/schemas";
+import {
+  threadAnalysisJsonSchema,
+  threadAnalysisSchema,
+  type ThreadAnalysis,
+} from "@/lib/ai/schemas";
 import type { ThreadAnalysisInput } from "@/lib/ai/types";
 import { getGeminiEnv, type GeminiEnv } from "@/lib/config/env";
 

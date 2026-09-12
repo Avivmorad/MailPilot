@@ -98,7 +98,10 @@ export function mapRecentThreadRow(row: ThreadListDbRow): RecentThreadRow {
 const THREAD_LIST_SELECT =
   "id, short_display_title, summary, status, importance, category, latest_message_at";
 
-export async function listRecentThreadsForUser(userId: string, limit = 24): Promise<RecentThreadRow[]> {
+export async function listRecentThreadsForUser(
+  userId: string,
+  limit = 24,
+): Promise<RecentThreadRow[]> {
   const db = createAdminClient();
   const { data, error } = await db
     .from("email_threads")
@@ -116,7 +119,10 @@ export async function listRecentThreadsForUser(userId: string, limit = 24): Prom
     .filter((row) => mailBucketForThread({ status: row.status }) === "summary");
 }
 
-export async function listIgnoredThreadsForUser(userId: string, limit = 50): Promise<RecentThreadRow[]> {
+export async function listIgnoredThreadsForUser(
+  userId: string,
+  limit = 50,
+): Promise<RecentThreadRow[]> {
   const db = createAdminClient();
   const { data, error } = await db
     .from("email_threads")
@@ -137,7 +143,10 @@ export async function listIgnoredThreadsForUser(userId: string, limit = 50): Pro
 const THREAD_DETAIL_SELECT =
   "id, user_id, gmail_connection_id, gmail_thread_id, subject, summary, short_display_title, importance, importance_reason, status, requires_action, requires_reply, action_summary, action_reason, waiting_for, urgency, deadline, deadline_text, category, action_type, confidence, latest_message_at";
 
-export async function getThreadDetailForUser(userId: string, threadId: string): Promise<ThreadDetail | null> {
+export async function getThreadDetailForUser(
+  userId: string,
+  threadId: string,
+): Promise<ThreadDetail | null> {
   const db = createAdminClient();
   const { data: thread, error } = await db
     .from("email_threads")
@@ -159,7 +168,12 @@ export async function getThreadDetailForUser(userId: string, threadId: string): 
       .eq("thread_id", threadId)
       .eq("user_id", userId)
       .order("received_at", { ascending: true }),
-    db.from("action_items").select("id, status, waiting_for, snoozed_until").eq("thread_id", threadId).eq("user_id", userId).maybeSingle(),
+    db
+      .from("action_items")
+      .select("id, status, waiting_for, snoozed_until")
+      .eq("thread_id", threadId)
+      .eq("user_id", userId)
+      .maybeSingle(),
     db
       .from("gmail_connections")
       .select("gmail_email")
@@ -184,7 +198,10 @@ export async function getThreadDetailForUser(userId: string, threadId: string): 
     requiresReply: Boolean(thread.requires_reply),
     actionSummary: (thread.action_summary as string | null) ?? null,
     actionReason: (thread.action_reason as string | null) ?? null,
-    waitingFor: (typeof action?.waiting_for === "string" ? action.waiting_for : null) ?? (thread.waiting_for as string | null) ?? null,
+    waitingFor:
+      (typeof action?.waiting_for === "string" ? action.waiting_for : null) ??
+      (thread.waiting_for as string | null) ??
+      null,
     urgency: (thread.urgency as string | null) ?? null,
     deadline: (thread.deadline as string | null) ?? null,
     deadlineText: (thread.deadline_text as string | null) ?? null,

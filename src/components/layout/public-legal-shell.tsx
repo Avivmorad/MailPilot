@@ -14,7 +14,7 @@ export function PublicLegalShell({ children }: { children: ReactNode }) {
           <Link
             href="/"
             aria-label="MailPilot home"
-            className="rounded-lg focus-visible:ring-ring focus-visible:ring-3 focus-visible:outline-none"
+            className="focus-visible:ring-ring rounded-lg focus-visible:ring-3 focus-visible:outline-none"
           >
             <Logo />
           </Link>

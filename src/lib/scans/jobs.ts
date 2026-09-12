@@ -7,7 +7,10 @@ export interface ScanJobRecord {
   attempt: number;
 }
 
-export async function failStaleActiveJobs(connectionId: string, now: Date = new Date()): Promise<void> {
+export async function failStaleActiveJobs(
+  connectionId: string,
+  now: Date = new Date(),
+): Promise<void> {
   const db = createAdminClient();
   const { data, error } = await db
     .from("scan_jobs")
@@ -91,7 +94,10 @@ export async function incrementScanJobAttempt(jobId: string): Promise<number> {
     throw new Error("Failed to load scan job attempt");
   }
   const next = (data.attempt as number) + 1;
-  const { error: updateError } = await db.from("scan_jobs").update({ attempt: next }).eq("id", jobId);
+  const { error: updateError } = await db
+    .from("scan_jobs")
+    .update({ attempt: next })
+    .eq("id", jobId);
   if (updateError) {
     throw new Error("Failed to increment scan job attempt");
   }
@@ -139,4 +145,3 @@ export async function finishScanJob(
     throw new Error("Failed to finish scan job");
   }
 }
-

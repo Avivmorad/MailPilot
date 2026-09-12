@@ -16,14 +16,15 @@ export async function getDashboardChangesForUser(
     .from("action_items")
     .select("status, created_at, updated_at, deadline")
     .eq("user_id", userId);
-  const rows: ActionChangeRow[] = error || !data
-    ? []
-    : data.map((row) => ({
-        status: String(row.status ?? ""),
-        createdAt: typeof row.created_at === "string" ? row.created_at : "",
-        updatedAt: typeof row.updated_at === "string" ? row.updated_at : "",
-        deadline: typeof row.deadline === "string" ? row.deadline : null,
-      }));
+  const rows: ActionChangeRow[] =
+    error || !data
+      ? []
+      : data.map((row) => ({
+          status: String(row.status ?? ""),
+          createdAt: typeof row.created_at === "string" ? row.created_at : "",
+          updatedAt: typeof row.updated_at === "string" ? row.updated_at : "",
+          deadline: typeof row.deadline === "string" ? row.deadline : null,
+        }));
   const summary = summarizeDashboardChanges(rows, since, now);
   return { summary, line: formatDashboardChangeLine(summary) };
 }

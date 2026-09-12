@@ -127,19 +127,19 @@ them lazily and fail fast with a clear message when they are missing.
 
 Copy `.env.example` to `.env.local` and fill in values. Never commit real secrets.
 
-| Variable                                                                                | Purpose                                                 |
-| --------------------------------------------------------------------------------------- | ------------------------------------------------------- |
-| `NEXT_PUBLIC_APP_URL`                                                                   | Public base URL for links and OAuth redirects.          |
-| `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY`                            | Supabase public client config.                          |
-| `SUPABASE_SERVICE_ROLE_KEY`                                                             | Server-only privileged key. Never expose to the client. |
-| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` / `GOOGLE_REDIRECT_URI`                     | Gmail OAuth. Redirect URI must match Google Cloud exactly. |
+| Variable                                                                                | Purpose                                                                        |
+| --------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `NEXT_PUBLIC_APP_URL`                                                                   | Public base URL for links and OAuth redirects.                                 |
+| `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY`                            | Supabase public client config.                                                 |
+| `SUPABASE_SERVICE_ROLE_KEY`                                                             | Server-only privileged key. Never expose to the client.                        |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` / `GOOGLE_REDIRECT_URI`                     | Gmail OAuth. Redirect URI must match Google Cloud exactly.                     |
 | `TOKEN_ENCRYPTION_KEY`                                                                  | 32-byte key for AES-256-GCM refresh-token encryption (`openssl rand -hex 32`). |
-| `GEMINI_API_KEY` / `GEMINI_MODEL`                                                       | Gemini access; model is configurable, not hard-coded.   |
-| `CRON_SECRET`                                                                           | Protects the cron dispatcher (`Authorization: Bearer` or `x-cron-secret`). |
-| `MAX_THREAD_MESSAGES` / `MAX_MESSAGE_CHARS` / `MAX_THREAD_CHARS` / `AI_MAX_CONCURRENCY` | Context and cost controls.                              |
-| `GMAIL_QUOTA_UNITS_PER_MINUTE`                                                          | Optional local Gmail quota budget (default 12000).      |
-| `NEXT_PUBLIC_SENTRY_DSN`                                                                | Optional Sentry DSN (public). App runs without it.      |
-| `SENTRY_ORG` / `SENTRY_PROJECT` / `SENTRY_AUTH_TOKEN`                                   | Optional build-only source-map upload. Never `NEXT_PUBLIC_`. |
+| `GEMINI_API_KEY` / `GEMINI_MODEL`                                                       | Gemini access; model is configurable, not hard-coded.                          |
+| `CRON_SECRET`                                                                           | Protects the cron dispatcher (`Authorization: Bearer` or `x-cron-secret`).     |
+| `MAX_THREAD_MESSAGES` / `MAX_MESSAGE_CHARS` / `MAX_THREAD_CHARS` / `AI_MAX_CONCURRENCY` | Context and cost controls.                                                     |
+| `GMAIL_QUOTA_UNITS_PER_MINUTE`                                                          | Optional local Gmail quota budget (default 12000).                             |
+| `NEXT_PUBLIC_SENTRY_DSN`                                                                | Optional Sentry DSN (public). App runs without it.                             |
+| `SENTRY_ORG` / `SENTRY_PROJECT` / `SENTRY_AUTH_TOKEN`                                   | Optional build-only source-map upload. Never `NEXT_PUBLIC_`.                   |
 
 ## Supabase setup
 

@@ -23,10 +23,7 @@ export async function GET() {
     getLatestScanRunForUser(user.id),
     getScanRunsForUser(user.id, 10),
   ]);
-  return NextResponse.json(
-    { scan, items },
-    { headers: { "Cache-Control": "no-store" } },
-  );
+  return NextResponse.json({ scan, items }, { headers: { "Cache-Control": "no-store" } });
 }
 
 export async function POST(request: Request) {
@@ -57,7 +54,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ scanId: job.scanId, status: "RUNNING" }, { status: 202 });
   } catch (error) {
     if (error instanceof ScanRequestError) {
-      return NextResponse.json({ error: error.code, message: error.message }, { status: error.status });
+      return NextResponse.json(
+        { error: error.code, message: error.message },
+        { status: error.status },
+      );
     }
     const message = error instanceof Error ? error.message : "Scan failed.";
     return NextResponse.json({ error: "scan_failed", message }, { status: 500 });

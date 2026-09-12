@@ -75,9 +75,12 @@ export function PrivacyControls() {
         <CardTitle>Privacy</CardTitle>
         <CardDescription>
           These actions only affect your MailPilot data. Disconnecting Gmail keeps summaries.
-          Deleting analysis data removes mail that MailPilot stored. Deleting the account
-          removes everything and signs you out. See the{" "}
-          <Link href="/privacy" className="text-foreground font-medium underline underline-offset-4">
+          Deleting analysis data removes mail that MailPilot stored. Deleting the account removes
+          everything and signs you out. See the{" "}
+          <Link
+            href="/privacy"
+            className="text-foreground font-medium underline underline-offset-4"
+          >
             privacy and Gmail data-use page
           </Link>
           .

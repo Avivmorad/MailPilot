@@ -45,7 +45,8 @@ export class GmailMinuteQuota {
       return;
     }
     const nowFn = options.now ?? Date.now;
-    const sleep = options.sleep ?? ((ms: number) => new Promise((resolve) => setTimeout(resolve, ms)));
+    const sleep =
+      options.sleep ?? ((ms: number) => new Promise((resolve) => setTimeout(resolve, ms)));
     const cap = Math.max(units, this.limit);
 
     for (;;) {

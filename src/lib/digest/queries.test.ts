@@ -20,7 +20,13 @@ describe("mapDigestReportRow", () => {
         ignored_count: 0,
         summary_text: "Processed 4 emails in this period.",
         top_actions: [
-          { threadId: "t1", title: "Pay invoice", urgency: "soon", deadline: null, category: "finance" },
+          {
+            threadId: "t1",
+            title: "Pay invoice",
+            urgency: "soon",
+            deadline: null,
+            category: "finance",
+          },
           { threadId: "bad" },
         ],
         created_at: "2026-09-11T08:00:00.000Z",
@@ -40,7 +46,13 @@ describe("mapDigestReportRow", () => {
       ignoredCount: 0,
       summaryText: "Processed 4 emails in this period.",
       topActions: [
-        { threadId: "t1", title: "Pay invoice", urgency: "soon", deadline: null, category: "finance" },
+        {
+          threadId: "t1",
+          title: "Pay invoice",
+          urgency: "soon",
+          deadline: null,
+          category: "finance",
+        },
       ],
       createdAt: "2026-09-11T08:00:00.000Z",
     });

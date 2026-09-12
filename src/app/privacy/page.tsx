@@ -13,10 +13,12 @@ export const metadata: Metadata = {
 export default function PrivacyPage() {
   return (
     <PublicLegalShell>
-      <h1 className="text-foreground text-3xl font-bold tracking-tight">Privacy and Gmail data use</h1>
+      <h1 className="text-foreground text-3xl font-bold tracking-tight">
+        Privacy and Gmail data use
+      </h1>
       <p className="text-muted-foreground mt-3 text-sm">
-        This page describes how MailPilot handles Gmail for the current product. It is the
-        public explanation Google OAuth verification expects, not legal advice.
+        This page describes how MailPilot handles Gmail for the current product. It is the public
+        explanation Google OAuth verification expects, not legal advice.
       </p>
       <div className="mt-8 space-y-8">
         {PRIVACY_POLICY_SECTIONS.map((section) => (

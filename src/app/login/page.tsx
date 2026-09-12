@@ -45,7 +45,7 @@ function LoginShell({ children }: { children?: ReactNode }) {
         <Link
           href="/"
           aria-label="Back to home"
-          className="rounded-lg focus-visible:ring-ring focus-visible:ring-3 focus-visible:outline-none"
+          className="focus-visible:ring-ring rounded-lg focus-visible:ring-3 focus-visible:outline-none"
         >
           <Logo />
         </Link>
@@ -146,7 +146,11 @@ function LoginForm() {
         <CardHeader>
           <CardTitle>
             <h1 className="text-base font-semibold">
-              {mode === "signin" ? "Sign in" : mode === "signup" ? "Create your account" : "Reset password"}
+              {mode === "signin"
+                ? "Sign in"
+                : mode === "signup"
+                  ? "Create your account"
+                  : "Reset password"}
             </h1>
           </CardTitle>
           <CardDescription>

@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { decryptSecret, encryptSecret, parseEncryptionKey, timingSafeStringEqual } from "@/lib/security/encryption";
+import {
+  decryptSecret,
+  encryptSecret,
+  parseEncryptionKey,
+  timingSafeStringEqual,
+} from "@/lib/security/encryption";
 
 const HEX_KEY = "ab".repeat(32);
 

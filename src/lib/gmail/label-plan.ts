@@ -10,13 +10,19 @@ export function logicalLabelsForAnalysis(analysis: ThreadAnalysis): MailPilotLog
   if (analysis.requires_action || analysis.status === "action_required") {
     labels.add("action_required");
   }
-  if (analysis.status === "ignore" || (analysis.importance === "low" && !analysis.requires_action)) {
+  if (
+    analysis.status === "ignore" ||
+    (analysis.importance === "low" && !analysis.requires_action)
+  ) {
     labels.add("low_priority");
   }
   return MAILPILOT_LABELS.map((spec) => spec.logicalName).filter((name) => labels.has(name));
 }
 
-export function labelDiff(currentIds: string[], desiredIds: string[]): {
+export function labelDiff(
+  currentIds: string[],
+  desiredIds: string[],
+): {
   addLabelIds: string[];
   removeLabelIds: string[];
 } {

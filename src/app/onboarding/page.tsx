@@ -62,10 +62,16 @@ export default async function OnboardingPage({
         }
       />
       <ol className="text-muted-foreground flex flex-wrap gap-3 text-sm">
-        <li aria-current={step === "connect_gmail" ? "step" : undefined} className={step === "connect_gmail" ? "text-foreground font-medium" : undefined}>
+        <li
+          aria-current={step === "connect_gmail" ? "step" : undefined}
+          className={step === "connect_gmail" ? "text-foreground font-medium" : undefined}
+        >
           1. Connect Gmail
         </li>
-        <li aria-current={step === "configure_and_scan" ? "step" : undefined} className={step === "configure_and_scan" ? "text-foreground font-medium" : undefined}>
+        <li
+          aria-current={step === "configure_and_scan" ? "step" : undefined}
+          className={step === "configure_and_scan" ? "text-foreground font-medium" : undefined}
+        >
           2. Schedule and first scan
         </li>
       </ol>

@@ -13,7 +13,10 @@ export function parseUncertainFilter(value: string | string[] | undefined): bool
   return raw === "1" || raw === "true";
 }
 
-export function isStaleWaiting(updatedAt: string | null | undefined, now: Date = new Date()): boolean {
+export function isStaleWaiting(
+  updatedAt: string | null | undefined,
+  now: Date = new Date(),
+): boolean {
   if (!updatedAt) {
     return false;
   }

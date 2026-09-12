@@ -15,16 +15,16 @@ function createMemoryPort(ownerId: string): AccountDeletionPort & {
   deletedUsers: string[];
 } {
   const rows: Record<string, Array<{ userId: string; connectionId?: string }>> = {
-    digest_reports: [
-      { userId: ownerId },
-      { userId: "other-user" },
-    ],
+    digest_reports: [{ userId: ownerId }, { userId: "other-user" }],
     scan_runs: [{ userId: ownerId }, { userId: "other-user" }],
     classification_feedback: [{ userId: ownerId }],
     action_items: [{ userId: ownerId }, { userId: "other-user" }],
     email_messages: [{ userId: ownerId }],
     email_threads: [{ userId: ownerId }, { userId: "other-user" }],
-    scan_jobs: [{ userId: ownerId, connectionId: "conn-owner" }, { userId: "other-user", connectionId: "conn-other" }],
+    scan_jobs: [
+      { userId: ownerId, connectionId: "conn-owner" },
+      { userId: "other-user", connectionId: "conn-other" },
+    ],
   };
   const historyResetFor: string[] = [];
   const disconnected: string[] = [];
@@ -64,9 +64,15 @@ function createMemoryPort(ownerId: string): AccountDeletionPort & {
 
 describe("privacy deletion confirmation", () => {
   it("requires the exact confirmation phrases", () => {
-    expect(deleteAnalysisRequestSchema.safeParse({ confirmation: "DELETE ANALYSIS" }).success).toBe(true);
-    expect(deleteAnalysisRequestSchema.safeParse({ confirmation: "delete analysis" }).success).toBe(false);
-    expect(deleteAccountRequestSchema.safeParse({ confirmation: "DELETE ACCOUNT" }).success).toBe(true);
+    expect(deleteAnalysisRequestSchema.safeParse({ confirmation: "DELETE ANALYSIS" }).success).toBe(
+      true,
+    );
+    expect(deleteAnalysisRequestSchema.safeParse({ confirmation: "delete analysis" }).success).toBe(
+      false,
+    );
+    expect(deleteAccountRequestSchema.safeParse({ confirmation: "DELETE ACCOUNT" }).success).toBe(
+      true,
+    );
     expect(deleteAccountRequestSchema.safeParse({ confirmation: "yes" }).success).toBe(false);
   });
 });

@@ -4,20 +4,11 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import {
-  PLACEMENT_CORRECTION_LABELS,
-  PLACEMENT_CORRECTIONS,
-} from "@/lib/mail/placement";
+import { PLACEMENT_CORRECTION_LABELS, PLACEMENT_CORRECTIONS } from "@/lib/mail/placement";
 import type { MailTab } from "@/lib/mail/tabs";
 import type { FeedbackKind } from "@/lib/threads/apply-feedback";
 
-export function ThreadPlacementCorrection({
-  threadId,
-  tab,
-}: {
-  threadId: string;
-  tab: MailTab;
-}) {
+export function ThreadPlacementCorrection({ threadId, tab }: { threadId: string; tab: MailTab }) {
   const router = useRouter();
   const kinds = PLACEMENT_CORRECTIONS[tab];
   const [busy, setBusy] = useState<FeedbackKind | null>(null);

@@ -28,7 +28,9 @@ describe("scanProgressView", () => {
   });
 
   it("uses discovering label when running before totals exist", () => {
-    expect(scanProgressView({ threadsDiscovered: 0, threadsChecked: 0, status: "RUNNING" })).toEqual({
+    expect(
+      scanProgressView({ threadsDiscovered: 0, threadsChecked: 0, status: "RUNNING" }),
+    ).toEqual({
       percent: 0,
       label: "Discovering conversations in Gmail…",
       indeterminate: true,
@@ -36,15 +38,19 @@ describe("scanProgressView", () => {
   });
 
   it("reports stopped scan when failed before totals exist", () => {
-    expect(scanProgressView({ threadsDiscovered: 0, threadsChecked: 0, status: "FAILED" })).toEqual({
-      percent: 0,
-      label: "Scan stopped before conversations were checked.",
-      indeterminate: false,
-    });
+    expect(scanProgressView({ threadsDiscovered: 0, threadsChecked: 0, status: "FAILED" })).toEqual(
+      {
+        percent: 0,
+        label: "Scan stopped before conversations were checked.",
+        indeterminate: false,
+      },
+    );
   });
 
   it("distinguishes running phase when 0 conversations have been triaged yet", () => {
-    expect(scanProgressView({ threadsDiscovered: 40, threadsChecked: 0, status: "RUNNING" })).toEqual({
+    expect(
+      scanProgressView({ threadsDiscovered: 40, threadsChecked: 0, status: "RUNNING" }),
+    ).toEqual({
       percent: 0,
       label: "Discovered 40 conversations; fetching and triaging…",
       indeterminate: false,
@@ -52,7 +58,9 @@ describe("scanProgressView", () => {
   });
 
   it("distinguishes active in-flight running triage progress", () => {
-    expect(scanProgressView({ threadsDiscovered: 80, threadsChecked: 20, status: "RUNNING" })).toEqual({
+    expect(
+      scanProgressView({ threadsDiscovered: 80, threadsChecked: 20, status: "RUNNING" }),
+    ).toEqual({
       percent: 25,
       label: "Checking 20 of 80 conversations (25%)…",
       indeterminate: false,
@@ -60,7 +68,9 @@ describe("scanProgressView", () => {
   });
 
   it("caps running progress at 99% while finalizing labels and storing results", () => {
-    expect(scanProgressView({ threadsDiscovered: 50, threadsChecked: 50, status: "RUNNING" })).toEqual({
+    expect(
+      scanProgressView({ threadsDiscovered: 50, threadsChecked: 50, status: "RUNNING" }),
+    ).toEqual({
       percent: 99,
       label: "Finalizing triage and labels for 50 conversations…",
       indeterminate: false,
@@ -128,7 +138,9 @@ describe("scanProgressView", () => {
   });
 
   it("reports 100% on full success", () => {
-    expect(scanProgressView({ threadsDiscovered: 15, threadsChecked: 15, status: "SUCCESS" })).toEqual({
+    expect(
+      scanProgressView({ threadsDiscovered: 15, threadsChecked: 15, status: "SUCCESS" }),
+    ).toEqual({
       percent: 100,
       label: "Checked 15 of 15 conversations (100%)",
       indeterminate: false,

@@ -20,7 +20,10 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     return NextResponse.json({ action });
   } catch (error) {
     if (error instanceof ActionMutationError) {
-      return NextResponse.json({ error: error.code, message: error.message }, { status: error.status });
+      return NextResponse.json(
+        { error: error.code, message: error.message },
+        { status: error.status },
+      );
     }
     return NextResponse.json({ error: "update_failed" }, { status: 500 });
   }

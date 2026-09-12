@@ -29,7 +29,9 @@ describe("isGmailAuthError", () => {
     const operation = vi.fn(async () => {
       throw { response: { status: 401 }, message: "invalid_grant" };
     });
-    await expect(withGmailRetry(operation, { delaysMs: [5], sleep: async () => undefined })).rejects.toMatchObject({
+    await expect(
+      withGmailRetry(operation, { delaysMs: [5], sleep: async () => undefined }),
+    ).rejects.toMatchObject({
       response: { status: 401 },
     });
     expect(operation).toHaveBeenCalledTimes(1);

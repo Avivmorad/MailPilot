@@ -54,7 +54,9 @@ function uniqueThreadIds(refs: Array<{ threadId: string }>): string[] {
   return [...new Set(refs.map((ref) => ref.threadId))];
 }
 
-function participantsOf(messages: ParsedGmailMessage[]): Array<{ email: string; name: string | null }> {
+function participantsOf(
+  messages: ParsedGmailMessage[],
+): Array<{ email: string; name: string | null }> {
   const byEmail = new Map<string, { email: string; name: string | null }>();
   for (const message of messages) {
     const addresses = [
@@ -209,7 +211,9 @@ export async function openGmailScan(input: ProcessGmailScanInput): Promise<Prepa
   const state = await input.store.getConnectionScanState(input.connectionId);
   const planned = plannedDiscoveryMode(state, { forceLookback: input.forceLookback });
   const triggerType: ScanTriggerType =
-    planned === "RECOVERY" ? "RECOVERY" : (input.triggerType ?? (planned === "INITIAL" ? "INITIAL" : "MANUAL"));
+    planned === "RECOVERY"
+      ? "RECOVERY"
+      : (input.triggerType ?? (planned === "INITIAL" ? "INITIAL" : "MANUAL"));
   const plannedWindow =
     planned === "INITIAL"
       ? scanWindow(lookbackDays, now)
@@ -296,7 +300,10 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
     });
     const refs = discovery.refs;
     const retryThreadIds = await store.listPendingFailedThreadIds(connectionId, scanId);
-    const threadIds = uniqueThreadIds([...refs, ...retryThreadIds.map((threadId) => ({ threadId }))]);
+    const threadIds = uniqueThreadIds([
+      ...refs,
+      ...retryThreadIds.map((threadId) => ({ threadId })),
+    ]);
     const analyses: ThreadAnalysis[] = [];
     const failedGmailThreadIds: string[] = [];
     let threadsAnalyzed = 0;
@@ -304,7 +311,8 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
     let threadFailures = 0;
     let messagesProcessed = 0;
     let progressWrites = Promise.resolve();
-    const labelMap = threadIds.length > 0 ? await gmail.loadLabelMap() : new Map<MailPilotLogicalLabel, string>();
+    const labelMap =
+      threadIds.length > 0 ? await gmail.loadLabelMap() : new Map<MailPilotLogicalLabel, string>();
 
     await store.updateScanRun(scanId, {
       status: "RUNNING",
@@ -350,7 +358,11 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
         const latestAt = receivedAtIso(latest.internalDate);
 
         let analysis = existing ? analysisFromStoredThread(existing) : null;
-        const unchanged = shouldReuseStoredAnalysis(existing, latest.gmailMessageId, TRIAGE_PROMPT_VERSION);
+        const unchanged = shouldReuseStoredAnalysis(
+          existing,
+          latest.gmailMessageId,
+          TRIAGE_PROMPT_VERSION,
+        );
 
         if (!unchanged) {
           const outcome = await analyze(
@@ -419,7 +431,9 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
           latestMessageAt: latestAt,
           latestMessageDirection: latestDirection,
           analysis,
-          lastAnalyzedMessageId: analysis ? latest.gmailMessageId : (existing?.lastAnalyzedMessageId ?? null),
+          lastAnalyzedMessageId: analysis
+            ? latest.gmailMessageId
+            : (existing?.lastAnalyzedMessageId ?? null),
           promptVersion: analysis ? TRIAGE_PROMPT_VERSION : null,
           modelName: analysis ? modelName : null,
         });
@@ -471,7 +485,10 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
           await gmail.modifyThreadLabels(gmailThreadId, diff.addLabelIds, diff.removeLabelIds);
         }
       } catch (error) {
-        if (isGmailAuthError(error) || (error instanceof GmailConnectError && error.reason === "reauth_required")) {
+        if (
+          isGmailAuthError(error) ||
+          (error instanceof GmailConnectError && error.reason === "reauth_required")
+        ) {
           throw error;
         }
         threadFailures += 1;
@@ -565,4 +582,3 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
     throw error;
   }
 }
-

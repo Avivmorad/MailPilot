@@ -3,7 +3,10 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import type { GmailStatusPayload } from "@/lib/gmail/constants";
 
-function flashMessage(gmail: string | undefined, reason: string | undefined): {
+function flashMessage(
+  gmail: string | undefined,
+  reason: string | undefined,
+): {
   kind: "ok" | "error";
   text: string;
 } | null {
@@ -101,10 +104,8 @@ export function GmailConnectionCard({
   const flash = flashMessage(gmailFlash, reason);
   const connection = status.connection;
   const isActive = connection?.status === "CONNECTED";
-  const needsReconnect =
-    connection?.status === "REAUTH_REQUIRED" || connection?.status === "ERROR";
-  const canDisconnect =
-    Boolean(connection) && connection?.status !== "DISCONNECTED";
+  const needsReconnect = connection?.status === "REAUTH_REQUIRED" || connection?.status === "ERROR";
+  const canDisconnect = Boolean(connection) && connection?.status !== "DISCONNECTED";
   const canConnect = status.configured && !status.loadError;
 
   return (

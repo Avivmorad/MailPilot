@@ -20,7 +20,11 @@ import {
   incrementScanJobAttempt,
   markScanJobRunning,
 } from "@/lib/scans/jobs";
-import { claimDueConnections, releaseConnectionLease, type ClaimedConnection } from "@/lib/scans/leases";
+import {
+  claimDueConnections,
+  releaseConnectionLease,
+  type ClaimedConnection,
+} from "@/lib/scans/leases";
 import { DEFAULT_LOOKBACK_DAYS } from "@/lib/scans/lookback";
 import { openGmailScan, executeGmailScan } from "@/lib/scans/process-scan";
 import { nextScanAfterFailure } from "@/lib/scans/schedule";
@@ -40,7 +44,10 @@ export interface DispatcherConnectionResult {
 
 async function setNextScanAt(connectionId: string, nextScanAt: string): Promise<void> {
   const db = createAdminClient();
-  const { error } = await db.from("gmail_connections").update({ next_scan_at: nextScanAt }).eq("id", connectionId);
+  const { error } = await db
+    .from("gmail_connections")
+    .update({ next_scan_at: nextScanAt })
+    .eq("id", connectionId);
   if (error) {
     throw new Error("Failed to schedule next scan");
   }
@@ -151,18 +158,20 @@ async function runClaimedConnection(
   }
 }
 
-export async function dispatchDueScans(options: {
-  now?: Date;
-  limit?: number;
-  workerId?: string;
-  startedAtMs?: number;
-  claimDueConnections?: typeof claimDueConnections;
-  runClaimedConnection?: (
-    claimed: ClaimedConnection,
-    workerId: string,
-    now: Date,
-  ) => Promise<DispatcherConnectionResult>;
-} = {}): Promise<{ claimed: number; results: DispatcherConnectionResult[] }> {
+export async function dispatchDueScans(
+  options: {
+    now?: Date;
+    limit?: number;
+    workerId?: string;
+    startedAtMs?: number;
+    claimDueConnections?: typeof claimDueConnections;
+    runClaimedConnection?: (
+      claimed: ClaimedConnection,
+      workerId: string,
+      now: Date,
+    ) => Promise<DispatcherConnectionResult>;
+  } = {},
+): Promise<{ claimed: number; results: DispatcherConnectionResult[] }> {
   const now = options.now ?? new Date();
   const workerId = options.workerId ?? `dispatcher:${crypto.randomUUID()}`;
   const startedAt = options.startedAtMs ?? Date.now();

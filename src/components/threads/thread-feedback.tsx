@@ -53,7 +53,9 @@ export function ThreadFeedback({ threadId }: { threadId: string }) {
   return (
     <div className="bg-card ring-foreground/10 space-y-3 rounded-xl p-4 ring-1 sm:p-5">
       <div>
-        <p className="text-foreground font-semibold tracking-tight">Was this classification right?</p>
+        <p className="text-foreground font-semibold tracking-tight">
+          Was this classification right?
+        </p>
         <p className="text-muted-foreground mt-0.5 text-sm">
           Corrections move the thread now. They are also kept for later evaluation.
         </p>

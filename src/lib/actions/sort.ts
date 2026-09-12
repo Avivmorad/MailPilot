@@ -21,7 +21,8 @@ export interface RankableAction {
 }
 
 export function compareOpenActions(a: RankableAction, b: RankableAction): number {
-  const urgency = (URGENCY_RANK[a.urgency ?? "none"] ?? 9) - (URGENCY_RANK[b.urgency ?? "none"] ?? 9);
+  const urgency =
+    (URGENCY_RANK[a.urgency ?? "none"] ?? 9) - (URGENCY_RANK[b.urgency ?? "none"] ?? 9);
   if (urgency !== 0) {
     return urgency;
   }

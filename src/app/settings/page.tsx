@@ -38,7 +38,10 @@ export default async function SettingsPage({
         description="Connect Gmail, set the daily scan time, tune triage, and delete analysis data or your account."
       />
       <GmailConnectionCard status={gmailStatus} gmailFlash={params.gmail} reason={params.reason} />
-      <ScanPreferencesForm dailyScanTime={preferences.dailyScanTime} timezone={preferences.timezone} />
+      <ScanPreferencesForm
+        dailyScanTime={preferences.dailyScanTime}
+        timezone={preferences.timezone}
+      />
       <TriagePreferencesForm
         vipSenders={preferences.vipSenders}
         ignoredSenders={preferences.ignoredSenders}

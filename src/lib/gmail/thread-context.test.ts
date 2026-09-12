@@ -3,7 +3,9 @@ import { describe, expect, it } from "vitest";
 import type { ParsedGmailMessage } from "@/lib/gmail/parser";
 import { buildThreadContext } from "@/lib/gmail/thread-context";
 
-function message(partial: Partial<ParsedGmailMessage> & Pick<ParsedGmailMessage, "gmailMessageId">): ParsedGmailMessage {
+function message(
+  partial: Partial<ParsedGmailMessage> & Pick<ParsedGmailMessage, "gmailMessageId">,
+): ParsedGmailMessage {
   return {
     gmailThreadId: "t1",
     historyId: null,

@@ -181,7 +181,11 @@ export function postProcessThreadAnalysis(
     if (!next.action_summary) {
       next.action_summary = next.action_reason ?? ACTION_SUMMARY_FALLBACK[next.action_type];
     }
-  } else if (next.status === "informational" || next.status === "ignore" || next.status === "resolved") {
+  } else if (
+    next.status === "informational" ||
+    next.status === "ignore" ||
+    next.status === "resolved"
+  ) {
     next.requires_action = false;
   }
 
@@ -201,7 +205,8 @@ export function postProcessThreadAnalysis(
   const from = options.latestFrom ?? null;
 
   if (
-    (senderMatches(preferences?.ignoreSenders, from) || domainMatches(preferences?.ignoreDomains, from)) &&
+    (senderMatches(preferences?.ignoreSenders, from) ||
+      domainMatches(preferences?.ignoreDomains, from)) &&
     !isCriticalAccountMessage(next) &&
     !isSecurityEventNotice(noticeParts)
   ) {
@@ -219,7 +224,11 @@ export function postProcessThreadAnalysis(
 
   if (next.status === "action_required") {
     next.requires_action = true;
-  } else if (next.status === "informational" || next.status === "ignore" || next.status === "resolved") {
+  } else if (
+    next.status === "informational" ||
+    next.status === "ignore" ||
+    next.status === "resolved"
+  ) {
     next.requires_action = false;
   }
 
@@ -253,7 +262,9 @@ export function assertThreadAnalysisInvariants(analysis: ThreadAnalysis): void {
     throw new Error("Invariant E: confidence must be between 0 and 1");
   }
   if (
-    (analysis.status === "informational" || analysis.status === "ignore" || analysis.status === "resolved") &&
+    (analysis.status === "informational" ||
+      analysis.status === "ignore" ||
+      analysis.status === "resolved") &&
     analysis.requires_action
   ) {
     throw new Error("Invariant A: Summary/Ignored require requires_action=false");

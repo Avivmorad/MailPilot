@@ -82,7 +82,9 @@ describe("postProcessThreadAnalysis", () => {
     const processed = postProcessThreadAnalysis(analysis({ deadline: "tomorrow" }));
     expect(processed.deadline).toBeNull();
     expect(postProcessThreadAnalysis(analysis({ deadline: "2026-02-30" })).deadline).toBeNull();
-    expect(postProcessThreadAnalysis(analysis({ deadline: "2026-09-18" })).deadline).toBe("2026-09-18");
+    expect(postProcessThreadAnalysis(analysis({ deadline: "2026-09-18" })).deadline).toBe(
+      "2026-09-18",
+    );
   });
 
   it("drops a well-formed deadline that is not grounded in the thread text", () => {
@@ -98,10 +100,13 @@ describe("postProcessThreadAnalysis", () => {
   });
 
   it("applies VIP and ignore sender overrides", () => {
-    const ignored = postProcessThreadAnalysis(analysis({ importance: "medium", category: "other" }), {
-      latestFrom: "Ada <noise@example.com>",
-      preferences: { ignoreSenders: ["noise@example.com"] },
-    });
+    const ignored = postProcessThreadAnalysis(
+      analysis({ importance: "medium", category: "other" }),
+      {
+        latestFrom: "Ada <noise@example.com>",
+        preferences: { ignoreSenders: ["noise@example.com"] },
+      },
+    );
     expect(ignored.status).toBe("ignore");
     expect(ignored.importance).toBe("low");
 
@@ -119,10 +124,13 @@ describe("postProcessThreadAnalysis", () => {
   });
 
   it("ignores matching sender domains unless the mail is a security action", () => {
-    const ignored = postProcessThreadAnalysis(analysis({ importance: "medium", category: "other" }), {
-      latestFrom: "promo@news.example.com",
-      preferences: { ignoreDomains: ["example.com"] },
-    });
+    const ignored = postProcessThreadAnalysis(
+      analysis({ importance: "medium", category: "other" }),
+      {
+        latestFrom: "promo@news.example.com",
+        preferences: { ignoreDomains: ["example.com"] },
+      },
+    );
     expect(ignored.status).toBe("ignore");
 
     const security = postProcessThreadAnalysis(

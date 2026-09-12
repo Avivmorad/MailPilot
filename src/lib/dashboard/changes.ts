@@ -49,7 +49,12 @@ export function summarizeDashboardChanges(
       newOpen += 1;
       continue;
     }
-    if (row.status === "OPEN" && Number.isFinite(updated) && updated >= sinceMs && created < sinceMs) {
+    if (
+      row.status === "OPEN" &&
+      Number.isFinite(updated) &&
+      updated >= sinceMs &&
+      created < sinceMs
+    ) {
       reopened += 1;
       continue;
     }

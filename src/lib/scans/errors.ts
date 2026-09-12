@@ -6,8 +6,10 @@ export const SCAN_USER_MESSAGES = {
   gmail_quota:
     "Gmail still blocked the scan after waiting for the per-minute quota. Wait a minute and try a shorter lookback.",
   ai_unavailable: "Email analysis is temporarily unavailable. Your existing summaries were kept.",
-  partial_thread_failures: "Most emails were processed, but a few could not be analyzed. The system will retry them.",
-  scan_failed: "The last scan failed. Try again in a few minutes. Your existing summaries were kept.",
+  partial_thread_failures:
+    "Most emails were processed, but a few could not be analyzed. The system will retry them.",
+  scan_failed:
+    "The last scan failed. Try again in a few minutes. Your existing summaries were kept.",
   rate_limited: "A scan was started too recently. Please wait two minutes before scanning again.",
   scan_in_progress: "A scan is already running for this Gmail account.",
 } as const;
@@ -46,7 +48,9 @@ export function scanStoreFailure(operation: string, detail: string | undefined):
   return new Error(`${operation}${suffix}`);
 }
 
-export function isScanRunUniqueViolation(error: { code?: string; message?: string } | null): boolean {
+export function isScanRunUniqueViolation(
+  error: { code?: string; message?: string } | null,
+): boolean {
   if (!error) {
     return false;
   }

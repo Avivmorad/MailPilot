@@ -48,9 +48,7 @@ export function humanizeToken(value: string | null | undefined): string {
     return value;
   }
   return words
-    .map((word, index) =>
-      index === 0 ? word.charAt(0).toUpperCase() + word.slice(1) : word,
-    )
+    .map((word, index) => (index === 0 ? word.charAt(0).toUpperCase() + word.slice(1) : word))
     .join(" ");
 }
 

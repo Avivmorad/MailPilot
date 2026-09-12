@@ -7,9 +7,18 @@ import { threadAnalysisSchema, type ThreadAnalysis } from "@/lib/ai/schemas";
 import type { MailPilotLogicalLabel } from "@/lib/gmail/constants";
 import type { ParsedGmailMessage } from "@/lib/gmail/parser";
 import type { InitialLookbackDays } from "@/lib/scans/lookback";
-import { openGmailScan, processInitialScan, shouldReuseStoredAnalysis } from "@/lib/scans/process-scan";
+import {
+  openGmailScan,
+  processInitialScan,
+  shouldReuseStoredAnalysis,
+} from "@/lib/scans/process-scan";
 import { parseThreadFailureIds } from "@/lib/scans/thread-failures";
-import type { ScanGmailPort, ScanSettings, ScanStorePort, StoredThreadRow } from "@/lib/scans/types";
+import type {
+  ScanGmailPort,
+  ScanSettings,
+  ScanStorePort,
+  StoredThreadRow,
+} from "@/lib/scans/types";
 
 function validAnalysis(overrides: Partial<ThreadAnalysis> = {}): ThreadAnalysis {
   return threadAnalysisSchema.parse({
@@ -86,7 +95,10 @@ function createMemoryStore(): ScanStorePort & {
   }>;
   progressChecks: number[];
 } {
-  const threads = new Map<string, StoredThreadRow & { gmailThreadId: string; subject: string | null }>();
+  const threads = new Map<
+    string,
+    StoredThreadRow & { gmailThreadId: string; subject: string | null }
+  >();
   const messages = new Map<string, string>();
   const actions = new Map<string, ActionRecord>();
   const scanRuns: Array<{
@@ -149,7 +161,9 @@ function createMemoryStore(): ScanStorePort & {
       }
     },
     async insertScanRun(input) {
-      if (scanRuns.some((run) => run.status === "RUNNING" && run.connectionId === input.connectionId)) {
+      if (
+        scanRuns.some((run) => run.status === "RUNNING" && run.connectionId === input.connectionId)
+      ) {
         throw new Error("SCAN_IN_PROGRESS");
       }
       const id = crypto.randomUUID();
@@ -304,11 +318,7 @@ describe("processInitialScan", () => {
     expect(store.threads.size).toBe(1);
     expect(store.messages.size).toBe(1);
     expect(store.actions.size).toBe(1);
-    expect(modifyThreadLabels).toHaveBeenCalledWith(
-      "t1",
-      ["L_IMP", "L_ACT", "L_PROC"],
-      [],
-    );
+    expect(modifyThreadLabels).toHaveBeenCalledWith("t1", ["L_IMP", "L_ACT", "L_PROC"], []);
 
     const fetchThread = vi.fn(async () => [message]);
     const incrementalGmail: ScanGmailPort = {
@@ -342,7 +352,9 @@ describe("processInitialScan", () => {
     const modifyThreadLabels = vi.fn(async () => undefined);
     const message = parsedMessage();
     const gmail: ScanGmailPort = {
-      listMessageRefs: async () => [{ id: message.gmailMessageId, threadId: message.gmailThreadId }],
+      listMessageRefs: async () => [
+        { id: message.gmailMessageId, threadId: message.gmailThreadId },
+      ],
       listHistoryChanges: async () => {
         throw new Error("history should not run on the initial scan");
       },
@@ -381,7 +393,11 @@ describe("processInitialScan", () => {
       },
       listHistoryChanges: async (startHistoryId) => {
         expect(startHistoryId).toBe("hist-1");
-        return { ok: true, refs: [{ id: failed.gmailMessageId, threadId: failed.gmailThreadId }], latestHistoryId: "hist-9" };
+        return {
+          ok: true,
+          refs: [{ id: failed.gmailMessageId, threadId: failed.gmailThreadId }],
+          latestHistoryId: "hist-9",
+        };
       },
       fetchThread: async () => [failed],
       getProfileHistoryId: async () => {
@@ -447,7 +463,9 @@ describe("processInitialScan", () => {
     const message = parsedMessage();
     let profileReads = 0;
     const gmail: ScanGmailPort = {
-      listMessageRefs: async () => [{ id: message.gmailMessageId, threadId: message.gmailThreadId }],
+      listMessageRefs: async () => [
+        { id: message.gmailMessageId, threadId: message.gmailThreadId },
+      ],
       listHistoryChanges: async () => {
         throw new Error("history should not run on the initial scan");
       },
@@ -476,7 +494,9 @@ describe("processInitialScan", () => {
     const message = parsedMessage();
     const modifyThreadLabels = vi.fn(async () => undefined);
     const gmail: ScanGmailPort = {
-      listMessageRefs: async () => [{ id: message.gmailMessageId, threadId: message.gmailThreadId }],
+      listMessageRefs: async () => [
+        { id: message.gmailMessageId, threadId: message.gmailThreadId },
+      ],
       listHistoryChanges: async () => {
         throw new Error("history should not run on the initial scan");
       },
@@ -506,7 +526,9 @@ describe("processInitialScan", () => {
     const store = createMemoryStore();
     const message = parsedMessage();
     const okGmail: ScanGmailPort = {
-      listMessageRefs: async () => [{ id: message.gmailMessageId, threadId: message.gmailThreadId }],
+      listMessageRefs: async () => [
+        { id: message.gmailMessageId, threadId: message.gmailThreadId },
+      ],
       listHistoryChanges: async () => {
         throw new Error("history should not run on the initial scan");
       },
@@ -716,7 +738,10 @@ describe("openGmailScan admission", () => {
     modifyThreadLabels: async () => undefined,
   };
 
-  async function admit(store: ReturnType<typeof createMemoryStore>, now = new Date("2026-09-10T12:00:00.000Z")) {
+  async function admit(
+    store: ReturnType<typeof createMemoryStore>,
+    now = new Date("2026-09-10T12:00:00.000Z"),
+  ) {
     return openGmailScan({
       userId: "user-1",
       connectionId: "conn-1",
@@ -759,7 +784,10 @@ describe("openGmailScan admission", () => {
     const rejected = results.filter((result) => result.status === "rejected");
     expect(accepted).toHaveLength(1);
     expect(rejected).toHaveLength(1);
-    expect(rejected[0]).toMatchObject({ status: "rejected", reason: expect.objectContaining({ message: "SCAN_IN_PROGRESS" }) });
+    expect(rejected[0]).toMatchObject({
+      status: "rejected",
+      reason: expect.objectContaining({ message: "SCAN_IN_PROGRESS" }),
+    });
   });
 
   it("fails a stale running scan and then admits a new one", async () => {

@@ -25,19 +25,15 @@ export type SentrySafeTags = Partial<
 >;
 
 const EMAIL_RE = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi;
-const SECRET_RE = /bearer\s+[a-z0-9._~+/=-]+|ya29\.[a-z0-9._-]+|sk-[a-z0-9]+|eyj[a-z0-9_-]+\.[a-z0-9._-]+|\b[a-f0-9]{64}\b/gi;
+const SECRET_RE =
+  /bearer\s+[a-z0-9._~+/=-]+|ya29\.[a-z0-9._-]+|sk-[a-z0-9]+|eyj[a-z0-9_-]+\.[a-z0-9._-]+|\b[a-f0-9]{64}\b/gi;
 const UUID_RE = /[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/gi;
 const ALLOWED_TAG_SET = new Set<string>(SENTRY_TAG_KEYS);
 
 export function sentryEnvironment(
   source: Record<string, string | undefined> = typeof process === "undefined" ? {} : process.env,
 ): string {
-  return (
-    source.NEXT_PUBLIC_VERCEL_ENV ||
-    source.VERCEL_ENV ||
-    source.NODE_ENV ||
-    "development"
-  );
+  return source.NEXT_PUBLIC_VERCEL_ENV || source.VERCEL_ENV || source.NODE_ENV || "development";
 }
 
 export function sentryScanType(trigger: ScanTriggerType): SentryScanTypeTag {
@@ -91,7 +87,7 @@ export function sanitizeSentryRoute(raw: string | undefined): string | undefined
   if (!raw) {
     return undefined;
   }
-  const path = raw.startsWith("http") ? safePathname(raw) : raw.split("?")[0] ?? raw;
+  const path = raw.startsWith("http") ? safePathname(raw) : (raw.split("?")[0] ?? raw);
   if (!path.startsWith("/")) {
     return path.replace(UUID_RE, "[id]");
   }
@@ -120,7 +116,8 @@ export function sanitizeSentryEvent(event: Event): Event | null {
     return null;
   }
 
-  const route = existingTag(event, "route") ?? sanitizeSentryRoute(event.request?.url ?? event.transaction);
+  const route =
+    existingTag(event, "route") ?? sanitizeSentryRoute(event.request?.url ?? event.transaction);
   const allowed = pickAllowedSentryTags({
     environment: existingTag(event, "environment") ?? event.environment ?? sentryEnvironment(),
     route,
@@ -135,7 +132,9 @@ export function sanitizeSentryEvent(event: Event): Event | null {
     logentry: event.logentry
       ? {
           ...event.logentry,
-          message: event.logentry.message ? redactSensitiveText(event.logentry.message) : event.logentry.message,
+          message: event.logentry.message
+            ? redactSensitiveText(event.logentry.message)
+            : event.logentry.message,
           params: undefined,
         }
       : event.logentry,

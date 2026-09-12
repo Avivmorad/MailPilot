@@ -15,6 +15,7 @@ import { isMissingScanSchemaError, SCAN_IN_PROGRESS, SCAN_SCHEMA_MISSING_MESSAGE
 import { openGmailScan, executeGmailScan } from "@/lib/scans/process-scan";
 import { createSupabaseScanStore } from "@/lib/scans/store";
 import { persistDigestAfterScan } from "@/lib/digest/build-digest";
+import { emitProductEvent } from "@/lib/observability/events";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { ScanRunResult } from "@/lib/scans/types";
 
@@ -114,11 +115,8 @@ export async function beginManualInitialScan(
       if (result.status === "SUCCESS" || result.status === "PARTIAL") {
         try {
           await persistDigestAfterScan({ userId, scanId: prepared.scanId });
-        } catch (error) {
-          console.error("[digest]", {
-            scanId: prepared.scanId,
-            error: error instanceof Error ? error.message : "digest_failed",
-          });
+        } catch {
+          emitProductEvent({ type: "digest.created", scanId: prepared.scanId, persisted: 0 });
         }
       }
       return result;

@@ -3,6 +3,7 @@ import { threadAnalysisSchema, type ThreadAnalysis } from "@/lib/ai/schemas";
 import type { ActionRecord } from "@/lib/actions/reconcile-action";
 import { parseAddressList, parseEmailAddress } from "@/lib/gmail/addresses";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { emitProductEvent } from "@/lib/observability/events";
 import { scanStoreFailure, isScanRunUniqueViolation, SCAN_IN_PROGRESS } from "@/lib/scans/errors";
 import { timestampOrNull } from "@/lib/scans/timestamps";
 import type { ScanSettings, ScanStorePort, StoredThreadRow } from "@/lib/scans/types";
@@ -348,6 +349,7 @@ export function createSupabaseScanStore(): ScanStorePort {
       if (error) {
         failStore("Failed to mark Gmail reconnection required", error);
       }
+      emitProductEvent({ type: "gmail.reconnect_required", connectionId });
     },
   };
 }

@@ -2,6 +2,7 @@ import type { ActionPatch } from "@/lib/actions/patch-schema";
 import { nextActionState } from "@/lib/actions/next-state";
 import type { ActionRecord, ActionStatus } from "@/lib/actions/reconcile-action";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { emitProductEvent } from "@/lib/observability/events";
 
 export class ActionMutationError extends Error {
   constructor(
@@ -59,5 +60,11 @@ export async function patchActionForUser(
   if (updateError) {
     throw new ActionMutationError(500, "update_failed", "Failed to update action.");
   }
+  emitProductEvent({
+    type: "action.upserted",
+    actionId,
+    status: next.status,
+    created: 0,
+  });
   return next;
 }

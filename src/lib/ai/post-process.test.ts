@@ -85,6 +85,13 @@ describe("postProcessThreadAnalysis", () => {
     expect(postProcessThreadAnalysis(analysis({ deadline: "2026-09-18" })).deadline).toBe("2026-09-18");
   });
 
+  it("drops a well-formed deadline that is not grounded in the thread text", () => {
+    const processed = postProcessThreadAnalysis(analysis({ deadline: "1999-01-01" }), {
+      threadText: "Please reply with the Q3 numbers today.",
+    });
+    expect(processed.deadline).toBeNull();
+  });
+
   it("clamps confidence (Rule E)", () => {
     expect(postProcessThreadAnalysis(analysis({ confidence: 1.4 })).confidence).toBe(1);
     expect(postProcessThreadAnalysis(analysis({ confidence: -0.2 })).confidence).toBe(0);

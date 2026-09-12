@@ -14,6 +14,7 @@ import {
   type DigestThreadActivity,
   type DigestTopAction,
 } from "@/lib/digest/types";
+import { emitProductEvent } from "@/lib/observability/events";
 
 export {
   digestListQuerySchema,
@@ -185,7 +186,7 @@ export async function persistDigestAfterScan(input: {
     })),
   );
 
-  return upsertDigestReport({
+  const report = await upsertDigestReport({
     userId: input.userId,
     connectionId: scan.connectionId,
     periodStart: scan.periodStart,
@@ -194,4 +195,13 @@ export async function persistDigestAfterScan(input: {
     summaryText: buildDigestSummaryText(counts),
     topActions,
   });
+  emitProductEvent({
+    type: "digest.created",
+    scanId: input.scanId,
+    digestId: report.id,
+    actionCount: report.actionCount,
+    totalMessages: report.totalMessages,
+    persisted: 1,
+  });
+  return report;
 }

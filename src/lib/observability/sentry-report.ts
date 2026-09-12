@@ -9,7 +9,7 @@ import {
 } from "@/lib/observability/sentry-privacy";
 
 /**
- * Capture an exception with only the MailPilot-allowed Sentry tags.
+ * Capture an exception with only the GmailPilot-allowed Sentry tags.
  * Never attach extras, users, request bodies, or email addresses.
  */
 export function captureSafeException(error: unknown, tags: SentrySafeTags = {}): void {

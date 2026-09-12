@@ -1,3 +1,4 @@
+/** Stable localStorage key. Kept as mailpilot.* so existing clients keep their theme. */
 export const THEME_STORAGE_KEY = "mailpilot.theme";
 
 export type ThemePreference = "light" | "dark" | "system";

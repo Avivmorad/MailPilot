@@ -40,7 +40,7 @@ const features = [
   {
     icon: Tag,
     title: "Gmail labels, in sync",
-    body: "Applies managed MailPilot/ labels back to Gmail so your triage is visible everywhere — without touching your own labels.",
+    body: "Applies managed GmailPilot/ labels back to Gmail so your triage is visible everywhere — without touching your own labels.",
   },
   {
     icon: Clock3,
@@ -111,7 +111,7 @@ export default function Home() {
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-4">
           <Link
             href="/"
-            aria-label="MailPilot home"
+            aria-label="GmailPilot home"
             className="focus-visible:ring-ring rounded-lg focus-visible:ring-3 focus-visible:outline-none"
           >
             <Logo />
@@ -140,7 +140,7 @@ export default function Home() {
             Turn your inbox into a triage system, not a prettier list of emails.
           </h1>
           <p className="text-muted-foreground mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-pretty">
-            MailPilot connects to Gmail, understands each thread in context, and splits mail into
+            GmailPilot connects to Gmail, understands each thread in context, and splits mail into
             Open, Waiting, and Summary — three separate lists, not one mixed feed.
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
@@ -161,7 +161,7 @@ export default function Home() {
                 How a morning inbox looks
               </h2>
               <p className="text-muted-foreground mt-2">
-                After a scan, MailPilot does not dump 32 emails into one list. It keeps tasks,
+                After a scan, GmailPilot does not dump 32 emails into one list. It keeps tasks,
                 waiting, and FYI apart.
               </p>
             </div>
@@ -249,7 +249,7 @@ export default function Home() {
             >
               Terms
             </Link>
-            <span>MailPilot. Not affiliated with Google.</span>
+            <span>GmailPilot. Not affiliated with Google.</span>
           </span>
         </div>
       </footer>

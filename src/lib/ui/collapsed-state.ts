@@ -1,3 +1,4 @@
+/** Stable localStorage prefix. Kept as mailpilot.* so existing clients keep collapsed sections. */
 const STORAGE_PREFIX = "mailpilot.collapsed.";
 
 export function collapsedStorageKey(id: string): string {

@@ -9,7 +9,8 @@ import { THEME_INIT_SCRIPT } from "@/lib/ui/theme";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "MailPilot",
+  title: "GmailPilot",
+  applicationName: "GmailPilot",
   description:
     "Turn your inbox into a triage system that tells you what happened, what needs you, and what you're waiting for.",
 };

@@ -7,7 +7,7 @@ must follow these.
 
 ## Naming
 
-- **Product name:** MailPilot. (The spec was written under the temporary name "Inbox Triage AI".)
+- **Product name:** GmailPilot. (The spec was written under the temporary name "Inbox Triage AI".)
 
 ## MVP operating defaults
 
@@ -47,29 +47,32 @@ These map onto the spec as follows:
 
 ## Gmail labels
 
-Product-facing label names use the **`MailPilot/`** namespace instead of the spec's `AI/*`:
+Product-facing label names use the **`GmailPilot/`** namespace instead of the spec's `AI/*`.
+Existing mailboxes that already have **`MailPilot/`** labels keep those labels; the app
+looks up both names so it does not create a second set.
 
-| Purpose         | Label                       | Spec equivalent (§6)       |
-| --------------- | --------------------------- | -------------------------- |
-| Important       | `MailPilot/Important`       | `AI/Important`             |
-| Action required | `MailPilot/Action Required` | `AI/Action` (+ `AI/Reply`) |
-| Low priority    | `MailPilot/Low Priority`    | `AI/Info` / `AI/Ignore`    |
-| Processed       | `MailPilot/Processed`       | `AI/Processed`             |
+| Purpose         | Label                       | Legacy alias                | Spec equivalent (§6)       |
+| --------------- | --------------------------- | --------------------------- | -------------------------- |
+| Important       | `GmailPilot/Important`      | `MailPilot/Important`       | `AI/Important`             |
+| Action required | `GmailPilot/Action Required`| `MailPilot/Action Required` | `AI/Action` (+ `AI/Reply`) |
+| Low priority    | `GmailPilot/Low Priority`   | `MailPilot/Low Priority`    | `AI/Info` / `AI/Ignore`    |
+| Processed       | `GmailPilot/Processed`      | `MailPilot/Processed`       | `AI/Processed`             |
 
 Rules:
 
 - Every thread has **one canonical `status`** in the database (`action_required`, `waiting`,
   `informational`, `resolved`, or `ignore`). Mail tabs, action workflow, and digests derive from
   this single source of truth — a thread never has two competing statuses.
-- Gmail **`MailPilot/*` labels are presentation only**. A single thread may carry **more than
-  one** label at once (e.g. `MailPilot/Important` + `MailPilot/Action Required` +
-  `MailPilot/Processed`). This intentionally differs from the spec's mutually exclusive `AI/*`
-  state labels (§6).
+- Gmail **`GmailPilot/*` labels are presentation only** (legacy **`MailPilot/*`** too). A single
+  thread may carry **more than one** label at once (e.g. `GmailPilot/Important` +
+  `GmailPilot/Action Required` + `GmailPilot/Processed`). This intentionally differs from the
+  spec's mutually exclusive `AI/*` state labels (§6).
 - The system **creates the labels if they are missing** on first connect, stores the
   `logical_name -> gmail_label_id` mapping (spec §6/§16.3), and never modifies user labels
-  outside the `MailPilot/` namespace.
+  outside the `GmailPilot/` and legacy `MailPilot/` namespaces. It does **not** rename
+  existing `MailPilot/` labels in Gmail.
 - A Gmail inbox (`gmail_email` / Google account id) may be **actively connected to only one
-  MailPilot user**. Connecting the same mailbox from a second signup is rejected until the
+  GmailPilot user**. Connecting the same mailbox from a second signup is rejected until the
   first account disconnects it. Apply `0010_gmail_mailbox_uniqueness.sql`.
 
 > Note: this is a simplified product-facing label set. The spec's richer state model
@@ -206,13 +209,13 @@ alone must not cause an actionable request to be ignored. OTP, magic links, and
 ## App-account emails (Supabase Auth)
 
 Signup / magic-link / password-reset mail is sent by **Supabase Auth**, not Gmail and not
-MailPilot. Default From is “Supabase Auth” (`noreply@mail.app.supabase.io`) with generic
-English templates. Clicking the link still confirms the **MailPilot app account**. Do not
+GmailPilot. Default From is “Supabase Auth” (`noreply@mail.app.supabase.io`) with generic
+English templates. Clicking the link still confirms the **GmailPilot app account**. Do not
 confuse this with **Connect Gmail** (Google OAuth to scan the mailbox).
 
 - **Subject/body:** Authentication → Email → Templates (Confirm signup, Magic Link, Reset
   password). Keep `{{ .ConfirmationURL }}`.
 - **From / sender (“source”):** **Set up custom SMTP to edit the source.** Without a
   domain + Custom SMTP (Resend, SendGrid, Google Workspace, etc.), Gmail will keep showing
-  Supabase Auth. Sender name MailPilot + a domain address only after SMTP is configured.
+  Supabase Auth. Sender name GmailPilot + a domain address only after SMTP is configured.
   Not required for an internal launch; templates alone change subject and body immediately.

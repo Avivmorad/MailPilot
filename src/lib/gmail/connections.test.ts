@@ -62,7 +62,7 @@ describe("isGmailMailboxClaimedByAnotherUser", () => {
     status: "CONNECTED",
   };
 
-  it("rejects a second MailPilot user connecting the same inbox", () => {
+  it("rejects a second GmailPilot user connecting the same inbox", () => {
     expect(
       isGmailMailboxClaimedByAnotherUser(
         "user-b",
@@ -120,7 +120,7 @@ describe("isGmailMailboxUniqueViolation", () => {
 
 describe("gmailCallbackErrorRedirect", () => {
   it("returns the user to onboarding without leaking tokens", () => {
-    const url = gmailCallbackErrorRedirect("https://mailpilot.example", "denied");
+    const url = gmailCallbackErrorRedirect("https://gmailpilot.example", "denied");
     expect(url.pathname).toBe("/onboarding");
     expect(url.searchParams.get("gmail")).toBe("error");
     expect(url.searchParams.get("reason")).toBe("denied");

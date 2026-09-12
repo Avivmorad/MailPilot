@@ -37,10 +37,10 @@ export interface GmailMailboxClaim {
 }
 
 export const GMAIL_MAILBOX_IN_USE_MESSAGE =
-  "This Gmail inbox is already connected to another MailPilot account. Disconnect it there first, then try again.";
+  "This Gmail inbox is already connected to another GmailPilot account. Disconnect it there first, then try again.";
 
 /**
- * True when another MailPilot user already has this inbox (or Google account) connected.
+ * True when another GmailPilot user already has this inbox (or Google account) connected.
  * DISCONNECTED rows do not count; the original owner can reconnect until someone else claims it.
  */
 export function isGmailMailboxClaimedByAnotherUser(

@@ -14,7 +14,7 @@ describe("public privacy policy", () => {
     expect(text).toMatch(/Limited Use of Gmail data/i);
     expect(text).toMatch(/does not sell Gmail data/i);
     expect(PRIVACY_POLICY_SECTIONS.map((section) => section.id)).toEqual([
-      "what-mailpilot-is",
+      "what-gmailpilot-is",
       "gmail-access",
       "what-we-store",
       "your-controls",

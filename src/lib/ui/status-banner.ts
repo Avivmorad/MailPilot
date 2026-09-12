@@ -81,7 +81,7 @@ export function appStatusBanner(input: {
     return {
       kind: "info",
       title: "A scan is running.",
-      body: "You can keep using MailPilot while it works.",
+      body: "You can keep using GmailPilot while it works.",
       href: "/dashboard",
       actionLabel: "View progress",
     };

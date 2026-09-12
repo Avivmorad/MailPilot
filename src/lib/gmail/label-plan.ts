@@ -1,9 +1,8 @@
 import type { ThreadAnalysis } from "@/lib/ai/schemas";
-import type { MailPilotLogicalLabel } from "@/lib/gmail/constants";
-import { MAILPILOT_LABELS } from "@/lib/gmail/constants";
+import { GMAILPILOT_LABELS, type GmailPilotLogicalLabel } from "@/lib/gmail/constants";
 
-export function logicalLabelsForAnalysis(analysis: ThreadAnalysis): MailPilotLogicalLabel[] {
-  const labels = new Set<MailPilotLogicalLabel>(["processed"]);
+export function logicalLabelsForAnalysis(analysis: ThreadAnalysis): GmailPilotLogicalLabel[] {
+  const labels = new Set<GmailPilotLogicalLabel>(["processed"]);
   if (analysis.importance === "high") {
     labels.add("important");
   }
@@ -16,7 +15,7 @@ export function logicalLabelsForAnalysis(analysis: ThreadAnalysis): MailPilotLog
   ) {
     labels.add("low_priority");
   }
-  return MAILPILOT_LABELS.map((spec) => spec.logicalName).filter((name) => labels.has(name));
+  return GMAILPILOT_LABELS.map((spec) => spec.logicalName).filter((name) => labels.has(name));
 }
 
 export function labelDiff(

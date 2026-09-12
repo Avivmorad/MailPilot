@@ -1,4 +1,4 @@
--- Phase 2: Gmail OAuth connections and managed MailPilot labels.
+-- Phase 2: Gmail OAuth connections and managed GmailPilot labels.
 -- See docs/PROJECT_SPEC.md §16.2–16.3 and docs/PRODUCT_DECISIONS.md.
 
 create table if not exists public.gmail_connections (

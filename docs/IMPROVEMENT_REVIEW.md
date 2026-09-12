@@ -1,8 +1,8 @@
-# MailPilot Improvement Review Brief
+# GmailPilot Improvement Review Brief
 
 ## Purpose
 
-This document is a review brief for Cursor. It contains improvement ideas based on the current MailPilot repository, its product specification, and a local verification run.
+This document is a review brief for Cursor. It contains improvement ideas based on the current GmailPilot repository, its product specification, and a local verification run.
 
 Cursor should **inspect, challenge, refine, and prioritize** these ideas. Do not assume every proposal is correct. Compare each item against the current implementation and the authoritative product documents:
 
@@ -259,7 +259,7 @@ Confirm support and tests for:
 - Duplicate events.
 - Deleted messages or threads.
 - Trash movement.
-- User removal of MailPilot labels.
+- User removal of GmailPilot labels.
 - Label-only changes.
 - Stale history recovery.
 - Empty history responses.
@@ -298,8 +298,8 @@ Analyze a small sample without changing Gmail labels. Show proposed results and 
 Offer a clear setting:
 
 - Analyze only.
-- Apply only `MailPilot/Processed`.
-- Apply all managed MailPilot labels.
+- Apply only `GmailPilot/Processed`.
+- Apply all managed GmailPilot labels.
 
 ### 22. “Why is this here?”
 
@@ -354,7 +354,7 @@ Verify and complete:
 - Gmail reconnect.
 - Gmail disconnect.
 - Delete stored Gmail-derived data.
-- Delete MailPilot account.
+- Delete GmailPilot account.
 - Optional export of classifications/actions.
 
 Disconnecting Gmail is not the same as deleting retained data.
@@ -581,7 +581,7 @@ Queries that return an empty array after a database error can make an outage loo
 
 Return a concise but evidence-backed report with these sections:
 
-1. **Executive verdict** — Is MailPilot safe for personal daily use now? Why or why not?
+1. **Executive verdict** — Is GmailPilot safe for personal daily use now? Why or why not?
 2. **Confirmed P0 findings** — Exact file/line evidence and real failure mode.
 3. **Disagreements or corrections** — Which ideas in this document are wrong, outdated, or already solved?
 4. **Missing improvements** — Important issues not listed here.

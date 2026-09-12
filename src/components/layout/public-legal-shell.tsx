@@ -13,7 +13,7 @@ export function PublicLegalShell({ children }: { children: ReactNode }) {
         <div className="mx-auto flex w-full max-w-3xl items-center justify-between px-6 py-4">
           <Link
             href="/"
-            aria-label="MailPilot home"
+            aria-label="GmailPilot home"
             className="focus-visible:ring-ring rounded-lg focus-visible:ring-3 focus-visible:outline-none"
           >
             <Logo />

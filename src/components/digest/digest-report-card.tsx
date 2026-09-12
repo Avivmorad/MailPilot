@@ -99,7 +99,7 @@ export function DigestReportCard({
         <CardContent>
           <EmptyState
             title="No digest yet"
-            description="Run a scan to generate an in-app digest. Counts come from mail already stored in MailPilot."
+            description="Run a scan to generate an in-app digest. Counts come from mail already stored in GmailPilot."
             action={
               <Link href="/dashboard#scan" className={buttonVariants({ size: "sm" })}>
                 Scan now

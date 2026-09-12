@@ -8,7 +8,7 @@ export function DisconnectGmailButton() {
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     if (
       !window.confirm(
-        "Disconnect Gmail? MailPilot will stop scanning. Historical summaries stay until you delete analysis data.",
+        "Disconnect Gmail? GmailPilot will stop scanning. Historical summaries stay until you delete analysis data.",
       )
     ) {
       event.preventDefault();
@@ -17,7 +17,7 @@ export function DisconnectGmailButton() {
 
   return (
     <form action="/api/gmail/disconnect" method="post" onSubmit={onSubmit}>
-      <Button type="submit" variant="destructive" aria-label="Disconnect Gmail from MailPilot">
+      <Button type="submit" variant="destructive" aria-label="Disconnect Gmail from GmailPilot">
         Disconnect Gmail
       </Button>
     </form>

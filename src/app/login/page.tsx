@@ -155,7 +155,7 @@ function LoginForm() {
           </CardTitle>
           <CardDescription>
             {mode === "signin"
-              ? "Welcome back. Sign in to your MailPilot account."
+              ? "Welcome back. Sign in to your GmailPilot account."
               : mode === "signup"
                 ? "Sign up to start triaging your inbox."
                 : "We will email a reset link if that address has an account."}

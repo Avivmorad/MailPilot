@@ -50,7 +50,7 @@ export function ScanPreferencesForm({
       <CardHeader>
         <CardTitle>Daily scan</CardTitle>
         <CardDescription>
-          MailPilot runs an incremental scan once a day at this local time. Manual Scan now is
+          GmailPilot runs an incremental scan once a day at this local time. Manual Scan now is
           unchanged.
         </CardDescription>
       </CardHeader>

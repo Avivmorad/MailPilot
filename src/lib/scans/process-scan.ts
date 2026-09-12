@@ -8,7 +8,7 @@ import { reconcileActionItem } from "@/lib/actions/reconcile-action";
 import { getContextLimits, type ContextLimits } from "@/lib/config/env";
 import { classifyDirection, parseAddressList, parseEmailAddress } from "@/lib/gmail/addresses";
 import { mergeUserEmails, safeListSendAsEmails } from "@/lib/gmail/aliases";
-import type { MailPilotLogicalLabel } from "@/lib/gmail/constants";
+import type { GmailPilotLogicalLabel } from "@/lib/gmail/constants";
 import { labelDiff, logicalLabelsForAnalysis } from "@/lib/gmail/label-plan";
 import type { ParsedGmailMessage } from "@/lib/gmail/parser";
 import { GmailConnectError } from "@/lib/gmail/oauth";
@@ -75,9 +75,9 @@ function participantsOf(
   return [...byEmail.values()];
 }
 
-function mailpilotIdsOnMessage(
+function managedLabelIdsOnMessage(
   labelIds: string[],
-  labelMap: Map<MailPilotLogicalLabel, string>,
+  labelMap: Map<GmailPilotLogicalLabel, string>,
 ): string[] {
   const ours = new Set(labelMap.values());
   return labelIds.filter((id) => ours.has(id));
@@ -329,7 +329,7 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
     let messagesProcessed = 0;
     let progressWrites = Promise.resolve();
     const labelMap =
-      threadIds.length > 0 ? await gmail.loadLabelMap() : new Map<MailPilotLogicalLabel, string>();
+      threadIds.length > 0 ? await gmail.loadLabelMap() : new Map<GmailPilotLogicalLabel, string>();
 
     await store.updateScanRun(scanId, {
       status: "RUNNING",
@@ -494,7 +494,7 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
           const desiredIds = desiredLogical
             .map((name) => labelMap.get(name))
             .filter((id): id is string => typeof id === "string");
-          const currentIds = mailpilotIdsOnMessage(latest.labelIds, labelMap);
+          const currentIds = managedLabelIdsOnMessage(latest.labelIds, labelMap);
           const diff = labelDiff(currentIds, desiredIds);
           await gmail.modifyThreadLabels(gmailThreadId, diff.addLabelIds, diff.removeLabelIds);
         }

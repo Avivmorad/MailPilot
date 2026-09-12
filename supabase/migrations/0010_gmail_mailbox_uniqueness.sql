@@ -1,6 +1,6 @@
--- One active Gmail mailbox per MailPilot user (not merely unique per user_id).
+-- One active Gmail mailbox per GmailPilot user (not merely unique per user_id).
 -- If CREATE INDEX fails, two CONNECTED rows already share an address: disconnect
--- Gmail on one MailPilot account in the app, then re-run this file.
+-- Gmail on one GmailPilot account in the app, then re-run this file.
 
 create unique index if not exists gmail_connections_one_active_mailbox_email
   on public.gmail_connections (lower(gmail_email))

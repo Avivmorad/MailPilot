@@ -4,8 +4,7 @@ import type { ActionRecord } from "@/lib/actions/reconcile-action";
 import type { EmailTriageProvider } from "@/lib/ai/analyze-thread";
 import type { ThreadAnalysisInput } from "@/lib/ai/types";
 import { threadAnalysisSchema, type ThreadAnalysis } from "@/lib/ai/schemas";
-import type { MailPilotLogicalLabel } from "@/lib/gmail/constants";
-import { MAILPILOT_LABELS } from "@/lib/gmail/constants";
+import { GMAILPILOT_LABELS, type GmailPilotLogicalLabel } from "@/lib/gmail/constants";
 import type { ParsedGmailMessage } from "@/lib/gmail/parser";
 import { uniqueTopActions } from "@/lib/digest/build-digest";
 import {
@@ -229,7 +228,7 @@ function createMailbox(seed: ParsedGmailMessage[]) {
     list.push(item);
     threads.set(item.gmailThreadId, list);
   }
-  const labels = new Map<MailPilotLogicalLabel, string>();
+  const labels = new Map<GmailPilotLogicalLabel, string>();
   const appliedAdds: string[][] = [];
   let historyId = 20;
   let labelCreateCount = 0;
@@ -273,7 +272,7 @@ function createMailbox(seed: ParsedGmailMessage[]) {
     },
     async loadLabelMap() {
       if (labels.size === 0) {
-        for (const spec of MAILPILOT_LABELS) {
+        for (const spec of GMAILPILOT_LABELS) {
           labels.set(spec.logicalName, `L_${spec.logicalName}`);
           labelCreateCount += 1;
         }
@@ -384,7 +383,7 @@ describe("scan integration", () => {
     expect(store.threads.size).toBe(1);
     expect(store.messages.size).toBe(1);
     expect(store.actions.size).toBe(1);
-    expect(mailbox.labelCreateCount).toBe(MAILPILOT_LABELS.length);
+    expect(mailbox.labelCreateCount).toBe(GMAILPILOT_LABELS.length);
     expect(mailbox.appliedAdds[0]?.length).toBeGreaterThan(0);
     expect(mailbox.appliedAdds[1]).toEqual([]);
 
@@ -524,11 +523,11 @@ describe("scan integration", () => {
     expect(bob.actions.size).toBe(0);
   });
 
-  it("reuses already-created MailPilot labels instead of creating duplicates", async () => {
+  it("reuses already-created GmailPilot labels instead of creating duplicates", async () => {
     const store = createMemoryStore("user-1", "conn-1");
     const mailbox = createMailbox([message()]);
     await mailbox.loadLabelMap();
-    expect(mailbox.labelCreateCount).toBe(MAILPILOT_LABELS.length);
+    expect(mailbox.labelCreateCount).toBe(GMAILPILOT_LABELS.length);
 
     await scan({
       store,
@@ -536,7 +535,7 @@ describe("scan integration", () => {
       analyze: async () => ({ ok: true as const, analysis: analysis() }),
     });
     await mailbox.loadLabelMap();
-    expect(mailbox.labelCreateCount).toBe(MAILPILOT_LABELS.length);
+    expect(mailbox.labelCreateCount).toBe(GMAILPILOT_LABELS.length);
   });
 
   it("runs an initial lookback scan and skips Gemini on an identical second scan", async () => {

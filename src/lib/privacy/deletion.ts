@@ -123,7 +123,7 @@ export function createSupabaseDeletionPort(): AccountDeletionPort {
     async deleteAuthUser(userId) {
       const { error } = await db.auth.admin.deleteUser(userId);
       if (error) {
-        throw new Error("Failed to delete MailPilot account");
+        throw new Error("Failed to delete GmailPilot account");
       }
     },
   };

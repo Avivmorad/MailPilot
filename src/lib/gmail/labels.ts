@@ -1,14 +1,19 @@
 import { google, type gmail_v1 } from "googleapis";
 
 import { createAdminClient } from "@/lib/supabase/admin";
-import { MAILPILOT_LABELS, type MailPilotLogicalLabel } from "@/lib/gmail/constants";
+import {
+  GMAILPILOT_LABELS,
+  resolveExistingManagedLabel,
+  type GmailPilotLogicalLabel,
+} from "@/lib/gmail/constants";
 import { createOAuth2Client } from "@/lib/gmail/oauth";
 import { GMAIL_UNITS } from "@/lib/gmail/quota";
 import { withGmailRetry } from "@/lib/gmail/retry";
 
 /**
- * Ensure managed MailPilot labels exist in Gmail and persist the
- * logical_name -> gmail_label_id mapping. Idempotent.
+ * Ensure managed GmailPilot labels exist in Gmail and persist the
+ * logical_name -> gmail_label_id mapping. Idempotent. Reuses existing
+ * MailPilot/ labels so already-connected mailboxes are not duplicated.
  */
 export async function ensureManagedLabels(
   connectionId: string,
@@ -28,8 +33,10 @@ export async function ensureManagedLabels(
 
   const db = createAdminClient();
 
-  for (const spec of MAILPILOT_LABELS) {
-    let gmailLabelId = byName.get(spec.gmailLabelName);
+  for (const spec of GMAILPILOT_LABELS) {
+    const matched = resolveExistingManagedLabel(byName, spec);
+    let gmailLabelId = matched?.id;
+    let storedName = matched?.name ?? spec.gmailLabelName;
     if (!gmailLabelId) {
       const created = await withGmailRetry(
         () =>
@@ -47,6 +54,7 @@ export async function ensureManagedLabels(
         throw new Error(`Failed to create Gmail label ${spec.gmailLabelName}`);
       }
       gmailLabelId = created.data.id;
+      storedName = spec.gmailLabelName;
       byName.set(spec.gmailLabelName, gmailLabelId);
     }
 
@@ -55,7 +63,7 @@ export async function ensureManagedLabels(
         gmail_connection_id: connectionId,
         logical_name: spec.logicalName,
         gmail_label_id: gmailLabelId,
-        gmail_label_name: spec.gmailLabelName,
+        gmail_label_name: storedName,
       },
       { onConflict: "gmail_connection_id,logical_name" },
     );
@@ -74,20 +82,20 @@ async function listAllLabels(gmail: gmail_v1.Gmail): Promise<gmail_v1.Schema$Lab
 
 export async function loadLabelIdMap(
   connectionId: string,
-): Promise<Map<MailPilotLogicalLabel, string>> {
+): Promise<Map<GmailPilotLogicalLabel, string>> {
   const db = createAdminClient();
   const { data, error } = await db
     .from("gmail_labels")
     .select("logical_name, gmail_label_id")
     .eq("gmail_connection_id", connectionId);
   if (error) {
-    throw new Error("Failed to load MailPilot label mappings");
+    throw new Error("Failed to load GmailPilot label mappings");
   }
-  const map = new Map<MailPilotLogicalLabel, string>();
+  const map = new Map<GmailPilotLogicalLabel, string>();
   for (const row of data ?? []) {
-    const logical = row.logical_name as MailPilotLogicalLabel;
+    const logical = row.logical_name as GmailPilotLogicalLabel;
     if (
-      MAILPILOT_LABELS.some((spec) => spec.logicalName === logical) &&
+      GMAILPILOT_LABELS.some((spec) => spec.logicalName === logical) &&
       typeof row.gmail_label_id === "string"
     ) {
       map.set(logical, row.gmail_label_id);

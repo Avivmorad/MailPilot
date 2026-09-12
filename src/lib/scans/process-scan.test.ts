@@ -4,7 +4,7 @@ import type { ActionRecord } from "@/lib/actions/reconcile-action";
 import type { EmailTriageProvider } from "@/lib/ai/analyze-thread";
 import { TRIAGE_PROMPT_VERSION } from "@/lib/ai/prompts";
 import { threadAnalysisSchema, type ThreadAnalysis } from "@/lib/ai/schemas";
-import type { MailPilotLogicalLabel } from "@/lib/gmail/constants";
+import type { GmailPilotLogicalLabel } from "@/lib/gmail/constants";
 import type { ParsedGmailMessage } from "@/lib/gmail/parser";
 import type { InitialLookbackDays } from "@/lib/scans/lookback";
 import {
@@ -69,7 +69,7 @@ function parsedMessage(overrides: Partial<ParsedGmailMessage> = {}): ParsedGmail
   };
 }
 
-const LABEL_MAP = new Map<MailPilotLogicalLabel, string>([
+const LABEL_MAP = new Map<GmailPilotLogicalLabel, string>([
   ["important", "L_IMP"],
   ["action_required", "L_ACT"],
   ["low_priority", "L_LOW"],

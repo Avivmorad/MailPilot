@@ -1,4 +1,4 @@
-# MailPilot — Ordered Improvement Plan
+# GmailPilot — Ordered Improvement Plan
 
 Work through the following tasks in order. Do not implement everything in one large change.
 
@@ -142,7 +142,7 @@ Implement separate actions for:
 
 1. Delete analysis data.
 2. Disconnect Gmail.
-3. Delete the entire MailPilot account.
+3. Delete the entire GmailPilot account.
 
 Requirements:
 

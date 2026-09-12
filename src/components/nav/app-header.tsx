@@ -21,7 +21,7 @@ export function AppHeader({ email, current }: { email?: string | null; current: 
         <Link
           href="/dashboard"
           className="focus-visible:ring-ring shrink-0 rounded-lg hover:opacity-90 focus-visible:ring-3 focus-visible:outline-none"
-          aria-label="MailPilot home"
+          aria-label="GmailPilot home"
         >
           <Logo />
         </Link>

@@ -1,6 +1,6 @@
 ---
 name: Bug report
-about: Something in MailPilot is broken or incorrect
+about: Something in GmailPilot is broken or incorrect
 title: ""
 labels: bug
 ---

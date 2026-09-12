@@ -54,10 +54,10 @@ export default async function OnboardingPage({
   return (
     <AppChrome user={user} current="onboarding" width="narrow">
       <PageHeader
-        title="Set up MailPilot"
+        title="Set up GmailPilot"
         description={
           step === "connect_gmail"
-            ? "Connect Gmail first. MailPilot never sends, deletes, or archives mail for you."
+            ? "Connect Gmail first. GmailPilot never sends, deletes, or archives mail for you."
             : "Choose lookback, daily scan time, and optional triage rules, then run the first scan."
         }
       />

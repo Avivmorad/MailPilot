@@ -4,8 +4,8 @@ import { publicAppOrigin } from "@/lib/seo/public-origin";
 
 describe("publicAppOrigin", () => {
   it("strips a trailing slash", () => {
-    expect(publicAppOrigin({ NEXT_PUBLIC_APP_URL: "https://mailpilot.example/" })).toBe(
-      "https://mailpilot.example",
+    expect(publicAppOrigin({ NEXT_PUBLIC_APP_URL: "https://gmailpilot.example/" })).toBe(
+      "https://gmailpilot.example",
     );
   });
 

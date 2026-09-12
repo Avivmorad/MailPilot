@@ -4,7 +4,7 @@ Operating guidance for AI agents and developers working in this repository.
 
 ## Source of truth
 
-The product name is **MailPilot** (the spec uses the temporary name "Inbox Triage AI").
+The product name is **GmailPilot** (the spec uses the temporary name "Inbox Triage AI").
 
 The full product and technical specification lives at [`docs/PROJECT_SPEC.md`](docs/PROJECT_SPEC.md).
 Owner-level product decisions that refine it live at
@@ -24,7 +24,7 @@ connections (`next_scan_at`), 270s job lease, one connection per Hobby run
 (`maxDuration` 300). Apply `0007_scan_scheduling.sql` and
 `0008_scan_admission.sql` (one RUNNING scan per connection). Apply
 `0009_function_hardening.sql` so signup triggers are not callable via the Data API. Apply
-`0010_gmail_mailbox_uniqueness.sql` so one Gmail inbox cannot be connected to two MailPilot
+`0010_gmail_mailbox_uniqueness.sql` so one Gmail inbox cannot be connected to two GmailPilot
 users at once. Default daily
 time is 08:00 Asia/Jerusalem. Phase 9: in-app digest after each
 successful/partial scan; email digest is a later extension. Also shipped:

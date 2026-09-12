@@ -1,7 +1,7 @@
 import type { ThreadAnalysis } from "@/lib/ai/schemas";
 import type { ActionRecord } from "@/lib/actions/reconcile-action";
 import type { HistoryListResult } from "@/lib/gmail/history";
-import type { MailPilotLogicalLabel } from "@/lib/gmail/constants";
+import type { GmailPilotLogicalLabel } from "@/lib/gmail/constants";
 import type { ParsedGmailMessage } from "@/lib/gmail/parser";
 import type { InitialLookbackDays } from "@/lib/scans/lookback";
 
@@ -71,7 +71,7 @@ export interface ScanGmailPort {
   listHistoryChanges(startHistoryId: string): Promise<HistoryListResult>;
   fetchThread(threadId: string): Promise<ParsedGmailMessage[]>;
   getProfileHistoryId(): Promise<string | null>;
-  loadLabelMap(): Promise<Map<MailPilotLogicalLabel, string>>;
+  loadLabelMap(): Promise<Map<GmailPilotLogicalLabel, string>>;
   modifyThreadLabels(
     threadId: string,
     addLabelIds: string[],

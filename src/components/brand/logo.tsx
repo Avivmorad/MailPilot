@@ -14,7 +14,7 @@ export function Logo({ className, showWordmark = true }: LogoProps) {
       <svg
         viewBox="0 0 24 24"
         role="img"
-        aria-label="MailPilot logo"
+        aria-label="GmailPilot logo"
         className="text-primary size-6"
         fill="none"
         stroke="currentColor"
@@ -27,7 +27,7 @@ export function Logo({ className, showWordmark = true }: LogoProps) {
         <path d="m9.5 8.5 1.5 1.5 3-3" />
       </svg>
       {showWordmark ? (
-        <span className="text-foreground text-base font-bold tracking-tight">MailPilot</span>
+        <span className="text-foreground text-base font-bold tracking-tight">GmailPilot</span>
       ) : null}
     </span>
   );

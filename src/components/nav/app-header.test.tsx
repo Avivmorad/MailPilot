@@ -14,7 +14,7 @@ describe("AppHeader", () => {
     render(<AppHeader email="user@example.com" current="mail" />);
 
     expect(screen.getByRole("navigation", { name: "Main" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "MailPilot home" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "GmailPilot home" })).toHaveAttribute(
       "href",
       "/dashboard",
     );

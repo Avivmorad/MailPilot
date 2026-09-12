@@ -11,7 +11,7 @@ function flashMessage(
   text: string;
 } | null {
   if (gmail === "connected") {
-    return { kind: "ok", text: "Gmail connected. MailPilot labels are ready in your mailbox." };
+    return { kind: "ok", text: "Gmail connected. GmailPilot labels are ready in your mailbox." };
   }
   if (gmail === "disconnected") {
     return { kind: "ok", text: "Gmail disconnected. Historical summaries were kept." };
@@ -25,17 +25,17 @@ function flashMessage(
       "Gmail OAuth is not configured. Add GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI, and TOKEN_ENCRYPTION_KEY to .env.local.",
     denied: "Gmail access was not granted. You can try connecting again.",
     invalid_state: "The Gmail connection request expired. Please try again.",
-    not_signed_in: "Sign in to MailPilot, then connect Gmail.",
+    not_signed_in: "Sign in to GmailPilot, then connect Gmail.",
     missing_code: "Google did not return an authorization code. Please try again.",
     no_refresh_token:
-      "Google did not return a refresh token. Remove MailPilot from your Google account permissions and connect again.",
+      "Google did not return a refresh token. Remove GmailPilot from your Google account permissions and connect again.",
     gmail_api:
       "Gmail API is not enabled (or profile lookup failed). In Google Cloud enable Gmail API, wait a minute, then try Connect Gmail again.",
     gmail_profile: "Google did not return a Gmail address for this account.",
     persist:
       "Could not save the Gmail connection. Apply supabase/migrations/0002_gmail_connections.sql in the SQL Editor, then try again.",
     mailbox_in_use:
-      "This Gmail inbox is already connected to another MailPilot account. Disconnect it there first, then try again.",
+      "This Gmail inbox is already connected to another GmailPilot account. Disconnect it there first, then try again.",
     encryption_key:
       "TOKEN_ENCRYPTION_KEY is invalid. It must be 64 hex characters from `openssl rand -hex 32`. Update .env.local and restart.",
     token_exchange: "Google token exchange failed. Try Connect Gmail again.",
@@ -69,7 +69,7 @@ function statusCopy(status: GmailStatusPayload): { title: string; body: string }
   if (!connection || connection.status === "DISCONNECTED") {
     return {
       title: "Connect Gmail",
-      body: "Connect Gmail to scan up to the last month. You choose the window. MailPilot never sends mail for you.",
+      body: "Connect Gmail to scan up to the last month. You choose the window. GmailPilot never sends mail for you.",
     };
   }
 
@@ -89,7 +89,7 @@ function statusCopy(status: GmailStatusPayload): { title: string; body: string }
 
   return {
     title: "Gmail connected",
-    body: `Connected as ${connection.gmailEmail}. MailPilot labels are managed automatically.`,
+    body: `Connected as ${connection.gmailEmail}. GmailPilot labels are managed automatically.`,
   };
 }
 

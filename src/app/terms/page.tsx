@@ -5,8 +5,8 @@ import { PublicLegalShell } from "@/components/layout/public-legal-shell";
 import { TERMS_SECTIONS } from "@/lib/privacy/public-terms";
 
 export const metadata: Metadata = {
-  title: "Terms — MailPilot",
-  description: "Terms for using MailPilot and connecting Gmail.",
+  title: "Terms — GmailPilot",
+  description: "Terms for using GmailPilot and connecting Gmail.",
 };
 
 export default function TermsPage() {
@@ -14,7 +14,7 @@ export default function TermsPage() {
     <PublicLegalShell>
       <h1 className="text-foreground text-3xl font-bold tracking-tight">Terms of use</h1>
       <p className="text-muted-foreground mt-3 text-sm">
-        These terms describe the current MailPilot product. They are not a substitute for legal
+        These terms describe the current GmailPilot product. They are not a substitute for legal
         advice. Privacy and Gmail data use are explained separately.
       </p>
       <div className="mt-8 space-y-8">

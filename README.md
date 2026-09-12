@@ -1,8 +1,8 @@
-# MailPilot
+# GmailPilot
 
 Gmail inbox triage that answers three questions: **what happened, what do I need to do, and what am I waiting for?**
 
-MailPilot connects a Gmail account, scans threads over a chosen window, classifies them with Gemini (structured JSON, validated with Zod), applies `MailPilot/*` labels, and shows an inbox summary, open tasks, a waiting list, and an in-app digest. It never auto-sends, deletes, or archives mail.
+GmailPilot connects a Gmail account, scans threads over a chosen window, classifies them with Gemini (structured JSON, validated with Zod), applies `GmailPilot/*` labels (existing `MailPilot/*` labels are still recognized), and shows an inbox summary, open tasks, a waiting list, and an in-app digest. It never auto-sends, deletes, or archives mail.
 
 **Live app:** [mail-pilot-avivmoradteam.vercel.app](https://mail-pilot-avivmoradteam.vercel.app)
 
@@ -14,7 +14,7 @@ The product and technical spec is [`docs/PROJECT_SPEC.md`](docs/PROJECT_SPEC.md)
 - **Incremental sync** via the Gmail History API after the first successful scan
 - **Daily scheduled scan** (default 08:00 Asia/Jerusalem) through a global cron dispatcher
 - **Mail tabs** for inbox summary vs open tasks (grouped by category) vs ignored noise
-- **Gmail labels:** `MailPilot/Important`, `MailPilot/Action Required`, `MailPilot/Low Priority`, `MailPilot/Processed`
+- **Gmail labels:** `GmailPilot/Important`, `GmailPilot/Action Required`, `GmailPilot/Low Priority`, `GmailPilot/Processed` (legacy `MailPilot/*` names are still recognized)
 - **In-app digest** after each successful or partial scan (email digest is not in the MVP)
 - **Privacy:** no long-term storage of full email bodies; failed AI does not apply labels
 
@@ -92,7 +92,7 @@ Apply SQL in the Supabase SQL Editor, in this order:
 7. `supabase/migrations/0007_scan_scheduling.sql`
 8. `supabase/migrations/0008_scan_admission.sql` — one RUNNING scan per Gmail connection
 9. `supabase/migrations/0009_function_hardening.sql` — signup trigger not callable via the Data API
-10. `supabase/migrations/0010_gmail_mailbox_uniqueness.sql` — one active Gmail inbox per MailPilot user
+10. `supabase/migrations/0010_gmail_mailbox_uniqueness.sql` — one active Gmail inbox per GmailPilot user
 
 RLS is required on user-accessible tables (`user_id = auth.uid()`).
 

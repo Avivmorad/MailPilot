@@ -74,8 +74,8 @@ export function PrivacyControls() {
       <CardHeader>
         <CardTitle>Privacy</CardTitle>
         <CardDescription>
-          These actions only affect your MailPilot data. Disconnecting Gmail keeps summaries.
-          Deleting analysis data removes mail that MailPilot stored. Deleting the account removes
+          These actions only affect your GmailPilot data. Disconnecting Gmail keeps summaries.
+          Deleting analysis data removes mail that GmailPilot stored. Deleting the account removes
           everything and signs you out. See the{" "}
           <Link
             href="/privacy"
@@ -91,7 +91,7 @@ export function PrivacyControls() {
           <h3 className="text-sm font-medium">Delete analysis data</h3>
           <p className="text-muted-foreground text-sm">
             Removes stored messages, threads, actions, digests, and scan history. Does not
-            disconnect Gmail or delete your MailPilot login.
+            disconnect Gmail or delete your GmailPilot login.
           </p>
           <label className="block text-sm" htmlFor="confirm-delete-analysis">
             <span className="text-muted-foreground mb-1.5 block">
@@ -117,7 +117,7 @@ export function PrivacyControls() {
           </Button>
         </section>
         <section className="space-y-2">
-          <h3 className="text-sm font-medium">Delete MailPilot account</h3>
+          <h3 className="text-sm font-medium">Delete GmailPilot account</h3>
           <p className="text-muted-foreground text-sm">
             Revokes Gmail access when possible, deletes all owned product data, and removes your
             login.

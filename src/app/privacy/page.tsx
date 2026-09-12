@@ -5,9 +5,9 @@ import { PublicLegalShell } from "@/components/layout/public-legal-shell";
 import { PRIVACY_POLICY_SECTIONS } from "@/lib/privacy/public-policy";
 
 export const metadata: Metadata = {
-  title: "Privacy — MailPilot",
+  title: "Privacy — GmailPilot",
   description:
-    "How MailPilot uses Gmail, what it stores, and how you can delete analysis data or your account.",
+    "How GmailPilot uses Gmail, what it stores, and how you can delete analysis data or your account.",
 };
 
 export default function PrivacyPage() {
@@ -17,7 +17,7 @@ export default function PrivacyPage() {
         Privacy and Gmail data use
       </h1>
       <p className="text-muted-foreground mt-3 text-sm">
-        This page describes how MailPilot handles Gmail for the current product. It is the public
+        This page describes how GmailPilot handles Gmail for the current product. It is the public
         explanation Google OAuth verification expects, not legal advice.
       </p>
       <div className="mt-8 space-y-8">

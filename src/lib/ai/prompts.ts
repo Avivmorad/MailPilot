@@ -1,6 +1,7 @@
 import { categoryPromptLines } from "@/lib/ai/categories";
 import type { ThreadAnalysisInput } from "@/lib/ai/types";
 
+/** Opaque reuse key for stored analyses. Do not change just for a product rename. */
 export const TRIAGE_PROMPT_VERSION = "mailpilot-triage-v9";
 
 export const UNTRUSTED_THREAD_START = "-----BEGIN UNTRUSTED EMAIL THREAD-----";
@@ -97,7 +98,7 @@ function preferencePromptLines(preferences: ThreadAnalysisInput["preferences"]):
   }
   const lines: string[] = [
     "",
-    "Owner triage preferences (authoritative MailPilot settings, not email content):",
+    "Owner triage preferences (authoritative GmailPilot settings, not email content):",
   ];
   if (preferences.vipSenders?.length) {
     lines.push(`- Treat these senders as VIP: ${preferences.vipSenders.join(", ")}`);

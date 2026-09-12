@@ -13,14 +13,14 @@ describe("Logo", () => {
   it("renders the wordmark by default", () => {
     render(<Logo />);
 
-    expect(screen.getByText("MailPilot")).toBeInTheDocument();
+    expect(screen.getByText("GmailPilot")).toBeInTheDocument();
     expect(screen.getByRole("img", { name: /logo/i })).toBeInTheDocument();
   });
 
   it("can hide the wordmark", () => {
     render(<Logo showWordmark={false} />);
 
-    expect(screen.queryByText("MailPilot")).not.toBeInTheDocument();
+    expect(screen.queryByText("GmailPilot")).not.toBeInTheDocument();
     expect(screen.getByRole("img", { name: /logo/i })).toBeInTheDocument();
   });
 });

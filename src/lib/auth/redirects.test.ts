@@ -25,8 +25,8 @@ describe("auth redirects", () => {
   });
 
   it("builds a same-origin reset callback", () => {
-    expect(passwordResetRedirectTo("https://mailpilot.example/")).toBe(
-      "https://mailpilot.example/auth/confirm?next=/login/update-password",
+    expect(passwordResetRedirectTo("https://gmailpilot.example/")).toBe(
+      "https://gmailpilot.example/auth/confirm?next=/login/update-password",
     );
   });
 });

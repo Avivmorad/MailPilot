@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { actionChangeAnnouncement } from "@/lib/actions/announcements";
 import { MAX_SNOOZE_DAYS, SNOOZE_DAYS, type SnoozeDays } from "@/lib/actions/patch-schema";
 import { formatDate } from "@/lib/ui/format";
 
@@ -26,6 +27,7 @@ export function ActionControls({
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [customOpen, setCustomOpen] = useState(false);
   const [customDate, setCustomDate] = useState("");
   const [waitingDraft, setWaitingDraft] = useState(waitingFor ?? "");
@@ -35,6 +37,7 @@ export function ActionControls({
   async function patch(body: Record<string, unknown>) {
     setBusy(true);
     setError(null);
+    setNotice(null);
     try {
       const response = await fetch(`/api/actions/${actionId}`, {
         method: "PATCH",
@@ -47,6 +50,7 @@ export function ActionControls({
         return;
       }
       setCustomOpen(false);
+      setNotice(actionChangeAnnouncement(typeof body.op === "string" ? body.op : undefined));
       router.refresh();
     } catch {
       setError("Update failed.");
@@ -175,6 +179,11 @@ export function ActionControls({
         </form>
       ) : null}
 
+      {notice ? (
+        <p className="text-muted-foreground w-full text-xs" role="status" aria-live="polite">
+          {notice}
+        </p>
+      ) : null}
       {error ? (
         <p className="text-destructive w-full text-xs" role="alert">
           {error}

@@ -11,7 +11,7 @@ import {
   INITIAL_LOOKBACK_DAYS,
   type InitialLookbackDays,
 } from "@/lib/scans/lookback";
-import { isMissingScanSchemaError, SCAN_SCHEMA_MISSING_MESSAGE } from "@/lib/scans/errors";
+import { isMissingScanSchemaError, SCAN_IN_PROGRESS, SCAN_SCHEMA_MISSING_MESSAGE } from "@/lib/scans/errors";
 import { openGmailScan, executeGmailScan } from "@/lib/scans/process-scan";
 import { createSupabaseScanStore } from "@/lib/scans/store";
 import { persistDigestAfterScan } from "@/lib/digest/build-digest";
@@ -31,7 +31,15 @@ export const manualScanRequestSchema = z.object({
 const SCAN_RUN_SELECT =
   "id, status, trigger_type, window_start, window_end, started_at, finished_at, messages_discovered, messages_processed, threads_analyzed, threads_discovered, threads_checked, important_count, action_count, reply_count, waiting_count, informational_count, ignored_count, error_code, error_message";
 
-const RATE_LIMIT_MS = 15_000;
+export const MANUAL_SCAN_RATE_LIMIT_MS = 2 * 60_000;
+
+export function isManualScanRateLimited(
+  lastAttemptedScanAt: string | null | undefined,
+  nowMs = Date.now(),
+): boolean {
+  const lastAttempt = lastAttemptedScanAt ? Date.parse(lastAttemptedScanAt) : NaN;
+  return Number.isFinite(lastAttempt) && nowMs - lastAttempt < MANUAL_SCAN_RATE_LIMIT_MS;
+}
 
 export class ScanRequestError extends Error {
   constructor(
@@ -72,11 +80,16 @@ export async function beginManualInitialScan(
     .select("last_attempted_scan_at, last_successful_scan_at")
     .eq("id", connection.connectionId)
     .maybeSingle();
-  const lastAttempt = existing?.last_attempted_scan_at
-    ? Date.parse(existing.last_attempted_scan_at as string)
-    : NaN;
-  if (Number.isFinite(lastAttempt) && Date.now() - lastAttempt < RATE_LIMIT_MS) {
-    throw new ScanRequestError(429, "rate_limited", "A scan was started too recently. Please wait a few seconds.");
+  if (
+    isManualScanRateLimited(
+      typeof existing?.last_attempted_scan_at === "string" ? existing.last_attempted_scan_at : null,
+    )
+  ) {
+    throw new ScanRequestError(
+      429,
+      "rate_limited",
+      "A scan was started too recently. Please wait two minutes before scanning again.",
+    );
   }
 
   const triggerType = existing?.last_successful_scan_at ? "MANUAL" : "INITIAL";
@@ -122,7 +135,7 @@ export async function startManualInitialScan(
 }
 
 function remapScanStartError(error: unknown): never {
-  if (error instanceof Error && error.message === "SCAN_IN_PROGRESS") {
+  if (error instanceof Error && error.message === SCAN_IN_PROGRESS) {
     throw new ScanRequestError(409, "scan_in_progress", "A scan is already running for this Gmail account.");
   }
   if (isGmailQuotaError(error)) {

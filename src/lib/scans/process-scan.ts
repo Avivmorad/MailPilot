@@ -9,6 +9,7 @@ import type { MailPilotLogicalLabel } from "@/lib/gmail/constants";
 import { labelDiff, logicalLabelsForAnalysis } from "@/lib/gmail/label-plan";
 import type { ParsedGmailMessage } from "@/lib/gmail/parser";
 import { GMAIL_QUOTA_USER_MESSAGE, isGmailQuotaError } from "@/lib/gmail/retry";
+import { SCAN_IN_PROGRESS } from "@/lib/scans/errors";
 import { buildThreadContext } from "@/lib/gmail/thread-context";
 import { messageContentHash } from "@/lib/scans/content-hash";
 import {
@@ -200,7 +201,7 @@ export async function openGmailScan(input: ProcessGmailScanInput): Promise<Prepa
   if (running?.startedAt) {
     const started = Date.parse(running.startedAt);
     if (Number.isFinite(started) && now.getTime() - started < STALE_RUNNING_MS) {
-      throw new Error("SCAN_IN_PROGRESS");
+      throw new Error(SCAN_IN_PROGRESS);
     }
     await input.store.failScan(running.id, "stale_lease", "Previous scan lease expired");
   } else if (running) {

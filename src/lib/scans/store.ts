@@ -3,7 +3,7 @@ import { threadAnalysisSchema, type ThreadAnalysis } from "@/lib/ai/schemas";
 import type { ActionRecord } from "@/lib/actions/reconcile-action";
 import { parseAddressList, parseEmailAddress } from "@/lib/gmail/addresses";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { scanStoreFailure } from "@/lib/scans/errors";
+import { scanStoreFailure, isScanRunUniqueViolation, SCAN_IN_PROGRESS } from "@/lib/scans/errors";
 import { timestampOrNull } from "@/lib/scans/timestamps";
 import type { ScanSettings, ScanStorePort, StoredThreadRow } from "@/lib/scans/types";
 
@@ -110,6 +110,9 @@ export function createSupabaseScanStore(): ScanStorePort {
         })
         .select("id")
         .single();
+      if (isScanRunUniqueViolation(error)) {
+        throw new Error(SCAN_IN_PROGRESS);
+      }
       if (error || !data) {
         failStore("Failed to create scan run", error);
       }

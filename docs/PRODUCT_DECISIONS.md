@@ -199,3 +199,17 @@ alone must not cause an actionable request to be ignored. OTP, magic links, and
 | Routine tracking / shipment out for delivery, itinerary, boarding pass, confirmed appointment       | Summary | `informational`              |
 | Useful mail that assigns work only to someone else; being CC’d is not a task                        | Summary | `informational`              |
 | Job alerts, receipt-only application acknowledgments, bot mail with no user action, surveys, promos | Ignore  | `ignore`                     |
+
+## App-account emails (Supabase Auth)
+
+Signup / magic-link / password-reset mail is sent by **Supabase Auth**, not Gmail and not
+MailPilot. Default From is “Supabase Auth” (`noreply@mail.app.supabase.io`) with generic
+English templates. Clicking the link still confirms the **MailPilot app account**. Do not
+confuse this with **Connect Gmail** (Google OAuth to scan the mailbox).
+
+- **Subject/body:** Authentication → Email → Templates (Confirm signup, Magic Link, Reset
+  password). Keep `{{ .ConfirmationURL }}`.
+- **From / sender (“source”):** **Set up custom SMTP to edit the source.** Without a
+  domain + Custom SMTP (Resend, SendGrid, Google Workspace, etc.), Gmail will keep showing
+  Supabase Auth. Sender name MailPilot + a domain address only after SMTP is configured.
+  Not required for an internal launch; templates alone change subject and body immediately.

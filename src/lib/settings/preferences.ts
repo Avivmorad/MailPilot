@@ -114,24 +114,42 @@ const SETTINGS_SELECT =
 
 export async function getScanPreferences(userId: string): Promise<ScanPreferences> {
   const db = createAdminClient();
-  const { data, error } = await db
+  const existing = await db
     .from("user_triage_settings")
-    .upsert(
-      {
-        user_id: userId,
-        initial_lookback_days: 7,
-        daily_scan_time: DEFAULT_DAILY_SCAN_TIME,
-        timezone: DEFAULT_SCAN_TIMEZONE,
-        scan_interval_minutes: null,
-      },
-      { onConflict: "user_id" },
-    )
     .select(SETTINGS_SELECT)
-    .single();
-  if (error || !data) {
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (existing.error) {
     throw new Error("Failed to load scan preferences");
   }
-  return rowToPreferences(data as Record<string, unknown>);
+  if (existing.data) {
+    return rowToPreferences(existing.data as Record<string, unknown>);
+  }
+
+  const inserted = await db
+    .from("user_triage_settings")
+    .insert({
+      user_id: userId,
+      initial_lookback_days: 7,
+      daily_scan_time: DEFAULT_DAILY_SCAN_TIME,
+      timezone: DEFAULT_SCAN_TIMEZONE,
+      scan_interval_minutes: null,
+    })
+    .select(SETTINGS_SELECT)
+    .single();
+  if (!inserted.error && inserted.data) {
+    return rowToPreferences(inserted.data as Record<string, unknown>);
+  }
+
+  const retry = await db
+    .from("user_triage_settings")
+    .select(SETTINGS_SELECT)
+    .eq("user_id", userId)
+    .single();
+  if (retry.error || !retry.data) {
+    throw new Error("Failed to load scan preferences");
+  }
+  return rowToPreferences(retry.data as Record<string, unknown>);
 }
 
 export async function updateScanPreferences(

@@ -15,6 +15,17 @@ function calendarDateInTimeZone(now: Date, timeZone: string): string {
   }).format(now);
 }
 
+/** Add whole calendar days in the display timezone (not 24h UTC slices). */
+export function addCalendarDaysIso(
+  days: number,
+  now: Date = new Date(),
+  timeZone: string = DISPLAY_TZ,
+): string {
+  const today = calendarDateInTimeZone(now, timeZone);
+  const start = Date.parse(`${today}T12:00:00.000Z`);
+  return new Date(start + days * 86_400_000).toISOString().slice(0, 10);
+}
+
 function parseInstant(iso: string): Date | null {
   const date = new Date(iso);
   return Number.isFinite(date.getTime()) ? date : null;

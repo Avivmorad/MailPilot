@@ -156,6 +156,8 @@ export function sanitizeSentryEvent(event: Event): Event | null {
         }
       : event.exception,
     tags: allowed,
+    transaction:
+      route ?? (event.transaction ? redactSensitiveText(event.transaction) : event.transaction),
     contexts: {
       ...(event.contexts?.trace ? { trace: event.contexts.trace } : {}),
       ...(event.contexts?.app ? { app: event.contexts.app } : {}),

@@ -1,3 +1,4 @@
+import { normalizeDeadline } from "@/lib/ai/deadlines";
 import { z } from "zod";
 
 export const SNOOZE_DAYS = [1, 3, 7] as const;
@@ -17,7 +18,11 @@ export const actionPatchSchema = z.discriminatedUnion("op", [
     .object({
       op: z.literal("snooze"),
       days: snoozeDaysSchema.optional(),
-      until: z.string().regex(ISO_DATE).optional(),
+      until: z
+        .string()
+        .regex(ISO_DATE)
+        .refine((value) => normalizeDeadline(value) === value, { message: "invalid_calendar_date" })
+        .optional(),
     })
     .superRefine((value, ctx) => {
       const hasDays = value.days != null;

@@ -93,6 +93,16 @@ describe("sentry privacy", () => {
     expect(sanitized?.exception?.values?.[0]?.value).toBe("invalid_grant for [email]");
   });
 
+  it("replaces the transaction name with the sanitized route", () => {
+    const sanitized = sanitizeSentryEvent({
+      transaction: "/api/scans?token=ya29.abc&email=ada@example.com",
+      request: { url: "https://app.example/api/scans?token=ya29.abc" },
+      tags: { route: "/api/scans" },
+    } as Event);
+    expect(sanitized?.transaction).toBe("/api/scans");
+    expect(JSON.stringify(sanitized)).not.toMatch(/ya29|ada@example/i);
+  });
+
   it("drops replay and feedback events", () => {
     expect(sanitizeSentryEvent({ type: "replay_event" } as Event)).toBeNull();
     expect(sanitizeSentryEvent({ type: "feedback" } as Event)).toBeNull();

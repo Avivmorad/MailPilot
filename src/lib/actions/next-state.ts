@@ -44,6 +44,7 @@ export function nextActionState(
     return {
       ...current,
       status: "OPEN",
+      waitingFor: null,
       manualOverride: true,
       completedAt: null,
       snoozedUntil: null,

@@ -40,6 +40,7 @@ describe("correctionFromFeedback", () => {
       applied: true,
       thread: { status: "action_required", requiresAction: true },
       actionStatus: "OPEN",
+      clearWaitingFor: true,
     });
     expect(correctionFromFeedback("wrong", base).applied).toBe(false);
     expect(correctionFromFeedback("not_waiting", base).applied).toBe(false);

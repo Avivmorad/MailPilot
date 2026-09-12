@@ -1,6 +1,13 @@
 import { z } from "zod";
 
-export const AUTH_OTP_TYPES = ["email", "recovery", "invite", "magiclink", "email_change"] as const;
+export const AUTH_OTP_TYPES = [
+  "email",
+  "signup",
+  "recovery",
+  "invite",
+  "magiclink",
+  "email_change",
+] as const;
 
 export type AuthOtpType = (typeof AUTH_OTP_TYPES)[number];
 

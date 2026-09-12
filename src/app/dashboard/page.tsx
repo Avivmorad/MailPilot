@@ -124,7 +124,12 @@ export default async function DashboardPage({
   const showGmailCard = Boolean(params.gmail) || shouldShowGmailRecoveryCard(gmailStatus);
   const emptyCounts = { processed: 0, important: 0, needAction: 0, waiting: 0, ignored: 0, fyi: 0 };
   const latestScan = connected ? await getLatestScanRunForUser(user.id) : null;
-  const since = gmailStatus.connection?.lastSuccessfulScanAt ?? null;
+  const latestScanStatus = latestScan ? String(latestScan.status) : "";
+  const latestStartedAt = typeof latestScan?.started_at === "string" ? latestScan.started_at : null;
+  const since =
+    (latestScanStatus === "SUCCESS" || latestScanStatus === "PARTIAL") && latestStartedAt
+      ? latestStartedAt
+      : (gmailStatus.connection?.lastSuccessfulScanAt ?? null);
   let actionsLoadError = false;
   let countsLoadError = false;
 

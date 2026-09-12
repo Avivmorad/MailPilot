@@ -12,6 +12,7 @@ describe("auth redirects", () => {
     expect(defaultAuthNext("recovery")).toBe("/login/update-password");
     expect(defaultAuthNext("email")).toBe("/login");
     expect(parseAuthOtpType("recovery")).toBe("recovery");
+    expect(parseAuthOtpType("signup")).toBe("signup");
     expect(parseAuthOtpType("evil")).toBeNull();
   });
 

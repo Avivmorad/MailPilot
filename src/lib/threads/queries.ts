@@ -301,6 +301,7 @@ export async function saveThreadFeedback(
           source: "USER",
           completed_at: correction.actionStatus === "COMPLETED" ? now : null,
           snoozed_until: null,
+          ...(correction.clearWaitingFor ? { waiting_for: null } : {}),
         })
         .eq("id", action.id)
         .eq("user_id", userId);

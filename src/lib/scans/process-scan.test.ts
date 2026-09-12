@@ -8,6 +8,7 @@ import type { MailPilotLogicalLabel } from "@/lib/gmail/constants";
 import type { ParsedGmailMessage } from "@/lib/gmail/parser";
 import type { InitialLookbackDays } from "@/lib/scans/lookback";
 import {
+  analysisPromptKey,
   openGmailScan,
   processInitialScan,
   shouldReuseStoredAnalysis,
@@ -379,6 +380,44 @@ describe("processInitialScan", () => {
     expect(store.connection.lastSuccessfulScanAt).toBeNull();
     expect(store.scanRuns.at(-1)?.errorCode).toBe("partial_thread_failures");
     expect(store.scanRuns.at(-1)?.errorMessage).toBe("thread_failures:1:t1");
+  });
+
+  it("does not bump prompt_version when reanalysis fails", async () => {
+    const store = createMemoryStore();
+    const message = parsedMessage();
+    await store.upsertThread({
+      userId: "user-1",
+      connectionId: "conn-1",
+      gmailThreadId: message.gmailThreadId,
+      subject: message.subject,
+      participants: [],
+      latestMessageAt: "2026-09-10T10:00:00.000Z",
+      latestMessageDirection: "INBOUND",
+      analysis: validAnalysis(),
+      lastAnalyzedMessageId: "old-message",
+      promptVersion: "mailpilot-triage-v8",
+      modelName: "gemini-test",
+    });
+    const gmail: ScanGmailPort = {
+      listMessageRefs: async () => [
+        { id: message.gmailMessageId, threadId: message.gmailThreadId },
+      ],
+      listHistoryChanges: async () => {
+        throw new Error("history should not run on the initial scan");
+      },
+      fetchThread: async () => [message],
+      getProfileHistoryId: async () => "hist-1",
+      loadLabelMap: async () => LABEL_MAP,
+      modifyThreadLabels: async () => undefined,
+    };
+
+    await runScan({
+      store,
+      gmail,
+      analyze: async () => ({ ok: false, error: new Error("gemini down") }),
+    });
+
+    expect([...store.threads.values()][0]?.promptVersion).toBe("mailpilot-triage-v8");
   });
 
   it("does not advance the Gmail history checkpoint after a partial incremental scan", async () => {
@@ -836,6 +875,15 @@ describe("openGmailScan admission", () => {
     expect(store.scanRuns.find((run) => run.id === "stale")?.status).toBe("FAILED");
     expect(store.scanRuns.filter((run) => run.status === "RUNNING")).toHaveLength(1);
   });
+
+  it("does not leave a RUNNING scan if settings fail to load", async () => {
+    const store = createMemoryStore();
+    store.getSettings = async () => {
+      throw new Error("settings unavailable");
+    };
+    await expect(admit(store)).rejects.toThrow("settings unavailable");
+    expect(store.scanRuns).toHaveLength(0);
+  });
 });
 
 describe("shouldReuseStoredAnalysis", () => {
@@ -850,5 +898,30 @@ describe("shouldReuseStoredAnalysis", () => {
     expect(shouldReuseStoredAnalysis(row, "m1", "mailpilot-triage-v3")).toBe(false);
     expect(shouldReuseStoredAnalysis(row, "m2", TRIAGE_PROMPT_VERSION)).toBe(false);
     expect(shouldReuseStoredAnalysis(null, "m1", "mailpilot-triage-v4")).toBe(false);
+  });
+
+  it("changes the analysis key when ignore lists or custom instructions change", () => {
+    const base: ScanSettings = {
+      vipSenders: [],
+      ignoredSenders: [],
+      ignoredDomains: [],
+      customAiInstructions: "",
+      timezone: "Asia/Jerusalem",
+      dailyScanTime: "08:00",
+    };
+    const withIgnore = { ...base, ignoredDomains: ["news.example.com"] };
+    expect(analysisPromptKey(base)).not.toBe(analysisPromptKey(withIgnore));
+    expect(
+      shouldReuseStoredAnalysis(
+        {
+          id: "thread-1",
+          lastAnalyzedMessageId: "m1",
+          promptVersion: analysisPromptKey(base),
+          analysis: null,
+        },
+        "m1",
+        analysisPromptKey(withIgnore),
+      ),
+    ).toBe(false);
   });
 });

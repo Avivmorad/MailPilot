@@ -6,12 +6,7 @@ import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { actionChangeAnnouncement } from "@/lib/actions/announcements";
 import { MAX_SNOOZE_DAYS, SNOOZE_DAYS, type SnoozeDays } from "@/lib/actions/patch-schema";
-import { formatDate } from "@/lib/ui/format";
-
-function addCalendarDaysIso(days: number, now = new Date()): string {
-  const next = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
-  return next.toISOString().slice(0, 10);
-}
+import { addCalendarDaysIso, formatDate } from "@/lib/ui/format";
 
 export function ActionControls({
   actionId,

@@ -19,6 +19,7 @@ export interface FeedbackCorrection {
     importance?: "high" | "medium" | "low";
   };
   actionStatus: ActionStatus | null;
+  clearWaitingFor?: boolean;
 }
 
 export function correctionFromFeedback(
@@ -56,6 +57,7 @@ export function correctionFromFeedback(
         applied: true,
         thread: { status: "action_required", requiresAction: true },
         actionStatus: "OPEN",
+        clearWaitingFor: true,
       };
     case "wrong":
       return { applied: false, thread: {}, actionStatus: current.actionStatus };

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  addCalendarDaysIso,
   classForDeadline,
   deadlineProximity,
   displayUrgencyForDeadline,
@@ -49,6 +50,7 @@ describe("isDeadlineOverdue", () => {
     const lateUtc = new Date("2026-09-10T21:30:00.000Z");
     expect(isDeadlineOverdue("2026-09-10", lateUtc)).toBe(true);
     expect(isDeadlineOverdue("2026-09-11", lateUtc)).toBe(false);
+    expect(addCalendarDaysIso(1, lateUtc)).toBe("2026-09-12");
   });
 });
 

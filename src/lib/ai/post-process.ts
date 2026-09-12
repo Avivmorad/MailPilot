@@ -80,6 +80,19 @@ function senderMatches(list: string[] | undefined, from: string | null): boolean
   return haystack.has(parsed.email);
 }
 
+function applyIgnoreNormalization(next: ThreadAnalysis, importance: Importance): void {
+  next.status = "ignore";
+  next.importance = importance;
+  next.requires_action = false;
+  next.requires_reply = false;
+  next.action_type = "none";
+  next.action_summary = null;
+  next.action_reason = null;
+  next.waiting_for = null;
+  next.waiting_since = null;
+  next.urgency = "none";
+}
+
 export function postProcessThreadAnalysis(
   analysis: ThreadAnalysis,
   options: {
@@ -91,7 +104,7 @@ export function postProcessThreadAnalysis(
 ): ThreadAnalysis {
   const next: ThreadAnalysis = { ...analysis };
 
-  next.deadline = groundDeadline(next.deadline, options.threadText);
+  next.deadline = groundDeadline(next.deadline, options.threadText, next.deadline_text);
   next.deadline_text = nonEmpty(next.deadline_text);
   next.action_summary = nonEmpty(next.action_summary);
   next.action_reason = nonEmpty(next.action_reason);
@@ -120,16 +133,7 @@ export function postProcessThreadAnalysis(
   ];
 
   if (isEphemeralAuthNotice(noticeParts) || isIgnoreFamilyNotice(noticeParts)) {
-    next.status = "ignore";
-    next.importance = next.importance === "high" ? "medium" : next.importance;
-    next.requires_action = false;
-    next.requires_reply = false;
-    next.action_type = "none";
-    next.action_summary = null;
-    next.action_reason = null;
-    next.waiting_for = null;
-    next.waiting_since = null;
-    next.urgency = "none";
+    applyIgnoreNormalization(next, next.importance === "high" ? "medium" : next.importance);
   } else if (isUserOwnedActionNotice(noticeParts) || isSecurityEventNotice(noticeParts)) {
     next.status = "action_required";
     next.requires_action = true;
@@ -210,8 +214,7 @@ export function postProcessThreadAnalysis(
     !isCriticalAccountMessage(next) &&
     !isSecurityEventNotice(noticeParts)
   ) {
-    next.status = "ignore";
-    next.importance = "low";
+    applyIgnoreNormalization(next, "low");
   }
 
   if (senderMatches(preferences?.vipSenders, from)) {

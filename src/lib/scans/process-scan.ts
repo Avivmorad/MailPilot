@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 import { tryAnalyzeThread, type EmailTriageProvider } from "@/lib/ai/analyze-thread";
 import { TRIAGE_PROMPT_VERSION } from "@/lib/ai/prompts";
 import { threadAnalysisSchema, type ThreadAnalysis } from "@/lib/ai/schemas";
@@ -91,6 +93,20 @@ export function shouldReuseStoredAnalysis(
     existing.lastAnalyzedMessageId === latestMessageId &&
     existing.promptVersion === promptVersion
   );
+}
+
+export function triageSettingsFingerprint(settings: ScanSettings): string {
+  const payload = JSON.stringify({
+    vip: [...settings.vipSenders].map((value) => value.toLowerCase()).sort(),
+    ignored: [...settings.ignoredSenders].map((value) => value.toLowerCase()).sort(),
+    domains: [...settings.ignoredDomains].map((value) => value.toLowerCase()).sort(),
+    custom: settings.customAiInstructions.trim(),
+  });
+  return createHash("sha256").update(payload).digest("hex").slice(0, 16);
+}
+
+export function analysisPromptKey(settings: ScanSettings): string {
+  return `${TRIAGE_PROMPT_VERSION}:${triageSettingsFingerprint(settings)}`;
 }
 
 export function analysisFromStoredThread(row: StoredThreadRow): ThreadAnalysis | null {
@@ -224,6 +240,9 @@ export async function openGmailScan(input: ProcessGmailScanInput): Promise<Prepa
           windowEnd: now,
         };
 
+  const settings = await input.store.getSettings(input.userId);
+  const sendAsEmails = await safeListSendAsEmails(input.gmail.listSendAsEmails?.bind(input.gmail));
+
   const scanId = await input.store.insertScanRun({
     userId: input.userId,
     connectionId: input.connectionId,
@@ -237,8 +256,6 @@ export async function openGmailScan(input: ProcessGmailScanInput): Promise<Prepa
     lastAttemptedScanAt: now.toISOString(),
   });
 
-  const settings = await input.store.getSettings(input.userId);
-  const sendAsEmails = await safeListSendAsEmails(input.gmail.listSendAsEmails?.bind(input.gmail));
   return {
     scanId,
     lookbackDays,
@@ -339,6 +356,7 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
       });
     };
 
+    const analysisKey = analysisPromptKey(settings);
     await mapPool(threadIds, limits.AI_MAX_CONCURRENCY, async (gmailThreadId) => {
       try {
         const messages = await gmail.fetchThread(gmailThreadId);
@@ -358,11 +376,7 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
         const latestAt = receivedAtIso(latest.internalDate);
 
         let analysis = existing ? analysisFromStoredThread(existing) : null;
-        const unchanged = shouldReuseStoredAnalysis(
-          existing,
-          latest.gmailMessageId,
-          TRIAGE_PROMPT_VERSION,
-        );
+        const unchanged = shouldReuseStoredAnalysis(existing, latest.gmailMessageId, analysisKey);
 
         if (!unchanged) {
           const outcome = await analyze(
@@ -387,7 +401,7 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
               latestMessageDirection: latestDirection,
               analysis,
               lastAnalyzedMessageId: existing?.lastAnalyzedMessageId ?? null,
-              promptVersion: analysis ? TRIAGE_PROMPT_VERSION : null,
+              promptVersion: analysis ? (existing?.promptVersion ?? null) : null,
               modelName: analysis ? modelName : null,
             });
             for (const message of chronological) {
@@ -434,7 +448,7 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
           lastAnalyzedMessageId: analysis
             ? latest.gmailMessageId
             : (existing?.lastAnalyzedMessageId ?? null),
-          promptVersion: analysis ? TRIAGE_PROMPT_VERSION : null,
+          promptVersion: analysis ? analysisKey : null,
           modelName: analysis ? modelName : null,
         });
 

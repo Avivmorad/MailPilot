@@ -101,7 +101,14 @@ describe("postProcessThreadAnalysis", () => {
 
   it("applies VIP and ignore sender overrides", () => {
     const ignored = postProcessThreadAnalysis(
-      analysis({ importance: "medium", category: "other" }),
+      analysis({
+        importance: "medium",
+        category: "other",
+        requires_reply: true,
+        requires_action: true,
+        action_type: "reply",
+        status: "action_required",
+      }),
       {
         latestFrom: "Ada <noise@example.com>",
         preferences: { ignoreSenders: ["noise@example.com"] },
@@ -109,6 +116,8 @@ describe("postProcessThreadAnalysis", () => {
     );
     expect(ignored.status).toBe("ignore");
     expect(ignored.importance).toBe("low");
+    expect(ignored.requires_reply).toBe(false);
+    expect(ignored.requires_action).toBe(false);
 
     const vip = postProcessThreadAnalysis(analysis({ importance: "low" }), {
       latestFrom: "vip@example.com",

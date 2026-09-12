@@ -8,6 +8,7 @@ import { MAILPILOT_LABELS } from "@/lib/gmail/constants";
 import type { ParsedGmailMessage } from "@/lib/gmail/parser";
 import { uniqueTopActions } from "@/lib/digest/build-digest";
 import { processInitialScan } from "@/lib/scans/process-scan";
+import { parseThreadFailureIds } from "@/lib/scans/thread-failures";
 import type { ScanGmailPort, ScanSettings, ScanStorePort, StoredThreadRow } from "@/lib/scans/types";
 
 function analysis(overrides: Partial<ThreadAnalysis> = {}): ThreadAnalysis {
@@ -68,7 +69,13 @@ function createMemoryStore(userId: string, connectionId: string): ScanStorePort 
   const threads = new Map<string, StoredThreadRow>();
   const messages = new Map<string, string>();
   const actions = new Map<string, ActionRecord>();
-  const scanRuns: Array<{ id: string; status: string; startedAt: string; connectionId: string }> = [];
+  const scanRuns: Array<{
+    id: string;
+    status: string;
+    startedAt: string;
+    connectionId: string;
+    errorMessage?: string | null;
+  }> = [];
   const connection = {
     lastSuccessfulScanAt: null as string | null,
     lastAttemptedScanAt: null as string | null,
@@ -117,6 +124,9 @@ function createMemoryStore(userId: string, connectionId: string): ScanStorePort 
       const run = scanRuns.find((item) => item.id === scanId);
       if (run) {
         run.status = patch.status;
+        if (patch.errorMessage !== undefined) {
+          run.errorMessage = patch.errorMessage;
+        }
       }
     },
     async getSettings() {
@@ -160,6 +170,12 @@ function createMemoryStore(userId: string, connectionId: string): ScanStorePort 
       if (input.lastSuccessfulScanAt !== undefined) {
         connection.lastSuccessfulScanAt = input.lastSuccessfulScanAt;
       }
+    },
+    async listPendingFailedThreadIds(id, excludeScanId) {
+      const latest = [...scanRuns]
+        .reverse()
+        .find((run) => run.id !== excludeScanId && run.status === "PARTIAL" && run.connectionId === id);
+      return parseThreadFailureIds(latest?.errorMessage);
     },
     async markConnectionReauthRequired() {
       connection.status = "REAUTH_REQUIRED";

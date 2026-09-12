@@ -205,7 +205,7 @@ There is no digest email to configure. Digests appear in the app after scans.
 A public launch still needs Google’s process, not a code change:
 
 1. OAuth consent screen: homepage, `/privacy`, and `/terms`, plus authorized domains that match
-   `NEXT_PUBLIC_APP_URL`.
+   `NEXT_PUBLIC_APP_URL`. `/robots.txt` allows those public URLs and blocks signed-in app routes.
 2. Keep requesting only `https://www.googleapis.com/auth/gmail.modify`.
 3. Follow [Limited Use](https://developers.google.com/terms/api-services-user-data-policy#additional_requirements_for_specific_api_scopes)
    (no ads, no selling Gmail data, prominent user-facing features only). The in-app text is `/privacy`.

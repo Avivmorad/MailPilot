@@ -42,6 +42,7 @@ DELETE-AFTER-vercel-env.*
 
 # vercel
 .vercel
+.t12-check/
 
 # typescript
 *.tsbuildinfo

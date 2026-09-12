@@ -16,8 +16,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: "invalid_feedback" }, { status: 400 });
   }
   try {
-    await saveThreadFeedback(user.id, id, parsed.data.kind);
-    return NextResponse.json({ ok: true });
+    const result = await saveThreadFeedback(user.id, id, parsed.data.kind);
+    return NextResponse.json({ ok: true, applied: result.applied });
   } catch (error) {
     if (error instanceof ThreadQueryError) {
       return NextResponse.json({ error: error.code, message: error.message }, { status: error.status });

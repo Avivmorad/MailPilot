@@ -23,6 +23,8 @@ export interface ActionListItem {
   gmailUrl: string;
   category: string | null;
   actionType: string | null;
+  confidence: number | null;
+  updatedAt: string | null;
 }
 
 interface ThreadJoin {
@@ -36,6 +38,7 @@ interface ThreadJoin {
   short_display_title: string | null;
   action_summary: string | null;
   action_reason: string | null;
+  confidence: number | null;
 }
 
 function senderFromParticipants(participants: unknown): string | null {
@@ -75,6 +78,8 @@ export function mapActionListItem(
     gmailUrl: gmailThreadUrl(gmailEmail, gmailThreadId),
     category: joined?.category ?? null,
     actionType: (row.action_type as string | null) ?? null,
+    confidence: joined?.confidence == null ? null : Number(joined.confidence),
+    updatedAt: typeof row.updated_at === "string" ? row.updated_at : null,
   };
 }
 
@@ -100,7 +105,7 @@ export async function listActionsForUser(
   const { data, error } = await db
     .from("action_items")
     .select(
-      "id, thread_id, status, title, description, waiting_for, deadline, urgency, snoozed_until, action_type, email_threads ( id, summary, importance, latest_message_at, gmail_thread_id, participants, category, short_display_title, action_summary, action_reason )",
+      "id, thread_id, status, title, description, waiting_for, deadline, urgency, snoozed_until, action_type, updated_at, email_threads ( id, summary, importance, latest_message_at, gmail_thread_id, participants, category, short_display_title, action_summary, action_reason, confidence )",
     )
     .eq("user_id", userId)
     .eq("status", status)

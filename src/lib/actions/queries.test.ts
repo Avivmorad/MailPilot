@@ -13,6 +13,7 @@ const THREAD = {
   short_display_title: "University registration",
   action_summary: "Choose courses and submit registration.",
   action_reason: "Registration closes after the deadline.",
+  confidence: 0.91,
 };
 
 describe("mapActionListItem", () => {
@@ -38,6 +39,7 @@ describe("mapActionListItem", () => {
     expect(item.title).toBe("University registration");
     expect(item.sender).toBe("Registrar");
     expect(item.gmailUrl).toContain("gmail-1");
+    expect(item.confidence).toBe(0.91);
   });
 
   it("falls back to action description when the thread has no action_summary", () => {

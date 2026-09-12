@@ -6,6 +6,7 @@ import { LabeledField } from "@/components/ui/labeled-field";
 import { ThreadTags } from "@/components/ui/thread-tags";
 import type { ActionListItem } from "@/lib/actions/queries";
 import { mailBucketForThread } from "@/lib/mail/buckets";
+import { isUncertainClassification } from "@/lib/mail/filters";
 import { threadPlacementReason } from "@/lib/mail/placement";
 import { classForDeadline, displayUrgencyForDeadline, formatDate, formatRelativeTime } from "@/lib/ui/format";
 import { accentForUrgency } from "@/lib/ui/labels";
@@ -58,6 +59,9 @@ export function ActionItemCard({ item }: { item: ActionListItem }) {
             actionType={item.actionType}
             showStatus={false}
           />
+          {isUncertainClassification(item.confidence) ? (
+            <p className="text-amber-800 mt-1 text-right text-xs dark:text-amber-200">Uncertain</p>
+          ) : null}
         </div>
       </div>
 

@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LabeledField } from "@/components/ui/labeled-field";
 import { ThreadTags } from "@/components/ui/thread-tags";
 import { mailBucketForThread } from "@/lib/mail/buckets";
+import { isUncertainClassification } from "@/lib/mail/filters";
 import { threadPlacementReason } from "@/lib/mail/placement";
 import { getSessionUser } from "@/lib/supabase/auth";
 import { getThreadDetailForUser } from "@/lib/threads/queries";
@@ -27,7 +28,7 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
     notFound();
   }
 
-  const lowConfidence = thread.confidence != null && thread.confidence < 0.55;
+  const lowConfidence = isUncertainClassification(thread.confidence);
   const inbound = [...thread.messages].reverse().find((message) => message.direction.toLowerCase() === "inbound");
   const senderMessage = inbound ?? thread.messages[thread.messages.length - 1];
   const sender = senderMessage?.senderName ?? senderMessage?.senderEmail ?? null;

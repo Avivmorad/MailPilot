@@ -47,11 +47,16 @@ yarn-error.log*
 .env*.local
 .env.development
 .env.production
+DELETE-AFTER-vercel-env.*
 # keep the template committed
 !.env.example
 
+# Sentry CLI auth (never commit)
+.sentryclirc
+
 # vercel
 .vercel
+.t12-check/
 
 # typescript
 *.tsbuildinfo

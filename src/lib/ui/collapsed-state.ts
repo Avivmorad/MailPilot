@@ -23,7 +23,11 @@ export function serializeCollapsedIds(ids: Iterable<string>): string {
   return JSON.stringify([...new Set(ids)]);
 }
 
-export function toggleCollapsedId(ids: readonly string[], id: string, collapsed: boolean): string[] {
+export function toggleCollapsedId(
+  ids: readonly string[],
+  id: string,
+  collapsed: boolean,
+): string[] {
   const next = new Set(ids);
   if (collapsed) {
     next.add(id);

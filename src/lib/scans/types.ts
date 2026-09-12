@@ -29,10 +29,9 @@ export const EMPTY_SCAN_COUNTERS: ScanCounters = {
   ignoredCount: 0,
 };
 
-export function countersFromAnalyses(analyses: ThreadAnalysis[]): Omit<
-  ScanCounters,
-  "messagesDiscovered" | "messagesProcessed" | "threadsAnalyzed"
-> {
+export function countersFromAnalyses(
+  analyses: ThreadAnalysis[],
+): Omit<ScanCounters, "messagesDiscovered" | "messagesProcessed" | "threadsAnalyzed"> {
   return {
     importantCount: analyses.filter((item) => item.importance === "high").length,
     actionCount: analyses.filter((item) => item.requires_action).length,
@@ -53,6 +52,8 @@ export interface StoredThreadRow {
 export interface ScanSettings {
   vipSenders: string[];
   ignoredSenders: string[];
+  ignoredDomains: string[];
+  customAiInstructions: string;
   timezone: string;
   dailyScanTime: string | null;
 }
@@ -71,7 +72,13 @@ export interface ScanGmailPort {
   fetchThread(threadId: string): Promise<ParsedGmailMessage[]>;
   getProfileHistoryId(): Promise<string | null>;
   loadLabelMap(): Promise<Map<MailPilotLogicalLabel, string>>;
-  modifyThreadLabels(threadId: string, addLabelIds: string[], removeLabelIds: string[]): Promise<void>;
+  modifyThreadLabels(
+    threadId: string,
+    addLabelIds: string[],
+    removeLabelIds: string[],
+  ): Promise<void>;
+  /** Optional: Gmail sendAs aliases. Missing or failing implementations keep the primary address only. */
+  listSendAsEmails?(): Promise<string[]>;
 }
 
 export interface ScanStorePort {
@@ -127,8 +134,10 @@ export interface ScanStorePort {
     historyId?: string | null;
     lastSuccessfulScanAt?: string | null;
     lastAttemptedScanAt: string;
-    nextScanAt: string | null;
+    nextScanAt?: string | null;
   }): Promise<void>;
+  markConnectionReauthRequired(connectionId: string): Promise<void>;
+  listPendingFailedThreadIds(connectionId: string, excludeScanId: string): Promise<string[]>;
 }
 
 export interface ScanRunResult {

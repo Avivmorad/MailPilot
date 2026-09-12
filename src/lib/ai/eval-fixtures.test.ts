@@ -51,6 +51,49 @@ describe("eval fixtures", () => {
     expect(injection?.expected.deadline).toBeNull();
     expect(injection?.messages[0]?.body).toMatch(/Ignore previous instructions/i);
   });
+
+  it("covers English, Hebrew, and mixed T3 scenario families", () => {
+    const byId = new Set(cases.map((evalCase) => evalCase.id));
+    const requiredIds = [
+      "case_002_invoice_to_pay",
+      "case_003_payment_confirmation",
+      "case_052_hebrew_unpaid_invoice",
+      "case_053_hebrew_paid_receipt",
+      "case_054_otp_english",
+      "case_055_hebrew_otp",
+      "case_056_account_locked",
+      "case_016_job_interview",
+      "case_057_job_application_receipt",
+      "case_058_hebrew_assessment",
+      "case_059_out_of_office_waiting",
+      "case_060_hebrew_ticket_ack",
+      "case_061_user_reply_then_new_inbound",
+      "case_019_calendar_invite",
+      "case_062_confirmed_meeting_moved",
+      "case_063_hebrew_pick_meeting_time",
+      "case_014_shipping_notification",
+      "case_064_parcel_collection",
+      "case_065_hebrew_customs",
+      "case_066_relative_deadline_next_friday",
+      "case_067_mixed_ambiguous_relative_date",
+      "case_049_long_thread_thanks",
+      "case_068_forwarded_hebrew_review",
+      "case_069_docusign_automated_sign",
+      "case_071_automated_comment_action",
+      "case_027_prompt_injection",
+      "case_070_hebrew_prompt_injection",
+    ];
+    for (const id of requiredIds) {
+      expect(byId.has(id), id).toBe(true);
+    }
+
+    const hebrewOrMixed = cases.filter((evalCase) =>
+      /[\u0590-\u05FF]/.test(
+        evalCase.messages.map((message) => `${message.subject}\n${message.body}`).join("\n"),
+      ),
+    );
+    expect(hebrewOrMixed.length).toBeGreaterThanOrEqual(10);
+  });
 });
 
 describe("threadAnalysisJsonSchema", () => {
@@ -68,7 +111,9 @@ describe("threadAnalysisJsonSchema", () => {
 describe("AI module isolation", () => {
   it("does not import Gmail label mutation APIs", () => {
     const dir = path.join(process.cwd(), "src/lib/ai");
-    const files = readdirSync(dir).filter((name) => name.endsWith(".ts") && !name.endsWith(".test.ts"));
+    const files = readdirSync(dir).filter(
+      (name) => name.endsWith(".ts") && !name.endsWith(".test.ts"),
+    );
     for (const name of files) {
       const source = readFileSync(path.join(dir, name), "utf8");
       expect(source, name).not.toMatch(/@\/lib\/gmail\/labels/);

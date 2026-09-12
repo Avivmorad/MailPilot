@@ -26,13 +26,11 @@ export async function claimDueConnections(input: {
   const leaseSeconds = input.leaseSeconds ?? SCAN_LEASE_SECONDS;
   const db = createAdminClient();
 
-  const { data, error } = await db
-    .schema("private")
-    .rpc("claim_due_gmail_connections", {
-      p_worker: input.workerId,
-      p_limit: limit,
-      p_lease_seconds: leaseSeconds,
-    });
+  const { data, error } = await db.schema("private").rpc("claim_due_gmail_connections", {
+    p_worker: input.workerId,
+    p_limit: limit,
+    p_lease_seconds: leaseSeconds,
+  });
 
   if (!error && Array.isArray(data)) {
     return (data as Array<{ id: string; user_id: string; gmail_email: string }>).map(asClaimed);

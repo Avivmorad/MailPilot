@@ -1,4 +1,4 @@
-import { normalizeDeadline } from "@/lib/ai/deadlines";
+import { groundDeadline } from "@/lib/ai/deadlines";
 import {
   isEphemeralAuthNotice,
   isIgnoreFamilyNotice,
@@ -20,6 +20,8 @@ export interface TriagePreferences {
   vipSenders: string[];
   vipAlwaysHigh: boolean;
   ignoreSenders: string[];
+  ignoreDomains: string[];
+  customInstructions: string;
 }
 
 const ACTION_SUMMARY_FALLBACK: Record<ActionType, string> = {
@@ -51,6 +53,21 @@ function isCriticalAccountMessage(analysis: ThreadAnalysis): boolean {
   return analysis.category === "security" && analysis.importance === "high";
 }
 
+function domainMatches(list: string[] | undefined, from: string | null): boolean {
+  if (!list || list.length === 0 || !from) {
+    return false;
+  }
+  const parsed = parseEmailAddress(from);
+  const host = parsed?.email.split("@")[1];
+  if (!host) {
+    return false;
+  }
+  return list.some((raw) => {
+    const domain = raw.replace(/^@/, "").toLowerCase();
+    return host === domain || host.endsWith(`.${domain}`);
+  });
+}
+
 function senderMatches(list: string[] | undefined, from: string | null): boolean {
   if (!list || list.length === 0 || !from) {
     return false;
@@ -61,6 +78,19 @@ function senderMatches(list: string[] | undefined, from: string | null): boolean
   }
   const haystack = new Set(list.map(normalizeEmail));
   return haystack.has(parsed.email);
+}
+
+function applyIgnoreNormalization(next: ThreadAnalysis, importance: Importance): void {
+  next.status = "ignore";
+  next.importance = importance;
+  next.requires_action = false;
+  next.requires_reply = false;
+  next.action_type = "none";
+  next.action_summary = null;
+  next.action_reason = null;
+  next.waiting_for = null;
+  next.waiting_since = null;
+  next.urgency = "none";
 }
 
 export function postProcessThreadAnalysis(
@@ -74,7 +104,7 @@ export function postProcessThreadAnalysis(
 ): ThreadAnalysis {
   const next: ThreadAnalysis = { ...analysis };
 
-  next.deadline = normalizeDeadline(next.deadline);
+  next.deadline = groundDeadline(next.deadline, options.threadText, next.deadline_text);
   next.deadline_text = nonEmpty(next.deadline_text);
   next.action_summary = nonEmpty(next.action_summary);
   next.action_reason = nonEmpty(next.action_reason);
@@ -103,16 +133,7 @@ export function postProcessThreadAnalysis(
   ];
 
   if (isEphemeralAuthNotice(noticeParts) || isIgnoreFamilyNotice(noticeParts)) {
-    next.status = "ignore";
-    next.importance = next.importance === "high" ? "medium" : next.importance;
-    next.requires_action = false;
-    next.requires_reply = false;
-    next.action_type = "none";
-    next.action_summary = null;
-    next.action_reason = null;
-    next.waiting_for = null;
-    next.waiting_since = null;
-    next.urgency = "none";
+    applyIgnoreNormalization(next, next.importance === "high" ? "medium" : next.importance);
   } else if (isUserOwnedActionNotice(noticeParts) || isSecurityEventNotice(noticeParts)) {
     next.status = "action_required";
     next.requires_action = true;
@@ -164,7 +185,11 @@ export function postProcessThreadAnalysis(
     if (!next.action_summary) {
       next.action_summary = next.action_reason ?? ACTION_SUMMARY_FALLBACK[next.action_type];
     }
-  } else if (next.status === "informational" || next.status === "ignore" || next.status === "resolved") {
+  } else if (
+    next.status === "informational" ||
+    next.status === "ignore" ||
+    next.status === "resolved"
+  ) {
     next.requires_action = false;
   }
 
@@ -184,12 +209,12 @@ export function postProcessThreadAnalysis(
   const from = options.latestFrom ?? null;
 
   if (
-    senderMatches(preferences?.ignoreSenders, from) &&
+    (senderMatches(preferences?.ignoreSenders, from) ||
+      domainMatches(preferences?.ignoreDomains, from)) &&
     !isCriticalAccountMessage(next) &&
     !isSecurityEventNotice(noticeParts)
   ) {
-    next.status = "ignore";
-    next.importance = "low";
+    applyIgnoreNormalization(next, "low");
   }
 
   if (senderMatches(preferences?.vipSenders, from)) {
@@ -202,7 +227,11 @@ export function postProcessThreadAnalysis(
 
   if (next.status === "action_required") {
     next.requires_action = true;
-  } else if (next.status === "informational" || next.status === "ignore" || next.status === "resolved") {
+  } else if (
+    next.status === "informational" ||
+    next.status === "ignore" ||
+    next.status === "resolved"
+  ) {
     next.requires_action = false;
   }
 
@@ -229,14 +258,16 @@ export function assertThreadAnalysisInvariants(analysis: ThreadAnalysis): void {
       throw new Error("Invariant C: requires_reply requires action_type=reply");
     }
   }
-  if (analysis.deadline !== null && normalizeDeadline(analysis.deadline) === null) {
+  if (analysis.deadline !== null && groundDeadline(analysis.deadline, null) === null) {
     throw new Error("Invariant D: deadline must be YYYY-MM-DD or null");
   }
   if (analysis.confidence < 0 || analysis.confidence > 1) {
     throw new Error("Invariant E: confidence must be between 0 and 1");
   }
   if (
-    (analysis.status === "informational" || analysis.status === "ignore" || analysis.status === "resolved") &&
+    (analysis.status === "informational" ||
+      analysis.status === "ignore" ||
+      analysis.status === "resolved") &&
     analysis.requires_action
   ) {
     throw new Error("Invariant A: Summary/Ignored require requires_action=false");

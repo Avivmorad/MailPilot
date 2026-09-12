@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { assertExclusiveMailBuckets, mailBucketForThread, normalizeThreadStatus } from "@/lib/mail/buckets";
+import {
+  assertExclusiveMailBuckets,
+  mailBucketForThread,
+  normalizeThreadStatus,
+} from "@/lib/mail/buckets";
 
 describe("normalizeThreadStatus", () => {
   it("never returns an empty status", () => {
@@ -15,7 +19,9 @@ describe("mailBucketForThread", () => {
     expect(mailBucketForThread({ status: "informational" })).toBe("summary");
     expect(mailBucketForThread({ status: "ignore" })).toBe("ignored");
     expect(mailBucketForThread({ status: "action_required" })).toBe("open");
-    expect(mailBucketForThread({ status: "action_required", actionStatus: "SNOOZED" })).toBe("snoozed");
+    expect(mailBucketForThread({ status: "action_required", actionStatus: "SNOOZED" })).toBe(
+      "snoozed",
+    );
     expect(mailBucketForThread({ status: null })).toBe("summary");
   });
 });

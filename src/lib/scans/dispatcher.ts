@@ -1,9 +1,17 @@
 import { createEmailTriageProvider } from "@/lib/ai/client";
 import { getGeminiEnv, isGeminiConfigured, isGmailConfigured } from "@/lib/config/env";
 import { persistDigestAfterScan } from "@/lib/digest/build-digest";
+import { emitProductEvent } from "@/lib/observability/events";
+import { captureSafeException } from "@/lib/observability/sentry-report";
 import { createGmailApiForConnection } from "@/lib/gmail/client";
 import { GmailConnectError } from "@/lib/gmail/oauth";
 import { authorizeCronRequest } from "@/lib/scans/cron-auth";
+import {
+  DISPATCH_DEFAULT_LIMIT,
+  DISPATCH_LEASE_SECONDS,
+  hasDispatchBudget,
+} from "@/lib/scans/dispatch-budget";
+import { SCAN_IN_PROGRESS } from "@/lib/scans/errors";
 import { createGmailScanPort } from "@/lib/scans/gmail-port";
 import {
   createScanJob,
@@ -12,7 +20,11 @@ import {
   incrementScanJobAttempt,
   markScanJobRunning,
 } from "@/lib/scans/jobs";
-import { claimDueConnections, releaseConnectionLease, SCAN_LEASE_SECONDS } from "@/lib/scans/leases";
+import {
+  claimDueConnections,
+  releaseConnectionLease,
+  type ClaimedConnection,
+} from "@/lib/scans/leases";
 import { DEFAULT_LOOKBACK_DAYS } from "@/lib/scans/lookback";
 import { openGmailScan, executeGmailScan } from "@/lib/scans/process-scan";
 import { nextScanAfterFailure } from "@/lib/scans/schedule";
@@ -32,7 +44,10 @@ export interface DispatcherConnectionResult {
 
 async function setNextScanAt(connectionId: string, nextScanAt: string): Promise<void> {
   const db = createAdminClient();
-  const { error } = await db.from("gmail_connections").update({ next_scan_at: nextScanAt }).eq("id", connectionId);
+  const { error } = await db
+    .from("gmail_connections")
+    .update({ next_scan_at: nextScanAt })
+    .eq("id", connectionId);
   if (error) {
     throw new Error("Failed to schedule next scan");
   }
@@ -43,7 +58,7 @@ async function runClaimedConnection(
   workerId: string,
   now: Date,
 ): Promise<DispatcherConnectionResult> {
-  const leaseExpiresAt = new Date(now.getTime() + SCAN_LEASE_SECONDS * 1000).toISOString();
+  const leaseExpiresAt = new Date(now.getTime() + DISPATCH_LEASE_SECONDS * 1000).toISOString();
   let jobId: string | null = null;
   let attempt = 0;
 
@@ -89,11 +104,8 @@ async function runClaimedConnection(
     if (result.status === "SUCCESS" || result.status === "PARTIAL") {
       try {
         await persistDigestAfterScan({ userId: api.userId, scanId: prepared.scanId });
-      } catch (error) {
-        console.error("[digest]", {
-          scanId: prepared.scanId,
-          error: error instanceof Error ? error.message : "digest_failed",
-        });
+      } catch {
+        emitProductEvent({ type: "digest.created", scanId: prepared.scanId, persisted: 0 });
       }
     }
 
@@ -101,7 +113,7 @@ async function runClaimedConnection(
     return { connectionId: claimed.id, status: result.status, scanId: prepared.scanId };
   } catch (error) {
     const message = error instanceof Error ? error.message : "scan_failed";
-    if (message === "SCAN_IN_PROGRESS") {
+    if (message === SCAN_IN_PROGRESS) {
       if (jobId) {
         await finishScanJob(jobId, "FAILED", "scan_in_progress");
       }
@@ -112,6 +124,10 @@ async function runClaimedConnection(
     if (jobId) {
       await finishScanJob(jobId, "FAILED", message).catch(() => undefined);
     }
+    captureSafeException(error, {
+      route: "/api/cron/scan-dispatcher",
+      scan_type: "scheduled",
+    });
     if (attempt < 1) {
       attempt = 1;
     }
@@ -122,6 +138,8 @@ async function runClaimedConnection(
       timezone: "Asia/Jerusalem",
       vipSenders: [],
       ignoredSenders: [],
+      ignoredDomains: [],
+      customAiInstructions: "",
     }));
     const retryAt = nextScanAfterFailure(
       now,
@@ -140,22 +158,46 @@ async function runClaimedConnection(
   }
 }
 
-export async function dispatchDueScans(options: {
-  now?: Date;
-  limit?: number;
-  workerId?: string;
-} = {}): Promise<{ claimed: number; results: DispatcherConnectionResult[] }> {
+export async function dispatchDueScans(
+  options: {
+    now?: Date;
+    limit?: number;
+    workerId?: string;
+    startedAtMs?: number;
+    claimDueConnections?: typeof claimDueConnections;
+    runClaimedConnection?: (
+      claimed: ClaimedConnection,
+      workerId: string,
+      now: Date,
+    ) => Promise<DispatcherConnectionResult>;
+  } = {},
+): Promise<{ claimed: number; results: DispatcherConnectionResult[] }> {
   const now = options.now ?? new Date();
   const workerId = options.workerId ?? `dispatcher:${crypto.randomUUID()}`;
-  const claimed = await claimDueConnections({
-    workerId,
-    limit: options.limit ?? 3,
-    now,
-  });
-
+  const startedAt = options.startedAtMs ?? Date.now();
+  const maxClaims = options.limit ?? DISPATCH_DEFAULT_LIMIT;
+  const claim = options.claimDueConnections ?? claimDueConnections;
+  const run = options.runClaimedConnection ?? runClaimedConnection;
   const results: DispatcherConnectionResult[] = [];
-  for (const connection of claimed) {
-    results.push(await runClaimedConnection(connection, workerId, now));
+
+  while (results.length < maxClaims) {
+    if (!hasDispatchBudget(startedAt)) {
+      break;
+    }
+
+    const claimed = await claim({
+      workerId,
+      limit: 1,
+      now,
+      leaseSeconds: DISPATCH_LEASE_SECONDS,
+    });
+    const connection = claimed[0];
+    if (!connection) {
+      break;
+    }
+
+    results.push(await run(connection, workerId, now));
   }
-  return { claimed: claimed.length, results };
+
+  return { claimed: results.length, results };
 }

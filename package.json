@@ -10,12 +10,15 @@
     "typecheck": "tsc --noEmit",
     "test": "node scripts/run-vitest.mjs run",
     "test:watch": "node scripts/run-vitest.mjs",
+    "eval:scorecard": "node scripts/run-vitest.mjs run src/lib/ai/eval-scorecard.test.ts",
+    "test:integration": "node scripts/run-vitest.mjs run src/lib/scans/scan-integration.test.ts src/lib/privacy/rls-isolation.test.ts src/lib/privacy/deletion.test.ts",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
     "@google/genai": "^2.21.0",
+    "@sentry/nextjs": "^10.74.0",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.116.0",
     "@vercel/analytics": "^2.0.1",

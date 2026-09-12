@@ -3,7 +3,15 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { getClientEnv } from "@/lib/config/env";
 
-const PROTECTED_PREFIXES = ["/dashboard", "/actions", "/mail", "/digests", "/settings", "/thread"];
+const PROTECTED_PREFIXES = [
+  "/dashboard",
+  "/actions",
+  "/mail",
+  "/digests",
+  "/settings",
+  "/thread",
+  "/onboarding",
+];
 
 /**
  * Refresh the Supabase auth session on each request and guard protected routes.

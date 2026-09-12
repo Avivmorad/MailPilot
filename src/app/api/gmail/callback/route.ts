@@ -61,7 +61,7 @@ export async function GET(request: Request) {
     return NextResponse.redirect(gmailCallbackErrorRedirect(origin, "connect_failed"));
   }
 
-  const success = new URL("/dashboard", origin);
+  const success = new URL("/onboarding", origin);
   success.searchParams.set("gmail", "connected");
   return NextResponse.redirect(success);
 }

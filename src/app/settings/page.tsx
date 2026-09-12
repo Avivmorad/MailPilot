@@ -4,8 +4,9 @@ import { GmailConnectionCard } from "@/components/gmail/gmail-connection-card";
 import { AppChrome } from "@/components/layout/app-chrome";
 import { PageHeader } from "@/components/layout/page-header";
 import { ScanHistoryList } from "@/components/scans/scan-history-list";
+import { PrivacyControls } from "@/components/settings/privacy-controls";
 import { ScanPreferencesForm } from "@/components/settings/scan-preferences-form";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { TriagePreferencesForm } from "@/components/settings/triage-preferences-form";
 import { getGmailStatusForUser } from "@/lib/gmail/connections";
 import { getScanRunsForUser } from "@/lib/scans/manual";
 import { getScanPreferences } from "@/lib/settings/preferences";
@@ -34,10 +35,21 @@ export default async function SettingsPage({
     <AppChrome user={user} current="settings" width="narrow">
       <PageHeader
         title="Settings"
-        description="Connect Gmail, set the daily scan time (default 08:00 Asia/Jerusalem), and review scan history."
+        description="Connect Gmail, set the daily scan time, tune triage, and delete analysis data or your account."
       />
       <GmailConnectionCard status={gmailStatus} gmailFlash={params.gmail} reason={params.reason} />
-      <ScanPreferencesForm dailyScanTime={preferences.dailyScanTime} timezone={preferences.timezone} />
+      <ScanPreferencesForm
+        dailyScanTime={preferences.dailyScanTime}
+        timezone={preferences.timezone}
+      />
+      <TriagePreferencesForm
+        vipSenders={preferences.vipSenders}
+        ignoredSenders={preferences.ignoredSenders}
+        ignoredDomains={preferences.ignoredDomains}
+        customAiInstructions={preferences.customAiInstructions}
+        digestEnabled={preferences.digestEnabled}
+      />
+      <PrivacyControls />
       <ScanHistoryList
         scans={scans.map((scan) => ({
           id: String(scan.id),
@@ -49,18 +61,6 @@ export default async function SettingsPage({
           threads_analyzed: Number(scan.threads_analyzed ?? 0),
         }))}
       />
-      <Card>
-        <CardHeader>
-          <CardTitle>Digest</CardTitle>
-          <CardDescription>
-            After each successful scan, MailPilot stores an in-app digest of period counts and top
-            open tasks. Sending that digest by email is not in the MVP.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="text-muted-foreground text-sm">
-          History is on the Digests page. Open tasks stay on Mail.
-        </CardContent>
-      </Card>
     </AppChrome>
   );
 }

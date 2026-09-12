@@ -3,7 +3,9 @@ import { threadAnalysisSchema, type ThreadAnalysis } from "@/lib/ai/schemas";
 import type { ActionRecord } from "@/lib/actions/reconcile-action";
 import { parseAddressList, parseEmailAddress } from "@/lib/gmail/addresses";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { scanStoreFailure } from "@/lib/scans/errors";
+import { emitProductEvent } from "@/lib/observability/events";
+import { scanStoreFailure, isScanRunUniqueViolation, SCAN_IN_PROGRESS } from "@/lib/scans/errors";
+import { parseThreadFailureIds } from "@/lib/scans/thread-failures";
 import { timestampOrNull } from "@/lib/scans/timestamps";
 import type { ScanSettings, ScanStorePort, StoredThreadRow } from "@/lib/scans/types";
 
@@ -110,6 +112,9 @@ export function createSupabaseScanStore(): ScanStorePort {
         })
         .select("id")
         .single();
+      if (isScanRunUniqueViolation(error)) {
+        throw new Error(SCAN_IN_PROGRESS);
+      }
       if (error || !data) {
         failStore("Failed to create scan run", error);
       }
@@ -121,7 +126,8 @@ export function createSupabaseScanStore(): ScanStorePort {
       if (patch.finishedAt) row.finished_at = patch.finishedAt;
       if (patch.errorCode !== undefined) row.error_code = patch.errorCode;
       if (patch.errorMessage !== undefined) row.error_message = patch.errorMessage;
-      if (patch.messagesDiscovered !== undefined) row.messages_discovered = patch.messagesDiscovered;
+      if (patch.messagesDiscovered !== undefined)
+        row.messages_discovered = patch.messagesDiscovered;
       if (patch.messagesProcessed !== undefined) row.messages_processed = patch.messagesProcessed;
       if (patch.threadsAnalyzed !== undefined) row.threads_analyzed = patch.threadsAnalyzed;
       if (patch.threadsDiscovered !== undefined) row.threads_discovered = patch.threadsDiscovered;
@@ -130,7 +136,8 @@ export function createSupabaseScanStore(): ScanStorePort {
       if (patch.actionCount !== undefined) row.action_count = patch.actionCount;
       if (patch.replyCount !== undefined) row.reply_count = patch.replyCount;
       if (patch.waitingCount !== undefined) row.waiting_count = patch.waitingCount;
-      if (patch.informationalCount !== undefined) row.informational_count = patch.informationalCount;
+      if (patch.informationalCount !== undefined)
+        row.informational_count = patch.informationalCount;
       if (patch.ignoredCount !== undefined) row.ignored_count = patch.ignoredCount;
       const { error } = await db.from("scan_runs").update(row).eq("id", scanId);
       if (error) {
@@ -151,7 +158,9 @@ export function createSupabaseScanStore(): ScanStorePort {
           },
           { onConflict: "user_id" },
         )
-        .select("vip_senders, ignored_senders, timezone, daily_scan_time")
+        .select(
+          "vip_senders, ignored_senders, ignored_domains, custom_ai_instructions, timezone, daily_scan_time",
+        )
         .single();
       if (error || !data) {
         failStore("Failed to load triage settings", error);
@@ -159,6 +168,9 @@ export function createSupabaseScanStore(): ScanStorePort {
       const settings: ScanSettings = {
         vipSenders: asStringArray(data.vip_senders),
         ignoredSenders: asStringArray(data.ignored_senders),
+        ignoredDomains: asStringArray(data.ignored_domains),
+        customAiInstructions:
+          typeof data.custom_ai_instructions === "string" ? data.custom_ai_instructions : "",
         timezone: (data.timezone as string | null) || "Asia/Jerusalem",
         dailyScanTime: (data.daily_scan_time as string | null) ?? "08:00",
       };
@@ -229,7 +241,9 @@ export function createSupabaseScanStore(): ScanStorePort {
     async getThread(connectionId, gmailThreadId) {
       const { data, error } = await db
         .from("email_threads")
-        .select("*")
+        .select(
+          "id, last_analyzed_message_id, prompt_version, summary, importance, importance_reason, status, requires_action, requires_reply, action_type, action_summary, action_reason, waiting_for, waiting_since, urgency, deadline, deadline_text, category, confidence, short_display_title",
+        )
         .eq("gmail_connection_id", connectionId)
         .eq("gmail_thread_id", gmailThreadId)
         .maybeSingle();
@@ -281,7 +295,13 @@ export function createSupabaseScanStore(): ScanStorePort {
     },
 
     async getAction(threadId) {
-      const { data, error } = await db.from("action_items").select("*").eq("thread_id", threadId).maybeSingle();
+      const { data, error } = await db
+        .from("action_items")
+        .select(
+          "status, title, description, action_type, waiting_for, deadline, urgency, source, manual_override, completed_at, snoozed_until",
+        )
+        .eq("thread_id", threadId)
+        .maybeSingle();
       if (error) {
         failStore("Failed to load action item", error);
       }
@@ -318,18 +338,50 @@ export function createSupabaseScanStore(): ScanStorePort {
     async updateConnectionScan(input) {
       const patch: Record<string, unknown> = {
         last_attempted_scan_at: input.lastAttemptedScanAt,
-        next_scan_at: input.nextScanAt,
       };
+      if (input.nextScanAt !== undefined) {
+        patch.next_scan_at = input.nextScanAt;
+      }
       if (input.historyId) {
         patch.gmail_history_id = input.historyId;
       }
       if (input.lastSuccessfulScanAt !== undefined) {
         patch.last_successful_scan_at = input.lastSuccessfulScanAt;
       }
-      const { error } = await db.from("gmail_connections").update(patch).eq("id", input.connectionId);
+      const { error } = await db
+        .from("gmail_connections")
+        .update(patch)
+        .eq("id", input.connectionId);
       if (error) {
         failStore("Failed to update Gmail connection scan state", error);
       }
+    },
+
+    async listPendingFailedThreadIds(connectionId, excludeScanId) {
+      const { data, error } = await db
+        .from("scan_runs")
+        .select("error_message")
+        .eq("gmail_connection_id", connectionId)
+        .eq("status", "PARTIAL")
+        .neq("id", excludeScanId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) {
+        failStore("Failed to load failed threads from the last partial scan", error);
+      }
+      return parseThreadFailureIds((data?.error_message as string | null) ?? null);
+    },
+
+    async markConnectionReauthRequired(connectionId) {
+      const { error } = await db
+        .from("gmail_connections")
+        .update({ status: "REAUTH_REQUIRED" })
+        .eq("id", connectionId);
+      if (error) {
+        failStore("Failed to mark Gmail reconnection required", error);
+      }
+      emitProductEvent({ type: "gmail.reconnect_required", connectionId });
     },
   };
 }

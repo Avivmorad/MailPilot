@@ -12,7 +12,11 @@ const KIND_CLASS: Record<AppBanner["kind"], string> = {
 
 export function StatusBanner({ kind, title, body, href, actionLabel }: AppBanner) {
   return (
-    <div className={cn("border-b px-4 py-3 sm:px-6", KIND_CLASS[kind])} role="status">
+    <div
+      className={cn("border-b px-4 py-3 sm:px-6", KIND_CLASS[kind])}
+      role={kind === "error" ? "alert" : "status"}
+      aria-live={kind === "error" ? "assertive" : "polite"}
+    >
       <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
           <p className="font-medium tracking-tight">{title}</p>

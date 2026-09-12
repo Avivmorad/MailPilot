@@ -1,7 +1,8 @@
 import type { ActionPatch } from "@/lib/actions/patch-schema";
-import { nextActionState } from "@/lib/actions/next-state";
+import { ActionPatchError, nextActionState } from "@/lib/actions/next-state";
 import type { ActionRecord, ActionStatus } from "@/lib/actions/reconcile-action";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { emitProductEvent } from "@/lib/observability/events";
 
 export class ActionMutationError extends Error {
   constructor(
@@ -30,6 +31,9 @@ function rowToRecord(row: Record<string, unknown>): ActionRecord {
   };
 }
 
+const ACTION_ITEM_SELECT =
+  "id, user_id, thread_id, status, title, description, action_type, waiting_for, deadline, urgency, source, manual_override, completed_at, snoozed_until";
+
 export async function patchActionForUser(
   userId: string,
   actionId: string,
@@ -37,14 +41,27 @@ export async function patchActionForUser(
   now: Date = new Date(),
 ): Promise<ActionRecord> {
   const db = createAdminClient();
-  const { data, error } = await db.from("action_items").select("*").eq("id", actionId).eq("user_id", userId).maybeSingle();
+  const { data, error } = await db
+    .from("action_items")
+    .select(ACTION_ITEM_SELECT)
+    .eq("id", actionId)
+    .eq("user_id", userId)
+    .maybeSingle();
   if (error) {
     throw new ActionMutationError(500, "load_failed", "Failed to load action.");
   }
   if (!data) {
     throw new ActionMutationError(404, "not_found", "Action not found.");
   }
-  const next = nextActionState(rowToRecord(data as Record<string, unknown>), patch, now);
+  let next;
+  try {
+    next = nextActionState(rowToRecord(data as Record<string, unknown>), patch, now);
+  } catch (error) {
+    if (error instanceof ActionPatchError) {
+      throw new ActionMutationError(400, "invalid_patch", error.message);
+    }
+    throw error;
+  }
   const { error: updateError } = await db
     .from("action_items")
     .update({
@@ -52,6 +69,7 @@ export async function patchActionForUser(
       manual_override: next.manualOverride,
       completed_at: next.completedAt,
       snoozed_until: next.snoozedUntil,
+      waiting_for: next.waitingFor,
       source: next.source,
     })
     .eq("id", actionId)
@@ -59,5 +77,11 @@ export async function patchActionForUser(
   if (updateError) {
     throw new ActionMutationError(500, "update_failed", "Failed to update action.");
   }
+  emitProductEvent({
+    type: "action.upserted",
+    actionId,
+    status: next.status,
+    created: 0,
+  });
   return next;
 }

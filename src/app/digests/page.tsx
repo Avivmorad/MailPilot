@@ -2,10 +2,14 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { DigestReportCard } from "@/components/digest/digest-report-card";
+import { EmptyState } from "@/components/layout/empty-state";
 import { AppChrome } from "@/components/layout/app-chrome";
 import { PageHeader } from "@/components/layout/page-header";
+import { buttonVariants } from "@/components/ui/button";
 import { ensureDigestForLatestScan } from "@/lib/digest/build-digest";
 import { listDigestsForUser } from "@/lib/digest/queries";
+import { getGmailStatusForUser } from "@/lib/gmail/connections";
+import { gmailRecoveryActionLabel, shouldShowGmailRecoveryCard } from "@/lib/gmail/recovery";
 import { getLatestScanRunForUser } from "@/lib/scans/manual";
 import { getSessionUser } from "@/lib/supabase/auth";
 
@@ -17,13 +21,24 @@ export default async function DigestsPage() {
     redirect("/login");
   }
 
-  const latestScan = await getLatestScanRunForUser(user.id);
+  const [latestScan, gmailStatus] = await Promise.all([
+    getLatestScanRunForUser(user.id),
+    getGmailStatusForUser(user.id),
+  ]);
   await ensureDigestForLatestScan(
     user.id,
     latestScan ? String(latestScan.id) : null,
     latestScan ? String(latestScan.status) : null,
   ).catch(() => null);
-  const digests = await listDigestsForUser(user.id, 20).catch(() => []);
+
+  let digests: Awaited<ReturnType<typeof listDigestsForUser>> = [];
+  let loadFailed = false;
+  try {
+    digests = await listDigestsForUser(user.id, 20);
+  } catch {
+    loadFailed = true;
+  }
+  const needsGmailRecovery = shouldShowGmailRecoveryCard(gmailStatus);
 
   return (
     <AppChrome user={user} current="digests" width="narrow">
@@ -31,7 +46,28 @@ export default async function DigestsPage() {
         title="Digests"
         description="In-app history of period counts and top open tasks after each successful scan. Email delivery is not in the MVP."
       />
-      {digests.length === 0 ? (
+      {loadFailed ? (
+        <EmptyState
+          variant="error"
+          title="Could not load digests"
+          description="A temporary database error prevented loading your digest history."
+          action={
+            <Link href="/digests" className={buttonVariants({ variant: "outline", size: "sm" })}>
+              Reload digests
+            </Link>
+          }
+        />
+      ) : digests.length === 0 && needsGmailRecovery ? (
+        <EmptyState
+          title="Connect Gmail to get digests"
+          description="Digests appear after a successful or partial scan. Connect or reconnect Gmail first — existing summaries stay until you delete them."
+          action={
+            <a href="/api/gmail/connect" className={buttonVariants({ size: "sm" })}>
+              {gmailRecoveryActionLabel(gmailStatus)}
+            </a>
+          }
+        />
+      ) : digests.length === 0 ? (
         <DigestReportCard digest={null} title="Digest history" />
       ) : (
         <div className="space-y-6">

@@ -17,7 +17,10 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json({ thread });
   } catch (error) {
     if (error instanceof ThreadQueryError) {
-      return NextResponse.json({ error: error.code, message: error.message }, { status: error.status });
+      return NextResponse.json(
+        { error: error.code, message: error.message },
+        { status: error.status },
+      );
     }
     return NextResponse.json({ error: "load_failed" }, { status: 500 });
   }

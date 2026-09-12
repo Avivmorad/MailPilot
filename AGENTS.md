@@ -37,7 +37,9 @@ structured observability, and skip-to-content / labeled nav.
 4. Route handlers must be thin.
 5. Business logic belongs in services (`src/lib/**`).
 6. Never expose server secrets to client components.
-7. Never log email bodies or OAuth tokens.
+7. Never log email bodies or OAuth tokens. Optional Sentry (`NEXT_PUBLIC_SENTRY_DSN`)
+   uses the same rule: no Gmail content, tokens, keys, or email PII. Allowed tags only:
+   `environment`, `route`, `provider`, `scan_type`, `error_category`.
 8. All DB schema changes require Supabase migrations (`supabase/migrations`).
 9. All Gmail processing must be idempotent.
 10. Every non-trivial bug fix needs a regression test.
@@ -64,8 +66,15 @@ Run and fix all failures:
 npm run lint
 npm run typecheck
 npm test
+npm run test:integration
+npm run eval:scorecard
 npm run build
 ```
+
+`npm test` already includes unit tests next to source. `npm run eval:scorecard` is the durable
+classification quality gate (schema validity, action recall, deadline hallucination). There is
+no GitHub Actions workflow in this repo; keep those scripts in `package.json` and run them
+locally or in whatever CI you add later.
 
 <!-- BEGIN:nextjs-agent-rules -->
 

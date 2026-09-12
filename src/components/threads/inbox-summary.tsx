@@ -3,8 +3,11 @@ import Link from "next/link";
 
 import { EmptyState } from "@/components/layout/empty-state";
 import { CollapsibleTopicGroups } from "@/components/layout/collapsible-topic-groups";
+import { ThreadPlacementCorrection } from "@/components/threads/thread-placement-correction";
 import { ThreadTags } from "@/components/ui/thread-tags";
 import { groupByTopic } from "@/lib/actions/topics";
+import { threadPlacementReason } from "@/lib/mail/placement";
+import { mailBucketForThread } from "@/lib/mail/buckets";
 import type { RecentThreadRow } from "@/lib/threads/queries";
 import { formatRelativeTime } from "@/lib/ui/format";
 
@@ -34,38 +37,49 @@ export function InboxSummary({
         count: group.items.length,
         body: (
           <ul className="divide-y">
-            {group.items.map((thread) => (
-              <li key={thread.id}>
-                <Link
-                  href={`/thread/${thread.id}`}
-                  className="hover:bg-muted/50 block px-4 py-3 transition-colors"
-                >
-                  <div className="flex flex-wrap items-start justify-between gap-2">
-                    <p
-                      className="text-foreground min-w-0 flex-1 font-semibold leading-snug tracking-tight"
-                      dir="auto"
-                    >
-                      {thread.shortDisplayTitle ?? thread.summary ?? "Thread"}
-                    </p>
-                    <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
-                      <ThreadTags
-                        category={thread.category}
-                        status={thread.status}
-                        importance={thread.importance}
-                      />
-                      <span className="text-muted-foreground text-xs">
-                        {formatRelativeTime(thread.latestMessageAt)}
-                      </span>
+            {group.items.map((thread) => {
+              const tab = mailBucketForThread({ status: thread.status });
+              return (
+                <li key={thread.id} className="px-4 py-3">
+                  <Link
+                    href={`/thread/${thread.id}`}
+                    className="hover:bg-muted/50 -mx-4 -mt-3 block px-4 pt-3 transition-colors"
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <p
+                        className="text-foreground min-w-0 flex-1 leading-snug font-semibold tracking-tight break-words"
+                        dir="auto"
+                        title={thread.shortDisplayTitle ?? thread.summary ?? "Thread"}
+                      >
+                        {thread.shortDisplayTitle ?? thread.summary ?? "Thread"}
+                      </p>
+                      <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
+                        <ThreadTags
+                          category={thread.category}
+                          status={thread.status}
+                          importance={thread.importance}
+                        />
+                        <span className="text-muted-foreground text-xs">
+                          {formatRelativeTime(thread.latestMessageAt)}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                  {thread.summary && thread.shortDisplayTitle ? (
-                    <p className="text-muted-foreground mt-1 line-clamp-2 text-sm leading-relaxed" dir="auto">
-                      {thread.summary}
-                    </p>
-                  ) : null}
-                </Link>
-              </li>
-            ))}
+                    {thread.summary && thread.shortDisplayTitle ? (
+                      <p
+                        className="text-muted-foreground mt-1 line-clamp-2 text-sm leading-relaxed"
+                        dir="auto"
+                      >
+                        {thread.summary}
+                      </p>
+                    ) : null}
+                  </Link>
+                  <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
+                    {threadPlacementReason({ tab })}
+                  </p>
+                  <ThreadPlacementCorrection threadId={thread.id} tab={tab} />
+                </li>
+              );
+            })}
           </ul>
         ),
       }))}

@@ -14,7 +14,10 @@ export async function GET() {
     return NextResponse.json({ digest }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     if (error instanceof DigestQueryError) {
-      return NextResponse.json({ error: error.code, message: error.message }, { status: error.status });
+      return NextResponse.json(
+        { error: error.code, message: error.message },
+        { status: error.status },
+      );
     }
     return NextResponse.json({ error: "load_failed" }, { status: 500 });
   }

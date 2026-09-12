@@ -1,7 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
 import { resetSharedGmailQuotaForTests } from "@/lib/gmail/quota";
-import { isGmailQuotaError, withGmailRetry } from "@/lib/gmail/retry";
+import { isGmailAuthError, isGmailQuotaError, withGmailRetry } from "@/lib/gmail/retry";
 
 beforeEach(() => {
   resetSharedGmailQuotaForTests();
@@ -17,6 +17,24 @@ describe("isGmailQuotaError", () => {
     ).toBe(true);
     expect(isGmailQuotaError({ response: { status: 429 } })).toBe(true);
     expect(isGmailQuotaError(new Error("gmail list failed"))).toBe(false);
+  });
+});
+
+describe("isGmailAuthError", () => {
+  it("detects 401 and revoked-token messages and does not retry them", async () => {
+    expect(isGmailAuthError({ response: { status: 401 } })).toBe(true);
+    expect(isGmailAuthError(new Error("invalid_grant"))).toBe(true);
+    expect(isGmailAuthError({ response: { status: 429 } })).toBe(false);
+
+    const operation = vi.fn(async () => {
+      throw { response: { status: 401 }, message: "invalid_grant" };
+    });
+    await expect(
+      withGmailRetry(operation, { delaysMs: [5], sleep: async () => undefined }),
+    ).rejects.toMatchObject({
+      response: { status: 401 },
+    });
+    expect(operation).toHaveBeenCalledTimes(1);
   });
 });
 

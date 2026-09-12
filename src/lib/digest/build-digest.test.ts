@@ -12,15 +12,39 @@ describe("uniqueTopActions", () => {
   it("keeps one card per thread and respects the limit", () => {
     const unique = uniqueTopActions(
       [
-        { threadId: "t1", title: "Pay invoice", urgency: "urgent", deadline: null, category: "finance" },
-        { threadId: "t1", title: "Pay invoice again", urgency: "soon", deadline: null, category: "finance" },
-        { threadId: "t2", title: "Reply to Ada", urgency: "soon", deadline: null, category: "work" },
+        {
+          threadId: "t1",
+          title: "Pay invoice",
+          urgency: "urgent",
+          deadline: null,
+          category: "finance",
+        },
+        {
+          threadId: "t1",
+          title: "Pay invoice again",
+          urgency: "soon",
+          deadline: null,
+          category: "finance",
+        },
+        {
+          threadId: "t2",
+          title: "Reply to Ada",
+          urgency: "soon",
+          deadline: null,
+          category: "work",
+        },
         { threadId: "t3", title: "Sign form", urgency: "normal", deadline: null, category: "work" },
       ],
       2,
     );
     expect(unique).toEqual([
-      { threadId: "t1", title: "Pay invoice", urgency: "urgent", deadline: null, category: "finance" },
+      {
+        threadId: "t1",
+        title: "Pay invoice",
+        urgency: "urgent",
+        deadline: null,
+        category: "finance",
+      },
       { threadId: "t2", title: "Reply to Ada", urgency: "soon", deadline: null, category: "work" },
     ]);
   });

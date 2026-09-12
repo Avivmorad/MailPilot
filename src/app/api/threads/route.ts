@@ -8,6 +8,10 @@ export async function GET() {
   if (!user) {
     return NextResponse.json({ error: "not_signed_in" }, { status: 401 });
   }
-  const items = await listRecentThreadsForUser(user.id);
-  return NextResponse.json({ items });
+  try {
+    const items = await listRecentThreadsForUser(user.id);
+    return NextResponse.json({ items });
+  } catch {
+    return NextResponse.json({ error: "load_failed" }, { status: 500 });
+  }
 }

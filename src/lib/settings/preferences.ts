@@ -1,8 +1,11 @@
 import { z } from "zod";
 
+import { normalizeEmail } from "@/lib/gmail/addresses";
 import { nextDailyScanAt } from "@/lib/scans/schedule";
+import { CUSTOM_AI_INSTRUCTIONS_MAX, TRIAGE_LIST_MAX } from "@/lib/settings/limits";
 import { createAdminClient } from "@/lib/supabase/admin";
 
+export { CUSTOM_AI_INSTRUCTIONS_MAX, TRIAGE_LIST_MAX } from "@/lib/settings/limits";
 export const DEFAULT_SCAN_TIMEZONE = "Asia/Jerusalem";
 export const DEFAULT_DAILY_SCAN_TIME = "08:00";
 
@@ -17,6 +20,31 @@ export function isValidTimeZone(timeZone: string): boolean {
   }
 }
 
+const senderSchema = z
+  .string()
+  .trim()
+  .min(3)
+  .max(320)
+  .transform((value) => normalizeEmail(value))
+  .refine((value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value), { message: "invalid_sender" });
+
+const domainSchema = z
+  .string()
+  .trim()
+  .max(253)
+  .transform((value) => value.replace(/^@/, "").toLowerCase())
+  .refine(
+    (value) => /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/.test(value),
+    { message: "invalid_domain" },
+  );
+
+function uniqueStrings(values: string[]): string[] {
+  return [...new Set(values)];
+}
+
+const senderListSchema = z.array(senderSchema).max(TRIAGE_LIST_MAX).transform(uniqueStrings);
+const domainListSchema = z.array(domainSchema).max(TRIAGE_LIST_MAX).transform(uniqueStrings);
+
 export const patchScanPreferencesSchema = z
   .object({
     dailyScanTime: timeHmSchema.optional(),
@@ -26,14 +54,32 @@ export const patchScanPreferencesSchema = z
       .max(64)
       .refine(isValidTimeZone, { message: "invalid_timezone" })
       .optional(),
+    vipSenders: senderListSchema.optional(),
+    ignoredSenders: senderListSchema.optional(),
+    ignoredDomains: domainListSchema.optional(),
+    customAiInstructions: z.string().max(CUSTOM_AI_INSTRUCTIONS_MAX).optional(),
+    digestEnabled: z.boolean().optional(),
   })
-  .refine((value) => value.dailyScanTime !== undefined || value.timezone !== undefined, {
-    message: "empty",
-  });
+  .refine(
+    (value) =>
+      value.dailyScanTime !== undefined ||
+      value.timezone !== undefined ||
+      value.vipSenders !== undefined ||
+      value.ignoredSenders !== undefined ||
+      value.ignoredDomains !== undefined ||
+      value.customAiInstructions !== undefined ||
+      value.digestEnabled !== undefined,
+    { message: "empty" },
+  );
 
 export interface ScanPreferences {
   dailyScanTime: string;
   timezone: string;
+  vipSenders: string[];
+  ignoredSenders: string[];
+  ignoredDomains: string[];
+  customAiInstructions: string;
+  digestEnabled: boolean;
 }
 
 function normalizeTime(value: string | null): string {
@@ -43,29 +89,67 @@ function normalizeTime(value: string | null): string {
   return value.slice(0, 5);
 }
 
+function asStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value.filter((item): item is string => typeof item === "string");
+}
+
+function rowToPreferences(data: Record<string, unknown>): ScanPreferences {
+  return {
+    dailyScanTime: normalizeTime((data.daily_scan_time as string | null) ?? null),
+    timezone: (data.timezone as string | null) || DEFAULT_SCAN_TIMEZONE,
+    vipSenders: asStringArray(data.vip_senders),
+    ignoredSenders: asStringArray(data.ignored_senders),
+    ignoredDomains: asStringArray(data.ignored_domains),
+    customAiInstructions:
+      typeof data.custom_ai_instructions === "string" ? data.custom_ai_instructions : "",
+    digestEnabled: data.digest_enabled !== false,
+  };
+}
+
+const SETTINGS_SELECT =
+  "daily_scan_time, timezone, vip_senders, ignored_senders, ignored_domains, custom_ai_instructions, digest_enabled";
+
 export async function getScanPreferences(userId: string): Promise<ScanPreferences> {
   const db = createAdminClient();
-  const { data, error } = await db
+  const existing = await db
     .from("user_triage_settings")
-    .upsert(
-      {
-        user_id: userId,
-        initial_lookback_days: 7,
-        daily_scan_time: DEFAULT_DAILY_SCAN_TIME,
-        timezone: DEFAULT_SCAN_TIMEZONE,
-        scan_interval_minutes: null,
-      },
-      { onConflict: "user_id" },
-    )
-    .select("daily_scan_time, timezone")
-    .single();
-  if (error || !data) {
+    .select(SETTINGS_SELECT)
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (existing.error) {
     throw new Error("Failed to load scan preferences");
   }
-  return {
-    dailyScanTime: normalizeTime(data.daily_scan_time as string | null),
-    timezone: (data.timezone as string | null) || DEFAULT_SCAN_TIMEZONE,
-  };
+  if (existing.data) {
+    return rowToPreferences(existing.data as Record<string, unknown>);
+  }
+
+  const inserted = await db
+    .from("user_triage_settings")
+    .insert({
+      user_id: userId,
+      initial_lookback_days: 7,
+      daily_scan_time: DEFAULT_DAILY_SCAN_TIME,
+      timezone: DEFAULT_SCAN_TIMEZONE,
+      scan_interval_minutes: null,
+    })
+    .select(SETTINGS_SELECT)
+    .single();
+  if (!inserted.error && inserted.data) {
+    return rowToPreferences(inserted.data as Record<string, unknown>);
+  }
+
+  const retry = await db
+    .from("user_triage_settings")
+    .select(SETTINGS_SELECT)
+    .eq("user_id", userId)
+    .single();
+  if (retry.error || !retry.data) {
+    throw new Error("Failed to load scan preferences");
+  }
+  return rowToPreferences(retry.data as Record<string, unknown>);
 }
 
 export async function updateScanPreferences(
@@ -76,6 +160,11 @@ export async function updateScanPreferences(
   const next: ScanPreferences = {
     dailyScanTime: patch.dailyScanTime ?? current.dailyScanTime,
     timezone: patch.timezone ?? current.timezone,
+    vipSenders: patch.vipSenders ?? current.vipSenders,
+    ignoredSenders: patch.ignoredSenders ?? current.ignoredSenders,
+    ignoredDomains: patch.ignoredDomains ?? current.ignoredDomains,
+    customAiInstructions: patch.customAiInstructions ?? current.customAiInstructions,
+    digestEnabled: patch.digestEnabled ?? current.digestEnabled,
   };
 
   const db = createAdminClient();
@@ -85,20 +174,27 @@ export async function updateScanPreferences(
       daily_scan_time: next.dailyScanTime,
       timezone: next.timezone,
       scan_interval_minutes: null,
+      vip_senders: next.vipSenders,
+      ignored_senders: next.ignoredSenders,
+      ignored_domains: next.ignoredDomains,
+      custom_ai_instructions: next.customAiInstructions,
+      digest_enabled: next.digestEnabled,
     })
     .eq("user_id", userId);
   if (error) {
     throw new Error("Failed to update scan preferences");
   }
 
-  const nextScanAt = nextDailyScanAt(new Date(), next.dailyScanTime, next.timezone).toISOString();
-  const { error: connectionError } = await db
-    .from("gmail_connections")
-    .update({ next_scan_at: nextScanAt })
-    .eq("user_id", userId)
-    .eq("status", "CONNECTED");
-  if (connectionError) {
-    throw new Error("Failed to reschedule Gmail scans");
+  if (patch.dailyScanTime !== undefined || patch.timezone !== undefined) {
+    const nextScanAt = nextDailyScanAt(new Date(), next.dailyScanTime, next.timezone).toISOString();
+    const { error: connectionError } = await db
+      .from("gmail_connections")
+      .update({ next_scan_at: nextScanAt })
+      .eq("user_id", userId)
+      .eq("status", "CONNECTED");
+    if (connectionError) {
+      throw new Error("Failed to reschedule Gmail scans");
+    }
   }
 
   return next;

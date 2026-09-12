@@ -4,6 +4,7 @@ import { google } from "googleapis";
 
 import { getGmailEnv } from "@/lib/config/env";
 import { GMAIL_MODIFY_SCOPE } from "@/lib/gmail/constants";
+import { emitProductEvent } from "@/lib/observability/events";
 import { GMAIL_UNITS } from "@/lib/gmail/quota";
 import { withGmailRetry } from "@/lib/gmail/retry";
 import { timingSafeStringEqual } from "@/lib/security/encryption";
@@ -20,7 +21,11 @@ export class GmailConnectError extends Error {
 
 export function createOAuth2Client() {
   const env = getGmailEnv();
-  return new google.auth.OAuth2(env.GOOGLE_CLIENT_ID, env.GOOGLE_CLIENT_SECRET, env.GOOGLE_REDIRECT_URI);
+  return new google.auth.OAuth2(
+    env.GOOGLE_CLIENT_ID,
+    env.GOOGLE_CLIENT_SECRET,
+    env.GOOGLE_REDIRECT_URI,
+  );
 }
 
 export function createOAuthState(): string {
@@ -38,7 +43,10 @@ export function buildConsentUrl(state: string): string {
   });
 }
 
-export function isValidOAuthState(expected: string | undefined, received: string | undefined): boolean {
+export function isValidOAuthState(
+  expected: string | undefined,
+  received: string | undefined,
+): boolean {
   if (!expected || !received) {
     return false;
   }
@@ -56,7 +64,10 @@ export async function exchangeAuthorizationCode(code: string): Promise<GoogleTok
   try {
     const { tokens } = await client.getToken(code);
     if (!tokens.access_token) {
-      throw new GmailConnectError("token_exchange", "Google token exchange returned no access token");
+      throw new GmailConnectError(
+        "token_exchange",
+        "Google token exchange returned no access token",
+      );
     }
     if (!tokens.refresh_token) {
       throw new GmailConnectError("no_refresh_token", "NO_REFRESH_TOKEN");
@@ -92,7 +103,10 @@ export async function fetchGmailIdentity(
     });
     const email = profile.data.emailAddress;
     if (!email) {
-      throw new GmailConnectError("gmail_profile", "Gmail profile did not include an email address");
+      throw new GmailConnectError(
+        "gmail_profile",
+        "Gmail profile did not include an email address",
+      );
     }
     return { email, googleAccountId: null };
   } catch (err) {
@@ -100,7 +114,11 @@ export async function fetchGmailIdentity(
       throw err;
     }
     const status = googleErrorStatus(err);
-    console.error("[gmail.connect]", { step: "profile", status });
+    emitProductEvent({
+      type: "gmail.connect_failed",
+      step: "profile",
+      errorCode: status ? String(status) : "gmail_api",
+    });
     throw new GmailConnectError(
       "gmail_api",
       "Gmail API profile lookup failed. Enable the Gmail API in Google Cloud.",

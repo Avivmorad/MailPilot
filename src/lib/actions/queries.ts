@@ -13,6 +13,7 @@ export interface ActionListItem {
   actionSummary: string | null;
   actionReason: string | null;
   waitingFor: string | null;
+  snoozedUntil: string | null;
   deadline: string | null;
   urgency: string | null;
   latestMessageAt: string | null;
@@ -22,6 +23,8 @@ export interface ActionListItem {
   gmailUrl: string;
   category: string | null;
   actionType: string | null;
+  confidence: number | null;
+  updatedAt: string | null;
 }
 
 interface ThreadJoin {
@@ -35,6 +38,7 @@ interface ThreadJoin {
   short_display_title: string | null;
   action_summary: string | null;
   action_reason: string | null;
+  confidence: number | null;
 }
 
 function senderFromParticipants(participants: unknown): string | null {
@@ -64,6 +68,7 @@ export function mapActionListItem(
     actionSummary,
     actionReason: joined?.action_reason ?? null,
     waitingFor: (row.waiting_for as string | null) ?? null,
+    snoozedUntil: typeof row.snoozed_until === "string" ? row.snoozed_until : null,
     deadline: (row.deadline as string | null) ?? null,
     urgency: (row.urgency as string | null) ?? null,
     latestMessageAt: joined?.latest_message_at ?? null,
@@ -73,6 +78,8 @@ export function mapActionListItem(
     gmailUrl: gmailThreadUrl(gmailEmail, gmailThreadId),
     category: joined?.category ?? null,
     actionType: (row.action_type as string | null) ?? null,
+    confidence: joined?.confidence == null ? null : Number(joined.confidence),
+    updatedAt: typeof row.updated_at === "string" ? row.updated_at : null,
   };
 }
 
@@ -88,6 +95,17 @@ async function gmailEmailForUser(userId: string): Promise<string> {
   return typeof data?.gmail_email === "string" ? data.gmail_email : "";
 }
 
+export class ActionQueryError extends Error {
+  constructor(
+    readonly status: number,
+    readonly code: string,
+    message: string,
+  ) {
+    super(message);
+    this.name = "ActionQueryError";
+  }
+}
+
 export async function listActionsForUser(
   userId: string,
   status: ActionStatus,
@@ -98,20 +116,19 @@ export async function listActionsForUser(
   const { data, error } = await db
     .from("action_items")
     .select(
-      "id, thread_id, status, title, description, waiting_for, deadline, urgency, snoozed_until, action_type, email_threads ( id, summary, importance, latest_message_at, gmail_thread_id, participants, category, short_display_title, action_summary, action_reason )",
+      "id, thread_id, status, title, description, waiting_for, deadline, urgency, snoozed_until, action_type, updated_at, email_threads ( id, summary, importance, latest_message_at, gmail_thread_id, participants, category, short_display_title, action_summary, action_reason, confidence )",
     )
     .eq("user_id", userId)
     .eq("status", status)
     .limit(200);
-  if (error || !data) {
-    return [];
+  if (error) {
+    throw new ActionQueryError(500, "load_failed", "Failed to load actions from the database.");
   }
-  const mapped = data.map((row) => mapActionListItem(row as Record<string, unknown>, gmailEmail));
+  const rows = data ?? [];
+  const mapped = rows.map((row) => mapActionListItem(row as Record<string, unknown>, gmailEmail));
   const visible =
     status === "OPEN"
-      ? mapped.filter(
-          (item) => !isNonTaskNotice([item.title, item.description, item.summary]),
-        )
+      ? mapped.filter((item) => !isNonTaskNotice([item.title, item.description, item.summary]))
       : mapped;
   if (status === "OPEN") {
     visible.sort(compareOpenActions);

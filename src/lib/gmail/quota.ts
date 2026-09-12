@@ -11,6 +11,7 @@ export const GMAIL_UNITS = {
   historyList: 2,
   labelsList: 1,
   labelsCreate: 5,
+  sendAsList: 1,
 } as const;
 
 export class GmailMinuteQuota {
@@ -44,7 +45,8 @@ export class GmailMinuteQuota {
       return;
     }
     const nowFn = options.now ?? Date.now;
-    const sleep = options.sleep ?? ((ms: number) => new Promise((resolve) => setTimeout(resolve, ms)));
+    const sleep =
+      options.sleep ?? ((ms: number) => new Promise((resolve) => setTimeout(resolve, ms)));
     const cap = Math.max(units, this.limit);
 
     for (;;) {

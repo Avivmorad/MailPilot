@@ -18,6 +18,30 @@ describe("vercel.json crons", () => {
     expect(parts[3]).toBe("*");
     expect(parts[4]).toBe("*");
   });
+
+  it("caps the scan dispatcher at the Hobby maxDuration", () => {
+    const dispatcher = readFileSync(
+      path.join(process.cwd(), "src/app/api/cron/scan-dispatcher/route.ts"),
+      "utf8",
+    );
+    const scans = readFileSync(path.join(process.cwd(), "src/app/api/scans/route.ts"), "utf8");
+    expect(dispatcher).toMatch(/export const maxDuration = 300;/);
+    expect(scans).toMatch(/export const maxDuration = 300;/);
+    expect(scans).not.toMatch(/maxDuration = 800/);
+  });
+
+  it("claims only due CONNECTED Gmail accounts", () => {
+    const sql = readFileSync(
+      path.join(process.cwd(), "supabase/migrations/0007_scan_scheduling.sql"),
+      "utf8",
+    );
+    const leases = readFileSync(path.join(process.cwd(), "src/lib/scans/leases.ts"), "utf8");
+    expect(sql).toContain("c.status = 'CONNECTED'");
+    expect(sql).toContain("c.next_scan_at <= now()");
+    expect(sql).toContain("for update skip locked");
+    expect(leases).toContain('.eq("status", "CONNECTED")');
+    expect(leases).toContain('.lte("next_scan_at", nowIso)');
+  });
 });
 
 describe("scan-dispatcher maxDuration", () => {

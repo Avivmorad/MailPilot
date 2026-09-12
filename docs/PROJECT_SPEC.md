@@ -6,7 +6,8 @@
 >
 > Owner overlay: [`PRODUCT_DECISIONS.md`](PRODUCT_DECISIONS.md) wins where it
 > differs — including the product name **MailPilot**, Gemini instead of OpenAI,
-> and `MailPilot/` Gmail labels.
+> `MailPilot/` Gmail labels, and **in-app digests only** in the MVP (email
+> digest delivery is a later extension; see overlay and spec §72).
 
 ---
 
@@ -259,8 +260,8 @@ next_scan_at <= now()
 ## Optional later
 
 - Queue/job orchestration: Inngest / QStash / dedicated worker
-- Transactional email provider for digest emails
-- Sentry
+- Transactional email provider for digest emails (not in the MVP; overlay: in-app digest only)
+- Sentry (optional DSN; client/server/edge errors only, no Gmail/PII payloads)
 - PostHog
 
 ---
@@ -3169,7 +3170,7 @@ Acceptance:
 
 Deliver:
 
-- digest generation.
+- in-app digest generation after successful or partial scans.
 - period counts.
 - top actions.
 - digest history.
@@ -3179,6 +3180,7 @@ Acceptance:
 - counts come from DB.
 - digest generation is idempotent.
 - one thread does not create duplicate action cards.
+- MVP does not send digest email (owner overlay; email delivery is §72).
 
 ---
 

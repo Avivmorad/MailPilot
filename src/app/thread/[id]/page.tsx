@@ -8,6 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LabeledField } from "@/components/ui/labeled-field";
 import { ThreadTags } from "@/components/ui/thread-tags";
 import { mailBucketForThread } from "@/lib/mail/buckets";
+import { isUncertainClassification } from "@/lib/mail/filters";
+import { threadPlacementReason } from "@/lib/mail/placement";
 import { getSessionUser } from "@/lib/supabase/auth";
 import { getThreadDetailForUser } from "@/lib/threads/queries";
 import { classForDeadline, formatDate, formatDateTime } from "@/lib/ui/format";
@@ -26,8 +28,10 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
     notFound();
   }
 
-  const lowConfidence = thread.confidence != null && thread.confidence < 0.55;
-  const inbound = [...thread.messages].reverse().find((message) => message.direction.toLowerCase() === "inbound");
+  const lowConfidence = isUncertainClassification(thread.confidence);
+  const inbound = [...thread.messages]
+    .reverse()
+    .find((message) => message.direction.toLowerCase() === "inbound");
   const senderMessage = inbound ?? thread.messages[thread.messages.length - 1];
   const sender = senderMessage?.senderName ?? senderMessage?.senderEmail ?? null;
   const backTab = mailBucketForThread({ status: thread.status, actionStatus: thread.actionStatus });
@@ -40,14 +44,20 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
   return (
     <AppChrome user={user} current="thread" width="narrow">
       <div>
-        <Link href={`/mail?tab=${backTab}`} className="text-muted-foreground hover:text-foreground text-sm hover:underline">
+        <Link
+          href={`/mail?tab=${backTab}`}
+          className="text-muted-foreground hover:text-foreground focus-visible:ring-ring inline-flex rounded-sm text-sm hover:underline focus-visible:ring-3 focus-visible:outline-none"
+        >
           ← Back to Mail
         </Link>
-        <h1 className="text-foreground mt-3 text-2xl font-bold tracking-tight text-balance sm:text-3xl" dir="auto">
+        <h1
+          className="text-foreground mt-3 text-2xl font-bold tracking-tight text-balance break-words sm:text-3xl"
+          dir="auto"
+        >
           {thread.shortDisplayTitle ?? thread.subject ?? "Thread"}
         </h1>
         {thread.subject ? (
-          <p className="text-muted-foreground mt-1 text-sm" dir="auto">
+          <p className="text-muted-foreground mt-1 text-sm break-words" dir="auto">
             {thread.subject}
           </p>
         ) : null}
@@ -89,19 +99,20 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
                 {thread.deadlineText ? ` (${thread.deadlineText})` : ""}
               </LabeledField>
             ) : null}
-            {whyText ? (
-              <LabeledField label="Why" dir="auto">
-                {whyText}
-              </LabeledField>
+            <LabeledField label="Why this tab" dir="auto">
+              {threadPlacementReason({ tab: backTab, evidence: whyText })}
+            </LabeledField>
+            {thread.waitingFor ? (
+              <LabeledField label="Waiting on">{thread.waitingFor}</LabeledField>
             ) : null}
-            {thread.waitingFor ? <LabeledField label="Waiting on">{thread.waitingFor}</LabeledField> : null}
           </div>
           {lowConfidence ? (
-            <p className="text-amber-800 text-sm dark:text-amber-200">
-              Low classification confidence ({thread.confidence?.toFixed(2)}). Double-check before acting.
+            <p className="text-sm text-amber-800 dark:text-amber-200">
+              Low classification confidence ({thread.confidence?.toFixed(2)}). Double-check before
+              acting.
             </p>
           ) : null}
-          <div className="flex flex-wrap items-center gap-3 border-t pt-3">
+          <div className="space-y-3 border-t pt-3">
             <a
               href={thread.gmailUrl}
               target="_blank"
@@ -111,7 +122,13 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
               Open in Gmail
             </a>
             {thread.actionId ? (
-              <ActionControls actionId={thread.actionId} status={thread.actionStatus ?? "OPEN"} />
+              <ActionControls
+                key={`${thread.actionId}:${thread.actionStatus ?? ""}:${thread.waitingFor ?? ""}`}
+                actionId={thread.actionId}
+                status={thread.actionStatus ?? "OPEN"}
+                waitingFor={thread.waitingFor}
+                snoozedUntil={thread.snoozedUntil}
+              />
             ) : null}
           </div>
         </CardContent>
@@ -126,7 +143,10 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
             <p className="text-muted-foreground text-sm">No stored message metadata.</p>
           ) : (
             thread.messages.map((message) => (
-              <div key={message.id} className="border-border/70 border-b py-3 last:border-0 last:pb-0 first:pt-0">
+              <div
+                key={message.id}
+                className="border-border/70 border-b py-3 first:pt-0 last:border-0 last:pb-0"
+              >
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <p className="text-foreground text-sm font-semibold">
                     {message.senderName ?? message.senderEmail ?? "Unknown"}
@@ -135,7 +155,9 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
                       · {labelForDirection(message.direction)}
                     </span>
                   </p>
-                  <p className="text-muted-foreground text-xs">{formatDateTime(message.receivedAt)}</p>
+                  <p className="text-muted-foreground text-xs">
+                    {formatDateTime(message.receivedAt)}
+                  </p>
                 </div>
                 {message.snippet ? (
                   <p className="text-muted-foreground mt-1 text-sm leading-relaxed" dir="auto">

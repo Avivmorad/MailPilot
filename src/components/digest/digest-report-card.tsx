@@ -61,13 +61,18 @@ export function DigestReportCard({
         </CardHeader>
         <CardContent className="space-y-3">
           {digest.summaryText ? (
-            <p className="text-sm leading-relaxed text-pretty line-clamp-3">{digest.summaryText}</p>
+            <p className="line-clamp-3 text-sm leading-relaxed text-pretty">{digest.summaryText}</p>
           ) : null}
           {preview.length > 0 ? (
             <ul className="divide-border divide-y text-sm">
               {preview.map((action) => (
                 <li key={action.threadId} className="py-2 first:pt-0 last:pb-0">
-                  <Link href={`/thread/${action.threadId}`} className="hover:text-primary font-medium hover:underline">
+                  <Link
+                    href={`/thread/${action.threadId}`}
+                    className="hover:text-primary font-medium break-words hover:underline"
+                    dir="auto"
+                    title={action.title}
+                  >
                     {action.title}
                   </Link>
                 </li>
@@ -115,35 +120,39 @@ export function DigestReportCard({
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {digest.summaryText ? <p className="text-sm leading-relaxed">{digest.summaryText}</p> : null}
+        {digest.summaryText ? (
+          <p className="text-sm leading-relaxed">{digest.summaryText}</p>
+        ) : null}
         <DigestCounts digest={digest} />
         {digest.topActions.length > 0 ? (
           <div>
             <h3 className="text-foreground mb-2 text-sm font-semibold">Top open tasks</h3>
             <ul className="divide-border divide-y">
               {digest.topActions.map((action) => (
-                  <li key={action.threadId} className="py-2 first:pt-0 last:pb-0">
-                    <Link
-                      href={`/thread/${action.threadId}`}
-                      className="hover:text-primary block font-medium hover:underline"
-                    >
-                      {action.title}
-                    </Link>
-                    <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
-                      <ThreadTags
-                        category={action.category}
-                        urgency={action.urgency}
-                        deadline={action.deadline}
-                        showStatus={false}
-                        showImportance={false}
-                      />
-                      {action.deadline ? (
-                        <LabeledField label="Due" valueClassName={classForDeadline(action.deadline)}>
-                          {formatDate(action.deadline)}
-                        </LabeledField>
-                      ) : null}
-                    </div>
-                  </li>
+                <li key={action.threadId} className="py-2 first:pt-0 last:pb-0">
+                  <Link
+                    href={`/thread/${action.threadId}`}
+                    className="hover:text-primary block font-medium break-words hover:underline"
+                    dir="auto"
+                    title={action.title}
+                  >
+                    {action.title}
+                  </Link>
+                  <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <ThreadTags
+                      category={action.category}
+                      urgency={action.urgency}
+                      deadline={action.deadline}
+                      showStatus={false}
+                      showImportance={false}
+                    />
+                    {action.deadline ? (
+                      <LabeledField label="Due" valueClassName={classForDeadline(action.deadline)}>
+                        {formatDate(action.deadline)}
+                      </LabeledField>
+                    ) : null}
+                  </div>
+                </li>
               ))}
             </ul>
           </div>

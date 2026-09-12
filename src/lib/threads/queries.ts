@@ -1,8 +1,10 @@
 import { z } from "zod";
 
+import type { ActionStatus } from "@/lib/actions/reconcile-action";
 import { gmailThreadUrl } from "@/lib/gmail/deep-link";
-import { mailBucketForThread } from "@/lib/mail/buckets";
+import { mailBucketForThread, normalizeThreadStatus } from "@/lib/mail/buckets";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { correctionFromFeedback } from "@/lib/threads/apply-feedback";
 import { threadFeedbackSchema } from "@/lib/threads/feedback";
 
 export class ThreadQueryError extends Error {
@@ -50,6 +52,7 @@ export interface ThreadDetail {
   latestMessageAt: string | null;
   actionId: string | null;
   actionStatus: string | null;
+  snoozedUntil: string | null;
   messages: ThreadMessageMeta[];
 }
 
@@ -95,7 +98,10 @@ export function mapRecentThreadRow(row: ThreadListDbRow): RecentThreadRow {
 const THREAD_LIST_SELECT =
   "id, short_display_title, summary, status, importance, category, latest_message_at";
 
-export async function listRecentThreadsForUser(userId: string, limit = 24): Promise<RecentThreadRow[]> {
+export async function listRecentThreadsForUser(
+  userId: string,
+  limit = 24,
+): Promise<RecentThreadRow[]> {
   const db = createAdminClient();
   const { data, error } = await db
     .from("email_threads")
@@ -104,15 +110,19 @@ export async function listRecentThreadsForUser(userId: string, limit = 24): Prom
     .in("status", [...INBOX_SUMMARY_STATUSES])
     .order("latest_message_at", { ascending: false })
     .limit(limit);
-  if (error || !data) {
-    return [];
+  if (error) {
+    throw new ThreadQueryError(500, "load_failed", "Failed to load recent threads.");
   }
-  return data
+  const rows = data ?? [];
+  return rows
     .map((row) => mapRecentThreadRow(row))
     .filter((row) => mailBucketForThread({ status: row.status }) === "summary");
 }
 
-export async function listIgnoredThreadsForUser(userId: string, limit = 50): Promise<RecentThreadRow[]> {
+export async function listIgnoredThreadsForUser(
+  userId: string,
+  limit = 50,
+): Promise<RecentThreadRow[]> {
   const db = createAdminClient();
   const { data, error } = await db
     .from("email_threads")
@@ -121,19 +131,26 @@ export async function listIgnoredThreadsForUser(userId: string, limit = 50): Pro
     .eq("status", "ignore")
     .order("latest_message_at", { ascending: false })
     .limit(limit);
-  if (error || !data) {
-    return [];
+  if (error) {
+    throw new ThreadQueryError(500, "load_failed", "Failed to load ignored threads.");
   }
-  return data
+  const rows = data ?? [];
+  return rows
     .map((row) => mapRecentThreadRow(row))
     .filter((row) => mailBucketForThread({ status: row.status }) === "ignored");
 }
 
-export async function getThreadDetailForUser(userId: string, threadId: string): Promise<ThreadDetail | null> {
+const THREAD_DETAIL_SELECT =
+  "id, user_id, gmail_connection_id, gmail_thread_id, subject, summary, short_display_title, importance, importance_reason, status, requires_action, requires_reply, action_summary, action_reason, waiting_for, urgency, deadline, deadline_text, category, action_type, confidence, latest_message_at";
+
+export async function getThreadDetailForUser(
+  userId: string,
+  threadId: string,
+): Promise<ThreadDetail | null> {
   const db = createAdminClient();
   const { data: thread, error } = await db
     .from("email_threads")
-    .select("*")
+    .select(THREAD_DETAIL_SELECT)
     .eq("id", threadId)
     .eq("user_id", userId)
     .maybeSingle();
@@ -151,7 +168,12 @@ export async function getThreadDetailForUser(userId: string, threadId: string): 
       .eq("thread_id", threadId)
       .eq("user_id", userId)
       .order("received_at", { ascending: true }),
-    db.from("action_items").select("id, status").eq("thread_id", threadId).eq("user_id", userId).maybeSingle(),
+    db
+      .from("action_items")
+      .select("id, status, waiting_for, snoozed_until")
+      .eq("thread_id", threadId)
+      .eq("user_id", userId)
+      .maybeSingle(),
     db
       .from("gmail_connections")
       .select("gmail_email")
@@ -176,7 +198,10 @@ export async function getThreadDetailForUser(userId: string, threadId: string): 
     requiresReply: Boolean(thread.requires_reply),
     actionSummary: (thread.action_summary as string | null) ?? null,
     actionReason: (thread.action_reason as string | null) ?? null,
-    waitingFor: (thread.waiting_for as string | null) ?? null,
+    waitingFor:
+      (typeof action?.waiting_for === "string" ? action.waiting_for : null) ??
+      (thread.waiting_for as string | null) ??
+      null,
     urgency: (thread.urgency as string | null) ?? null,
     deadline: (thread.deadline as string | null) ?? null,
     deadlineText: (thread.deadline_text as string | null) ?? null,
@@ -186,6 +211,7 @@ export async function getThreadDetailForUser(userId: string, threadId: string): 
     latestMessageAt: (thread.latest_message_at as string | null) ?? null,
     actionId: action ? String(action.id) : null,
     actionStatus: action ? String(action.status) : null,
+    snoozedUntil: typeof action?.snoozed_until === "string" ? action.snoozed_until : null,
     messages: (messages ?? []).map((message) => ({
       id: String(message.id),
       direction: String(message.direction),
@@ -202,12 +228,33 @@ export async function saveThreadFeedback(
   userId: string,
   threadId: string,
   kind: z.infer<typeof threadFeedbackSchema>["kind"],
-) {
+): Promise<{ applied: boolean }> {
   const db = createAdminClient();
-  const { data: thread } = await db.from("email_threads").select("id").eq("id", threadId).eq("user_id", userId).maybeSingle();
+  const { data: thread } = await db
+    .from("email_threads")
+    .select("id, status, requires_action, importance, short_display_title, summary")
+    .eq("id", threadId)
+    .eq("user_id", userId)
+    .maybeSingle();
   if (!thread) {
     throw new ThreadQueryError(404, "not_found", "Thread not found.");
   }
+  const { data: action } = await db
+    .from("action_items")
+    .select("id, status")
+    .eq("thread_id", threadId)
+    .eq("user_id", userId)
+    .maybeSingle();
+  const importance =
+    thread.importance === "high" || thread.importance === "medium" || thread.importance === "low"
+      ? thread.importance
+      : null;
+  const correction = correctionFromFeedback(kind, {
+    status: normalizeThreadStatus(typeof thread.status === "string" ? thread.status : null),
+    requiresAction: Boolean(thread.requires_action),
+    importance,
+    actionStatus: action ? (action.status as ActionStatus) : null,
+  });
   const { error } = await db.from("classification_feedback").insert({
     user_id: userId,
     thread_id: threadId,
@@ -216,4 +263,64 @@ export async function saveThreadFeedback(
   if (error) {
     throw new ThreadQueryError(500, "save_failed", "Failed to save feedback.");
   }
+  if (!correction.applied) {
+    return { applied: false };
+  }
+  if (Object.keys(correction.thread).length > 0) {
+    const threadPatch: Record<string, unknown> = {};
+    if (correction.thread.status) {
+      threadPatch.status = correction.thread.status;
+    }
+    if (correction.thread.requiresAction !== undefined) {
+      threadPatch.requires_action = correction.thread.requiresAction;
+    }
+    if (correction.thread.importance) {
+      threadPatch.importance = correction.thread.importance;
+    }
+    const { error: threadError } = await db
+      .from("email_threads")
+      .update(threadPatch)
+      .eq("id", threadId)
+      .eq("user_id", userId);
+    if (threadError) {
+      throw new ThreadQueryError(500, "save_failed", "Failed to apply the correction.");
+    }
+  }
+  if (correction.actionStatus) {
+    const now = new Date().toISOString();
+    const title =
+      (typeof thread.short_display_title === "string" && thread.short_display_title.trim()) ||
+      (typeof thread.summary === "string" && thread.summary.trim()) ||
+      "Open task";
+    if (action) {
+      const { error: actionError } = await db
+        .from("action_items")
+        .update({
+          status: correction.actionStatus,
+          manual_override: true,
+          source: "USER",
+          completed_at: correction.actionStatus === "COMPLETED" ? now : null,
+          snoozed_until: null,
+          ...(correction.clearWaitingFor ? { waiting_for: null } : {}),
+        })
+        .eq("id", action.id)
+        .eq("user_id", userId);
+      if (actionError) {
+        throw new ThreadQueryError(500, "save_failed", "Failed to apply the correction.");
+      }
+    } else if (correction.actionStatus !== "COMPLETED") {
+      const { error: insertError } = await db.from("action_items").insert({
+        user_id: userId,
+        thread_id: threadId,
+        status: correction.actionStatus,
+        title,
+        source: "USER",
+        manual_override: true,
+      });
+      if (insertError) {
+        throw new ThreadQueryError(500, "save_failed", "Failed to apply the correction.");
+      }
+    }
+  }
+  return { applied: true };
 }

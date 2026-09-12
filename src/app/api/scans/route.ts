@@ -9,6 +9,7 @@ import {
   manualScanRequestSchema,
   ScanRequestError,
 } from "@/lib/scans/manual";
+import { sentryScanType } from "@/lib/observability/sentry-privacy";
 import { runScanInBackground } from "@/lib/scans/runtime";
 
 export const maxDuration = 300;
@@ -22,10 +23,7 @@ export async function GET() {
     getLatestScanRunForUser(user.id),
     getScanRunsForUser(user.id, 10),
   ]);
-  return NextResponse.json(
-    { scan, items },
-    { headers: { "Cache-Control": "no-store" } },
-  );
+  return NextResponse.json({ scan, items }, { headers: { "Cache-Control": "no-store" } });
 }
 
 export async function POST(request: Request) {
@@ -47,14 +45,19 @@ export async function POST(request: Request) {
 
   try {
     const job = await beginManualInitialScan(user.id, parsed.data.lookbackDays);
-    const running = runScanInBackground(job.scanId, job.execute);
+    const running = runScanInBackground(job.scanId, job.execute, {
+      scanType: sentryScanType(job.triggerType),
+    });
     after(async () => {
       await running;
     });
     return NextResponse.json({ scanId: job.scanId, status: "RUNNING" }, { status: 202 });
   } catch (error) {
     if (error instanceof ScanRequestError) {
-      return NextResponse.json({ error: error.code, message: error.message }, { status: error.status });
+      return NextResponse.json(
+        { error: error.code, message: error.message },
+        { status: error.status },
+      );
     }
     const message = error instanceof Error ? error.message : "Scan failed.";
     return NextResponse.json({ error: "scan_failed", message }, { status: 500 });

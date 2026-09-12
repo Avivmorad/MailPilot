@@ -3,7 +3,6 @@
 import { ChevronDown } from "lucide-react";
 import { useMemo, type ReactNode } from "react";
 
-
 import { ACTION_TOPIC_LABELS, type ActionTopic } from "@/lib/actions/topics";
 import { toggleCollapsedId } from "@/lib/ui/collapsed-state";
 import { useCollapsedIds } from "@/lib/ui/use-collapsed-ids";
@@ -39,7 +38,7 @@ export function CollapsibleTopicGroups({
         <div className="flex justify-end">
           <button
             type="button"
-            className="text-muted-foreground hover:text-foreground text-sm font-medium hover:underline"
+            className="text-muted-foreground hover:text-foreground focus-visible:ring-ring rounded-sm text-sm font-medium hover:underline focus-visible:ring-3 focus-visible:outline-none"
             onClick={() => setAll(!allCollapsed)}
           >
             {allCollapsed ? "Expand all" : "Collapse all"}
@@ -49,18 +48,21 @@ export function CollapsibleTopicGroups({
       <div className="space-y-4">
         {groups.map((group) => {
           const open = !collapsed.includes(group.topic);
+          const panelId = `${storageKey.replace(/[^a-zA-Z0-9_-]/g, "-")}-${group.topic}-panel`;
           return (
             <section
               key={group.topic}
               className={cn(
-                variant === "panel" && "bg-card ring-foreground/10 overflow-hidden rounded-xl ring-1",
+                variant === "panel" &&
+                  "bg-card ring-foreground/10 overflow-hidden rounded-xl ring-1",
               )}
             >
               <button
                 type="button"
                 aria-expanded={open}
+                aria-controls={panelId}
                 className={cn(
-                  "text-foreground hover:bg-muted/60 flex w-full items-center gap-2 px-1 py-2 text-start text-sm font-semibold tracking-tight transition-colors",
+                  "text-foreground hover:bg-muted/60 focus-visible:ring-ring flex w-full items-center gap-2 px-1 py-2 text-start text-sm font-semibold tracking-tight transition-colors focus-visible:ring-3 focus-visible:outline-none",
                   variant === "panel" && "px-4 py-2.5",
                   variant === "panel" && open && "border-b",
                 )}
@@ -87,7 +89,7 @@ export function CollapsibleTopicGroups({
                   open ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
                 )}
               >
-                <div className="overflow-hidden">
+                <div id={panelId} className="overflow-hidden">
                   <div
                     className={cn(variant === "panel" ? "" : "space-y-3 pt-1")}
                     aria-hidden={!open}

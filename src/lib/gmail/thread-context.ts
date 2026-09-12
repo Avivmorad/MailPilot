@@ -1,5 +1,10 @@
 import { getContextLimits, type ContextLimits } from "@/lib/config/env";
-import { classifyDirection, parseAddressList, parseEmailAddress, type MessageDirection } from "@/lib/gmail/addresses";
+import {
+  classifyDirection,
+  parseAddressList,
+  parseEmailAddress,
+  type MessageDirection,
+} from "@/lib/gmail/addresses";
 import { formatAttachmentsForPrompt, type ParsedGmailMessage } from "@/lib/gmail/parser";
 
 export interface ThreadMessageContext {
@@ -46,7 +51,9 @@ export function buildThreadContext(
   userEmails: string[],
   limits: ContextLimits = getContextLimits(),
 ): ThreadContext {
-  const chronological = [...messages].sort((a, b) => Number(a.internalDate ?? 0) - Number(b.internalDate ?? 0));
+  const chronological = [...messages].sort(
+    (a, b) => Number(a.internalDate ?? 0) - Number(b.internalDate ?? 0),
+  );
   const window = chronological.slice(-limits.MAX_THREAD_MESSAGES);
 
   const mapped: ThreadMessageContext[] = window.map((message) => {

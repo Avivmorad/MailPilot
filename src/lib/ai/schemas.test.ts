@@ -76,7 +76,9 @@ describe("threadAnalysisSchema", () => {
       short_display_title: "כותרת",
     };
     expect(threadAnalysisSchema.safeParse({ ...base, category: "career" }).success).toBe(true);
-    expect(threadAnalysisSchema.safeParse({ ...base, category: "official_legal" }).success).toBe(true);
+    expect(threadAnalysisSchema.safeParse({ ...base, category: "official_legal" }).success).toBe(
+      true,
+    );
     expect(threadAnalysisSchema.safeParse({ ...base, category: "work" }).success).toBe(false);
     expect(threadAnalysisSchema.safeParse({ ...base, category: "account" }).success).toBe(false);
   });

@@ -12,13 +12,52 @@ describe("appStatusBanner", () => {
     expect(banner?.title).toContain("refreshed");
   });
 
-  it("uses spec copy for a partial scan", () => {
+  it("treats a reauth scan failure like an expired connection", () => {
+    const banner = appStatusBanner({
+      connectionStatus: "CONNECTED",
+      scanStatus: "FAILED",
+      errorCode: "reauth_required",
+    });
+    expect(banner?.actionLabel).toBe("Reconnect Gmail");
+    expect(banner?.title).toContain("refreshed");
+  });
+
+  it("uses quota and AI-unavailable copy and scan-anchor CTAs for failed scans", () => {
+    const quotaBanner = appStatusBanner({
+      connectionStatus: "CONNECTED",
+      scanStatus: "FAILED",
+      errorCode: "gmail_quota",
+    });
+    expect(quotaBanner?.title).toContain("quota");
+    expect(quotaBanner?.href).toBe("/dashboard#scan");
+    expect(quotaBanner?.actionLabel).toBe("Try a shorter lookback");
+
+    const aiBanner = appStatusBanner({
+      connectionStatus: "CONNECTED",
+      scanStatus: "FAILED",
+      errorCode: "ai_unavailable",
+    });
+    expect(aiBanner?.title).toContain("temporarily unavailable");
+    expect(aiBanner?.href).toBe("/dashboard#scan");
+    expect(aiBanner?.actionLabel).toBe("Try again");
+
+    const genericBanner = appStatusBanner({
+      connectionStatus: "CONNECTED",
+      scanStatus: "FAILED",
+    });
+    expect(genericBanner?.href).toBe("/dashboard#scan");
+    expect(genericBanner?.actionLabel).toBe("Scan again");
+  });
+
+  it("uses spec copy and mail view CTA for a partial scan", () => {
     const banner = appStatusBanner({
       connectionStatus: "CONNECTED",
       scanStatus: "PARTIAL",
     });
     expect(banner?.kind).toBe("warning");
     expect(banner?.body).toBe("The system will retry them.");
+    expect(banner?.href).toBe("/mail");
+    expect(banner?.actionLabel).toBe("View mail");
   });
 
   it("hides a running-scan banner on the dashboard", () => {

@@ -60,11 +60,7 @@ function addCalendarDay(
 /**
  * Next daily scan instant in UTC for a wall-clock time in `timeZone`.
  */
-export function nextDailyScanAt(
-  now: Date,
-  timeHHmm: string,
-  timeZone: string,
-): Date {
+export function nextDailyScanAt(now: Date, timeHHmm: string, timeZone: string): Date {
   const [hoursRaw, minutesRaw] = timeHHmm.split(":");
   const hours = Number(hoursRaw);
   const minutes = Number(minutesRaw);

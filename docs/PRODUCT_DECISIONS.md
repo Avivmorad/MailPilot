@@ -11,17 +11,17 @@ must follow these.
 
 ## MVP operating defaults
 
-| Decision             | Choice                                                    |
-| -------------------- | --------------------------------------------------------- |
-| Users                | Multi-user architecture; test with a single user for now  |
-| Automatic scan       | Once daily at **08:00**                                   |
-| Timezone             | **Asia/Jerusalem**                                        |
-| Initial scan window  | Choose **1 / 2 / 3 / 4 days, 1 / 2 / 3 weeks, or 1 month** (default **7 days**) |
-| Subsequent scans     | Only changes since the last successful scan (incremental) |
-| Summary language     | **English**                                               |
+| Decision             | Choice                                                                                                       |
+| -------------------- | ------------------------------------------------------------------------------------------------------------ |
+| Users                | Multi-user architecture; test with a single user for now                                                     |
+| Automatic scan       | Once daily at **08:00**                                                                                      |
+| Timezone             | **Asia/Jerusalem**                                                                                           |
+| Initial scan window  | Choose **1 / 2 / 3 / 4 days, 1 / 2 / 3 weeks, or 1 month** (default **7 days**)                              |
+| Subsequent scans     | Only changes since the last successful scan (incremental)                                                    |
+| Summary language     | **English**                                                                                                  |
 | Presentation         | Dashboard **and** an **in-app** digest (Phase 9); **email** digest delivery is a future extension (spec §72) |
-| Email body retention | Do **not** persist full email bodies long-term            |
-| Sending replies      | The system **never** sends replies on the user's behalf   |
+| Email body retention | Do **not** persist full email bodies long-term                                                               |
+| Sending replies      | The system **never** sends replies on the user's behalf                                                      |
 
 These map onto the spec as follows:
 
@@ -78,12 +78,12 @@ Rules:
 The repository uses the variable names defined in [`../.env.example`](../.env.example) and validated
 in `src/lib/config/env.ts`. Some setup guides used different illustrative names; the mapping is:
 
-| Guide name (illustrative)              | Actual project variable                         |
-| -------------------------------------- | ----------------------------------------------- |
-| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | `NEXT_PUBLIC_SUPABASE_ANON_KEY`                 |
-| `SUPABASE_SECRET_KEY`                  | `SUPABASE_SERVICE_ROLE_KEY`                     |
-| `OPENAI_API_KEY`                       | `GEMINI_API_KEY`                                |
-| `OPENAI_MODEL`                         | `GEMINI_MODEL`                                  |
+| Guide name (illustrative)              | Actual project variable         |
+| -------------------------------------- | ------------------------------- |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | `NEXT_PUBLIC_SUPABASE_ANON_KEY` |
+| `SUPABASE_SECRET_KEY`                  | `SUPABASE_SERVICE_ROLE_KEY`     |
+| `OPENAI_API_KEY`                       | `GEMINI_API_KEY`                |
+| `OPENAI_MODEL`                         | `GEMINI_MODEL`                  |
 
 ## AI provider
 
@@ -124,22 +124,22 @@ Mail tabs are derived from this single `status` (plus action workflow for waitin
 Within Open (and in the summary), group threads by the AI `category`. Use
 `other` only when nothing else fits. Headings:
 
-| Category | Label | Typical mail |
-| -------- | ----- | ------------ |
-| `finance` | Finance | Banking, charges, receipts, invoices, billed subscriptions, investments, tax |
-| `security` | Security | Logins, authentication, passwords, OAuth, account access (not OTPs as Open tasks) |
-| `career` | Career | Jobs, recruiters, applications, interviews |
-| `education` | Education | Courses, exams, school or university enrollment |
-| `projects_development` | Projects & Development | Code, deployments, developer tooling |
-| `travel_transport` | Travel & Transport | Flights, hotels, transport, travel insurance |
-| `shopping_orders` | Shopping & Orders | Orders, deliveries, returns of goods |
-| `official_legal` | Official, Legal & Insurance | Government, contracts, insurance, pension |
-| `accounts_subscriptions` | Accounts & Subscriptions | Service-account notices, plan changes, product updates, non-security subscriptions |
-| `personal_health` | Personal & Health | Personal messages, appointments, medical, personal services |
-| `social_feeds` | Social & Feeds | Social networks, groups, social notifications |
-| `gaming_entertainment` | Gaming & Entertainment | Games and entertainment content |
-| `newsletters_promotions` | Newsletters & Promotions | Promotions, ads, newsletters with no operational content |
-| `other` | Other | Default only when none of the above fit |
+| Category                 | Label                       | Typical mail                                                                       |
+| ------------------------ | --------------------------- | ---------------------------------------------------------------------------------- |
+| `finance`                | Finance                     | Banking, charges, receipts, invoices, billed subscriptions, investments, tax       |
+| `security`               | Security                    | Logins, authentication, passwords, OAuth, account access (not OTPs as Open tasks)  |
+| `career`                 | Career                      | Jobs, recruiters, applications, interviews                                         |
+| `education`              | Education                   | Courses, exams, school or university enrollment                                    |
+| `projects_development`   | Projects & Development      | Code, deployments, developer tooling                                               |
+| `travel_transport`       | Travel & Transport          | Flights, hotels, transport, travel insurance                                       |
+| `shopping_orders`        | Shopping & Orders           | Orders, deliveries, returns of goods                                               |
+| `official_legal`         | Official, Legal & Insurance | Government, contracts, insurance, pension                                          |
+| `accounts_subscriptions` | Accounts & Subscriptions    | Service-account notices, plan changes, product updates, non-security subscriptions |
+| `personal_health`        | Personal & Health           | Personal messages, appointments, medical, personal services                        |
+| `social_feeds`           | Social & Feeds              | Social networks, groups, social notifications                                      |
+| `gaming_entertainment`   | Gaming & Entertainment      | Games and entertainment content                                                    |
+| `newsletters_promotions` | Newsletters & Promotions    | Promotions, ads, newsletters with no operational content                           |
+| `other`                  | Other                       | Default only when none of the above fit                                            |
 
 This replaces the spec §12 category enum (`work`, `school`, `account`, …) and the
 previous three UI buckets (Security / Payments / General). Stored legacy values
@@ -159,43 +159,43 @@ alone must not cause an actionable request to be ignored. OTP, magic links, and
 
 ### Security
 
-| Case | Where | `status` / action |
-| ---- | ----- | ----------------- |
-| OTP, magic link, confirm-email, “Link verification code” | Ignore | `ignore` |
-| New / unrecognized device login, Google security alert | Open | `action_required` / `review` |
-| Expired API key, personal access token, or similar credential | Open | `action_required` / `review` |
-| Provider already blocked the login | Open | `action_required` / `review` |
-| Security copy about a **different** account (this mailbox is only recovery) | Ignore | `ignore` |
-| Password reset, locked/compromised account, unauthorized charge | Open | `action_required` / `review` |
+| Case                                                                        | Where  | `status` / action            |
+| --------------------------------------------------------------------------- | ------ | ---------------------------- |
+| OTP, magic link, confirm-email, “Link verification code”                    | Ignore | `ignore`                     |
+| New / unrecognized device login, Google security alert                      | Open   | `action_required` / `review` |
+| Expired API key, personal access token, or similar credential               | Open   | `action_required` / `review` |
+| Provider already blocked the login                                          | Open   | `action_required` / `review` |
+| Security copy about a **different** account (this mailbox is only recovery) | Ignore | `ignore`                     |
+| Password reset, locked/compromised account, unauthorized charge             | Open   | `action_required` / `review` |
 
 ### Payments
 
-| Case | Where | `status` / action |
-| ---- | ----- | ----------------- |
-| Paid receipt, refund issued, tax/VAT PDF ready to download | Ignore | `ignore` |
-| Bank/account update with no unpaid amount | Ignore | `ignore` |
-| Upcoming renewal or trial started, no charge due | Ignore | `ignore` |
+| Case                                                          | Where                                | `status` / action         |
+| ------------------------------------------------------------- | ------------------------------------ | ------------------------- |
+| Paid receipt, refund issued, tax/VAT PDF ready to download    | Ignore                               | `ignore`                  |
+| Bank/account update with no unpaid amount                     | Ignore                               | `ignore`                  |
+| Upcoming renewal or trial started, no charge due              | Ignore                               | `ignore`                  |
 | Unpaid invoice, failed charge, remaining balance, fine to pay | Open until **that thread** says paid | `action_required` / `pay` |
-| Card expired / update payment or service stops | Open | `action_required` / `pay` |
-| Marketing that looks like a credit alert | Ignore | `ignore` |
+| Card expired / update payment or service stops                | Open                                 | `action_required` / `pay` |
+| Marketing that looks like a credit alert                      | Ignore                               | `ignore`                  |
 
 ### General
 
-| Case | Where | `status` / action |
-| ---- | ----- | ----------------- |
-| Person or automated mail asks the user to grant access, approve, sign, submit, or answer | Open | matching `action_type` |
-| Signature request, approval request, or document comment that explicitly asks the user to act | Open | `sign` / `approve` / `reply` |
-| Bounce for mail the user sent | Open | `review` |
-| Meeting the user must accept/decline, or a request to choose/confirm a new time | Open | `schedule` |
-| Interview scheduling, assessment, or request for missing application documents | Open | `schedule` / `submit` |
-| Parcel collection, address correction, or customs-information request | Open | `follow_up` / `submit` |
-| Check-in still needed | Open | `submit` |
-| User already asked/sent/signed; no reply yet | Waiting | `waiting` |
-| Out-of-office reply or support-ticket acknowledgment while that request is unanswered | Waiting | `waiting` (not resolved) |
-| Webinar / mass calendar invite | Ignore | `ignore` |
-| Confirmed meeting reschedule or cancellation (no new time to choose) | Summary | `informational` |
-| Lab results or “document ready in the portal” | Summary | `informational` |
-| Drive/Docs/Dropbox “shared a document/file with you” (access granted) | Summary | `informational` |
-| Routine tracking / shipment out for delivery, itinerary, boarding pass, confirmed appointment | Summary | `informational` |
-| Useful mail that assigns work only to someone else; being CC’d is not a task | Summary | `informational` |
-| Job alerts, receipt-only application acknowledgments, bot mail with no user action, surveys, promos | Ignore | `ignore` |
+| Case                                                                                                | Where   | `status` / action            |
+| --------------------------------------------------------------------------------------------------- | ------- | ---------------------------- |
+| Person or automated mail asks the user to grant access, approve, sign, submit, or answer            | Open    | matching `action_type`       |
+| Signature request, approval request, or document comment that explicitly asks the user to act       | Open    | `sign` / `approve` / `reply` |
+| Bounce for mail the user sent                                                                       | Open    | `review`                     |
+| Meeting the user must accept/decline, or a request to choose/confirm a new time                     | Open    | `schedule`                   |
+| Interview scheduling, assessment, or request for missing application documents                      | Open    | `schedule` / `submit`        |
+| Parcel collection, address correction, or customs-information request                               | Open    | `follow_up` / `submit`       |
+| Check-in still needed                                                                               | Open    | `submit`                     |
+| User already asked/sent/signed; no reply yet                                                        | Waiting | `waiting`                    |
+| Out-of-office reply or support-ticket acknowledgment while that request is unanswered               | Waiting | `waiting` (not resolved)     |
+| Webinar / mass calendar invite                                                                      | Ignore  | `ignore`                     |
+| Confirmed meeting reschedule or cancellation (no new time to choose)                                | Summary | `informational`              |
+| Lab results or “document ready in the portal”                                                       | Summary | `informational`              |
+| Drive/Docs/Dropbox “shared a document/file with you” (access granted)                               | Summary | `informational`              |
+| Routine tracking / shipment out for delivery, itinerary, boarding pass, confirmed appointment       | Summary | `informational`              |
+| Useful mail that assigns work only to someone else; being CC’d is not a task                        | Summary | `informational`              |
+| Job alerts, receipt-only application acknowledgments, bot mail with no user action, surveys, promos | Ignore  | `ignore`                     |

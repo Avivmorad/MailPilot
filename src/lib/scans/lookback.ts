@@ -26,7 +26,10 @@ export function buildInitialScanQuery(lookbackDays: InitialLookbackDays): string
   return `-in:spam -in:trash newer_than:${lookbackDays}d`;
 }
 
-export function scanWindow(lookbackDays: InitialLookbackDays, now: Date = new Date()): {
+export function scanWindow(
+  lookbackDays: InitialLookbackDays,
+  now: Date = new Date(),
+): {
   windowStart: Date;
   windowEnd: Date;
 } {

@@ -6,6 +6,15 @@ export const GMAIL_QUOTA_USER_MESSAGE =
 
 const DEFAULT_DELAYS_MS = [60_000, 60_000, 60_000];
 
+export function isGmailAuthError(error: unknown): boolean {
+  const status = httpStatus(error);
+  if (status === 401) {
+    return true;
+  }
+  const message = errorMessage(error);
+  return /invalid_grant|invalid credentials|token (has been )?revoked|unauthorized/i.test(message);
+}
+
 export function isGmailQuotaError(error: unknown): boolean {
   const status = httpStatus(error);
   if (status === 429) {
@@ -38,7 +47,12 @@ function errorMessage(error: unknown): string {
   if (error instanceof Error) {
     return error.message;
   }
-  if (typeof error === "object" && error && "message" in error && typeof error.message === "string") {
+  if (
+    typeof error === "object" &&
+    error &&
+    "message" in error &&
+    typeof error.message === "string"
+  ) {
     return error.message;
   }
   return String(error);
@@ -53,7 +67,8 @@ export async function withGmailRetry<T>(
   } = {},
 ): Promise<T> {
   const delays = options.delaysMs ?? DEFAULT_DELAYS_MS;
-  const sleep = options.sleep ?? ((ms: number) => new Promise((resolve) => setTimeout(resolve, ms)));
+  const sleep =
+    options.sleep ?? ((ms: number) => new Promise((resolve) => setTimeout(resolve, ms)));
   const units = options.units ?? 5;
   const quota = getSharedGmailQuota(getContextLimits().GMAIL_QUOTA_UNITS_PER_MINUTE);
   let lastError: unknown;
@@ -63,7 +78,7 @@ export async function withGmailRetry<T>(
       return await operation();
     } catch (error) {
       lastError = error;
-      if (!isGmailQuotaError(error) || attempt >= delays.length) {
+      if (isGmailAuthError(error) || !isGmailQuotaError(error) || attempt >= delays.length) {
         throw error;
       }
       quota.reset();

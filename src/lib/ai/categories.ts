@@ -43,7 +43,8 @@ export const CATEGORY_HINTS: Record<Category, string> = {
   travel_transport: "flights, hotels, transport, travel insurance",
   shopping_orders: "orders, deliveries, returns of goods",
   official_legal: "government, contracts, insurance, pension",
-  accounts_subscriptions: "service-account notices, plan changes, product updates, non-security subscriptions",
+  accounts_subscriptions:
+    "service-account notices, plan changes, product updates, non-security subscriptions",
   personal_health: "personal messages, appointments, medical, personal services",
   social_feeds: "social networks, groups, social notifications",
   gaming_entertainment: "games and entertainment content",

@@ -11,9 +11,12 @@ import { PageHeader } from "@/components/layout/page-header";
 import { InitialScanCard } from "@/components/scans/initial-scan-card";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { listActionsForUser } from "@/lib/actions/queries";
+import { listActionsForUser, type ActionListItem } from "@/lib/actions/queries";
+import { getDashboardChangesForUser } from "@/lib/dashboard/queries";
 import { ensureDigestForLatestScan } from "@/lib/digest/build-digest";
 import { getGmailStatusForUser } from "@/lib/gmail/connections";
+import { shouldShowGmailRecoveryCard } from "@/lib/gmail/recovery";
+import { getOnboardingStepForUser } from "@/lib/onboarding/load";
 import { getInboxCountsForUser, getLatestScanRunForUser } from "@/lib/scans/manual";
 import { getSessionUser } from "@/lib/supabase/auth";
 import { cn } from "@/lib/utils";
@@ -35,7 +38,10 @@ function dashboardDescription({
     return "Connect Gmail to start triaging your inbox.";
   }
   if (scanDone) {
-    return "Scan finished. Open tasks are first — FYI and waiting stay in Mail.";
+    return "Scan finished. New and overdue work is first — FYI and waiting stay in Mail.";
+  }
+  if (latestStatus === "PARTIAL") {
+    return "Last scan finished with some threads still pending. New and overdue work is listed first.";
   }
   if (latestStatus === "RUNNING") {
     return "A scan is running. You can keep working while it classifies mail.";
@@ -99,41 +105,113 @@ export default async function DashboardPage({
     redirect("/login");
   }
 
+  const onboardingStep = await getOnboardingStepForUser(user.id);
+  if (onboardingStep !== "complete") {
+    const next = new URLSearchParams();
+    const pending = await searchParams;
+    if (pending.gmail) {
+      next.set("gmail", pending.gmail);
+    }
+    if (pending.reason) {
+      next.set("reason", pending.reason);
+    }
+    const query = next.toString();
+    redirect(query ? `/onboarding?${query}` : "/onboarding");
+  }
+
   const [params, gmailStatus] = await Promise.all([searchParams, getGmailStatusForUser(user.id)]);
   const connected = gmailStatus.connection?.status === "CONNECTED";
-  const showGmailCard =
-    Boolean(params.gmail) ||
-    Boolean(gmailStatus.loadError) ||
-    !gmailStatus.configured ||
-    !gmailStatus.connection ||
-    gmailStatus.connection.status === "DISCONNECTED";
+  const showGmailCard = Boolean(params.gmail) || shouldShowGmailRecoveryCard(gmailStatus);
   const emptyCounts = { processed: 0, important: 0, needAction: 0, waiting: 0, ignored: 0, fyi: 0 };
   const latestScan = connected ? await getLatestScanRunForUser(user.id) : null;
-  const [counts, openActions, latestDigest] = connected
+  const latestScanStatus = latestScan ? String(latestScan.status) : "";
+  const latestStartedAt = typeof latestScan?.started_at === "string" ? latestScan.started_at : null;
+  const since =
+    (latestScanStatus === "SUCCESS" || latestScanStatus === "PARTIAL") && latestStartedAt
+      ? latestStartedAt
+      : (gmailStatus.connection?.lastSuccessfulScanAt ?? null);
+  let actionsLoadError = false;
+  let countsLoadError = false;
+
+  const [counts, openActions, latestDigest, dashboardChanges] = connected
     ? await Promise.all([
-        getInboxCountsForUser(user.id),
-        listActionsForUser(user.id, "OPEN"),
+        getInboxCountsForUser(user.id).catch(() => {
+          countsLoadError = true;
+          return emptyCounts;
+        }),
+        listActionsForUser(user.id, "OPEN").catch(() => {
+          actionsLoadError = true;
+          return [] as ActionListItem[];
+        }),
         ensureDigestForLatestScan(
           user.id,
           latestScan ? String(latestScan.id) : null,
           latestScan ? String(latestScan.status) : null,
         ).catch(() => null),
+        getDashboardChangesForUser(user.id, since).catch(() => ({
+          summary: {
+            since: null,
+            newOpen: 0,
+            completed: 0,
+            reopened: 0,
+            staleWaiting: 0,
+            overdueOpen: 0,
+          },
+          line: null,
+        })),
       ])
-    : [emptyCounts, [], null];
+    : [
+        emptyCounts,
+        [],
+        null,
+        {
+          summary: {
+            since: null,
+            newOpen: 0,
+            completed: 0,
+            reopened: 0,
+            staleWaiting: 0,
+            overdueOpen: 0,
+          },
+          line: null,
+        },
+      ];
   const latestStatus = latestScan ? String(latestScan.status) : null;
   const openCount = openActions.length;
   const attentionItems = openActions.slice(0, ATTENTION_PREVIEW);
+  const changeLine = dashboardChanges.line;
+  const overdueOpen = dashboardChanges.summary.overdueOpen;
 
-  const step = nextStep({
-    connected,
-    openCount,
-    processed: counts.processed,
-    scanRunning: latestStatus === "RUNNING",
-  });
+  const step = countsLoadError
+    ? null
+    : nextStep({
+        connected,
+        openCount,
+        processed: counts.processed,
+        scanRunning: latestStatus === "RUNNING",
+      });
   const stats = [
-    { label: "Open tasks", value: connected ? String(openCount) : "—", href: "/mail?tab=open", icon: ListChecks, hero: true },
-    { label: "Waiting", value: connected ? String(counts.waiting) : "—", href: "/mail?tab=waiting", icon: Clock3, hero: false },
-    { label: "FYI", value: connected ? String(counts.fyi) : "—", href: "/mail?tab=summary", icon: Inbox, hero: false },
+    {
+      label: "Open tasks",
+      value: connected && !actionsLoadError ? String(openCount) : "—",
+      href: "/mail?tab=open",
+      icon: ListChecks,
+      hero: true,
+    },
+    {
+      label: "Waiting",
+      value: connected && !countsLoadError ? String(counts.waiting) : "—",
+      href: "/mail?tab=waiting",
+      icon: Clock3,
+      hero: false,
+    },
+    {
+      label: "FYI",
+      value: connected && !countsLoadError ? String(counts.fyi) : "—",
+      href: "/mail?tab=summary",
+      icon: Inbox,
+      hero: false,
+    },
   ];
 
   return (
@@ -148,7 +226,11 @@ export default async function DashboardPage({
       />
 
       {showGmailCard ? (
-        <GmailConnectionCard status={gmailStatus} gmailFlash={params.gmail} reason={params.reason} />
+        <GmailConnectionCard
+          status={gmailStatus}
+          gmailFlash={params.gmail}
+          reason={params.reason}
+        />
       ) : null}
 
       {step ? (
@@ -156,6 +238,9 @@ export default async function DashboardPage({
           <div className="min-w-0">
             <p className="font-medium tracking-tight">{step.title}</p>
             <p className="text-muted-foreground mt-0.5 text-sm leading-relaxed">{step.body}</p>
+            {changeLine ? (
+              <p className="text-muted-foreground mt-1 text-sm leading-relaxed">{changeLine}</p>
+            ) : null}
           </div>
           <Link href={step.href} className={buttonVariants()}>
             {step.label}
@@ -165,11 +250,23 @@ export default async function DashboardPage({
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         {stats.map((stat) => (
-          <Link key={stat.label} href={stat.href} className="block rounded-xl focus-visible:ring-2 focus-visible:ring-offset-2">
-            <Card size={stat.hero ? "default" : "sm"} className="h-full transition-colors hover:bg-muted/40">
+          <Link
+            key={stat.label}
+            href={stat.href}
+            className="block rounded-xl focus-visible:ring-2 focus-visible:ring-offset-2"
+          >
+            <Card
+              size={stat.hero ? "default" : "sm"}
+              className="hover:bg-muted/40 h-full transition-colors"
+            >
               <CardContent className={cn(stat.hero ? "pt-1" : "")}>
                 <stat.icon className="text-muted-foreground mb-2 size-4" aria-hidden />
-                <div className={cn("font-semibold tracking-tight tabular-nums", stat.hero ? "text-4xl" : "text-3xl")}>
+                <div
+                  className={cn(
+                    "font-semibold tracking-tight tabular-nums",
+                    stat.hero ? "text-4xl" : "text-3xl",
+                  )}
+                >
                   {stat.value}
                 </div>
                 <div className="text-muted-foreground mt-1 text-sm">{stat.label}</div>
@@ -182,16 +279,39 @@ export default async function DashboardPage({
       <section className="space-y-3">
         <div className="flex flex-wrap items-end justify-between gap-2">
           <div>
-            <h2 className="text-foreground text-lg font-semibold tracking-tight">Needs your attention</h2>
-            <p className="text-muted-foreground text-sm">Top open tasks. Full list lives in Mail.</p>
+            <h2 className="text-foreground text-lg font-semibold tracking-tight">
+              Needs your attention
+            </h2>
+            <p className="text-muted-foreground text-sm">
+              {overdueOpen > 0
+                ? "Overdue and urgent first. Full list lives in Mail."
+                : "Top open tasks. Full list lives in Mail."}
+            </p>
           </div>
           {openCount > 0 ? (
-            <Link href="/mail?tab=open" className="text-primary text-sm font-medium hover:underline">
+            <Link
+              href="/mail?tab=open"
+              className="text-primary text-sm font-medium hover:underline"
+            >
               View all in Mail
             </Link>
           ) : null}
         </div>
-        {attentionItems.length > 0 ? (
+        {actionsLoadError ? (
+          <EmptyState
+            variant="error"
+            title="Could not load open tasks"
+            description="We had trouble reaching the database. Reload to try again. Your mailbox data is safe."
+            action={
+              <Link
+                href="/dashboard"
+                className={buttonVariants({ size: "sm", variant: "outline" })}
+              >
+                Reload
+              </Link>
+            }
+          />
+        ) : attentionItems.length > 0 ? (
           <div className="space-y-3">
             {attentionItems.map((item) => (
               <ActionItemCard key={item.id} item={item} />
@@ -230,15 +350,21 @@ export default async function DashboardPage({
                 status: String(latestScan.status),
                 threads_discovered: Number(latestScan.threads_discovered ?? 0),
                 threads_checked: Number(latestScan.threads_checked ?? 0),
+                error_code: (latestScan.error_code as string | null | undefined) ?? null,
+                error_message: (latestScan.error_message as string | null | undefined) ?? null,
               }
             : null
         }
         lastRunAt={
-          latestStatus === "RUNNING" ? null : ((latestScan?.finished_at as string | null | undefined) ?? null)
+          latestStatus === "RUNNING"
+            ? null
+            : ((latestScan?.finished_at as string | null | undefined) ?? null)
         }
         lastRunStatus={latestStatus === "RUNNING" ? null : latestStatus}
         messagesProcessed={
-          latestScan && latestStatus !== "RUNNING" ? Number(latestScan.messages_processed ?? 0) : null
+          latestScan && latestStatus !== "RUNNING"
+            ? Number(latestScan.messages_processed ?? 0)
+            : null
         }
         nextScanAt={gmailStatus.connection?.nextScanAt}
       />

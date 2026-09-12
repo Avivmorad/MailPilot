@@ -15,9 +15,25 @@ function calendarDateInTimeZone(now: Date, timeZone: string): string {
   }).format(now);
 }
 
+/** Add whole calendar days in the display timezone (not 24h UTC slices). */
+export function addCalendarDaysIso(
+  days: number,
+  now: Date = new Date(),
+  timeZone: string = DISPLAY_TZ,
+): string {
+  const today = calendarDateInTimeZone(now, timeZone);
+  const start = Date.parse(`${today}T12:00:00.000Z`);
+  return new Date(start + days * 86_400_000).toISOString().slice(0, 10);
+}
+
 function parseInstant(iso: string): Date | null {
   const date = new Date(iso);
   return Number.isFinite(date.getTime()) ? date : null;
+}
+
+/** ICU en-GB can emit "Sept"; keep a stable 3-letter month for UI and tests. */
+function normalizeShortMonth(formatted: string): string {
+  return formatted.replace(/\bSept\b/g, "Sep");
 }
 
 export function formatDateTime(iso: string | null | undefined): string {
@@ -37,7 +53,7 @@ export function formatDateTime(iso: string | null | undefined): string {
     hourCycle: "h23",
   }).formatToParts(date);
   const day = part(parts, "day");
-  const month = part(parts, "month");
+  const month = normalizeShortMonth(part(parts, "month"));
   const hour = part(parts, "hour");
   const minute = part(parts, "minute");
   return `${day} ${month}, ${hour}:${minute}`;
@@ -57,13 +73,10 @@ export function formatDate(isoDate: string | null | undefined): string {
     day: "numeric",
     month: "short",
   }).formatToParts(date);
-  return `${part(parts, "day")} ${part(parts, "month")}`;
+  return `${part(parts, "day")} ${normalizeShortMonth(part(parts, "month"))}`;
 }
 
-export function formatRelativeTime(
-  iso: string | null | undefined,
-  now: Date = new Date(),
-): string {
+export function formatRelativeTime(iso: string | null | undefined, now: Date = new Date()): string {
   if (!iso) {
     return "—";
   }
@@ -92,10 +105,10 @@ export function formatRelativeTime(
 
 export type DeadlineProximity = "expired" | "soon" | "later";
 
-function daysUntilCalendarDate(
+export function daysUntilCalendarDate(
   isoDate: string,
   now: Date,
-  timeZone: string,
+  timeZone: string = DISPLAY_TZ,
 ): number | null {
   if (!ISO_DATE.test(isoDate)) {
     return null;

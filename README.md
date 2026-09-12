@@ -75,6 +75,9 @@ Copy from [`.env.example`](.env.example). Server secrets must never use a `NEXT_
 | `GEMINI_API_KEY` / `GEMINI_MODEL` | Gemini access; model is configurable, not hard-coded |
 | `CRON_SECRET` | Protects `/api/cron/scan-dispatcher` |
 | `MAX_THREAD_MESSAGES` / `MAX_MESSAGE_CHARS` / `MAX_THREAD_CHARS` / `AI_MAX_CONCURRENCY` | Context and cost controls |
+| `GMAIL_QUOTA_UNITS_PER_MINUTE` | Optional local Gmail quota budget (default 12000) |
+| `NEXT_PUBLIC_SENTRY_DSN` | Optional Sentry DSN (public). App runs without it |
+| `SENTRY_ORG` / `SENTRY_PROJECT` / `SENTRY_AUTH_TOKEN` | Optional build-only source-map upload. Never `NEXT_PUBLIC_` |
 
 ### Migrations
 
@@ -95,17 +98,19 @@ RLS is required on user-accessible tables (`user_id = auth.uid()`).
 ## Scripts
 
 ```bash
-npm run dev         # development server
-npm run build       # production build
-npm run start       # run the production build
-npm run lint        # ESLint
-npm run typecheck   # tsc --noEmit
-npm test            # Vitest (Windows uses scripts/run-vitest.mjs)
-npm run test:watch  # Vitest watch
-npm run format      # Prettier write
+npm run dev              # development server
+npm run build            # production build
+npm run start            # run the production build
+npm run lint             # ESLint
+npm run typecheck        # tsc --noEmit
+npm test                 # Vitest (Windows uses scripts/run-vitest.mjs)
+npm run test:watch       # Vitest watch
+npm run test:integration # mocked scan + RLS isolation tests
+npm run eval:scorecard   # triage eval thresholds
+npm run format           # Prettier write
 ```
 
-Unit tests live next to the code they cover as `*.test.ts(x)`. Eval fixtures are in `tests/fixtures/` and `tests/evals/`.
+Unit tests live next to the code they cover as `*.test.ts(x)`. Eval fixtures are in `tests/fixtures/` and `tests/evals/`. `npm run eval:scorecard` (also run by `npm test` via `eval-scorecard.test.ts`) fails when schema validity, action recall, or deadline hallucination regress below `EVAL_THRESHOLDS`.
 
 ## Cron and deployment
 

@@ -33,7 +33,8 @@ function HoverHint({ hint, children }: { hint: string; children: ReactNode }) {
               style={{
                 left: Math.max(8, Math.min(rect.left, window.innerWidth - 272)),
                 top: rect.bottom + 8 > window.innerHeight - 72 ? rect.top - 8 : rect.bottom + 8,
-                transform: rect.bottom + 8 > window.innerHeight - 72 ? "translateY(-100%)" : undefined,
+                transform:
+                  rect.bottom + 8 > window.innerHeight - 72 ? "translateY(-100%)" : undefined,
               }}
             >
               {hint}
@@ -45,13 +46,7 @@ function HoverHint({ hint, children }: { hint: string; children: ReactNode }) {
   );
 }
 
-export function MetaBadge({
-  value,
-  kind = "status",
-}: {
-  value: string;
-  kind?: TagKind;
-}) {
+export function MetaBadge({ value, kind = "status" }: { value: string; kind?: TagKind }) {
   if (!isVisibleTag(kind, value)) {
     return null;
   }

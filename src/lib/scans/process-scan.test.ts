@@ -8,6 +8,7 @@ import type { MailPilotLogicalLabel } from "@/lib/gmail/constants";
 import type { ParsedGmailMessage } from "@/lib/gmail/parser";
 import type { InitialLookbackDays } from "@/lib/scans/lookback";
 import { openGmailScan, processInitialScan, shouldReuseStoredAnalysis } from "@/lib/scans/process-scan";
+import { parseThreadFailureIds } from "@/lib/scans/thread-failures";
 import type { ScanGmailPort, ScanSettings, ScanStorePort, StoredThreadRow } from "@/lib/scans/types";
 
 function validAnalysis(overrides: Partial<ThreadAnalysis> = {}): ThreadAnalysis {
@@ -223,6 +224,17 @@ function createMemoryStore(): ScanStorePort & {
         connection.lastSuccessfulScanAt = input.lastSuccessfulScanAt;
       }
     },
+    async listPendingFailedThreadIds(connectionId, excludeScanId) {
+      const latest = [...scanRuns]
+        .reverse()
+        .find(
+          (run) =>
+            run.id !== excludeScanId &&
+            run.status === "PARTIAL" &&
+            (run.connectionId ?? "conn-1") === connectionId,
+        );
+      return parseThreadFailureIds(latest?.errorMessage);
+    },
     async markConnectionReauthRequired() {
       connection.status = "REAUTH_REQUIRED";
     },
@@ -391,6 +403,43 @@ describe("processInitialScan", () => {
     expect(store.connection.historyId).toBe("hist-1");
     expect(store.connection.lastSuccessfulScanAt).toBe("2026-09-10T08:00:00.000Z");
     expect(store.connection.lastAttemptedScanAt).toBeTruthy();
+  });
+
+  it("retries thread ids recorded on the previous partial scan even when history is empty", async () => {
+    const store = createMemoryStore();
+    store.connection.historyId = "hist-1";
+    store.connection.lastSuccessfulScanAt = "2026-09-10T08:00:00.000Z";
+    store.scanRuns.push({
+      id: "prev-partial",
+      status: "PARTIAL",
+      startedAt: "2026-09-11T08:00:00.000Z",
+      connectionId: "conn-1",
+      errorCode: "partial_thread_failures",
+      errorMessage: "thread_failures:1:t-fail",
+    });
+    const failed = parsedMessage({ gmailMessageId: "m-fail", gmailThreadId: "t-fail" });
+    const fetchThread = vi.fn(async () => [failed]);
+    const gmail: ScanGmailPort = {
+      listMessageRefs: async () => {
+        throw new Error("incremental scan must not list the lookback window");
+      },
+      listHistoryChanges: async () => ({ ok: true, refs: [], latestHistoryId: "hist-2" }),
+      fetchThread,
+      getProfileHistoryId: async () => "hist-2",
+      loadLabelMap: async () => LABEL_MAP,
+      modifyThreadLabels: async () => undefined,
+    };
+
+    const result = await runScan({
+      store,
+      gmail,
+      analyze: async () => ({ ok: true as const, analysis: validAnalysis() }),
+    });
+
+    expect(result.status).toBe("SUCCESS");
+    expect(fetchThread).toHaveBeenCalledWith("t-fail");
+    expect(result.counters.threadsAnalyzed).toBe(1);
+    expect(store.connection.historyId).toBe("hist-2");
   });
 
   it("persists the history boundary captured before processing, not a later profile id", async () => {

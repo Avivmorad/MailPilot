@@ -5,6 +5,7 @@ import { parseAddressList, parseEmailAddress } from "@/lib/gmail/addresses";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { emitProductEvent } from "@/lib/observability/events";
 import { scanStoreFailure, isScanRunUniqueViolation, SCAN_IN_PROGRESS } from "@/lib/scans/errors";
+import { parseThreadFailureIds } from "@/lib/scans/thread-failures";
 import { timestampOrNull } from "@/lib/scans/timestamps";
 import type { ScanSettings, ScanStorePort, StoredThreadRow } from "@/lib/scans/types";
 
@@ -339,6 +340,22 @@ export function createSupabaseScanStore(): ScanStorePort {
       if (error) {
         failStore("Failed to update Gmail connection scan state", error);
       }
+    },
+
+    async listPendingFailedThreadIds(connectionId, excludeScanId) {
+      const { data, error } = await db
+        .from("scan_runs")
+        .select("error_message")
+        .eq("gmail_connection_id", connectionId)
+        .eq("status", "PARTIAL")
+        .neq("id", excludeScanId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) {
+        failStore("Failed to load failed threads from the last partial scan", error);
+      }
+      return parseThreadFailureIds((data?.error_message as string | null) ?? null);
     },
 
     async markConnectionReauthRequired(connectionId) {

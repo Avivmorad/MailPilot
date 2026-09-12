@@ -24,6 +24,7 @@ import {
 import { plannedDiscoveryMode } from "@/lib/scans/mode";
 import { mapPool } from "@/lib/scans/pool";
 import { nextDailyScanAt } from "@/lib/scans/schedule";
+import { formatThreadFailureMessage } from "@/lib/scans/thread-failures";
 import { emitProductEvent } from "@/lib/observability/events";
 import {
   countersFromAnalyses,
@@ -39,12 +40,6 @@ import {
 } from "@/lib/scans/types";
 
 const STALE_RUNNING_MS = 20 * 60 * 1000;
-const MAX_RECORDED_FAILED_THREADS = 50;
-
-function failedThreadsErrorMessage(gmailThreadIds: string[]): string {
-  const unique = [...new Set(gmailThreadIds)].slice(0, MAX_RECORDED_FAILED_THREADS);
-  return `thread_failures:${gmailThreadIds.length}:${unique.join(",")}`;
-}
 
 function receivedAtIso(internalDate: string | null): string {
   const millis = Number(internalDate);
@@ -298,7 +293,8 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
       forceLookback,
     });
     const refs = discovery.refs;
-    const threadIds = uniqueThreadIds(refs);
+    const retryThreadIds = await store.listPendingFailedThreadIds(connectionId, scanId);
+    const threadIds = uniqueThreadIds([...refs, ...retryThreadIds.map((threadId) => ({ threadId }))]);
     const analyses: ThreadAnalysis[] = [];
     const failedGmailThreadIds: string[] = [];
     let threadsAnalyzed = 0;
@@ -502,7 +498,7 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
       threadsDiscovered: threadIds.length,
       threadsChecked,
       errorCode: status === "PARTIAL" ? "partial_thread_failures" : null,
-      errorMessage: status === "PARTIAL" ? failedThreadsErrorMessage(failedGmailThreadIds) : null,
+      errorMessage: status === "PARTIAL" ? formatThreadFailureMessage(failedGmailThreadIds) : null,
     });
 
     const nextScanAt = nextDailyScanAt(

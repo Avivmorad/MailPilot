@@ -132,6 +132,7 @@ export interface ScanStorePort {
     nextScanAt?: string | null;
   }): Promise<void>;
   markConnectionReauthRequired(connectionId: string): Promise<void>;
+  listPendingFailedThreadIds(connectionId: string, excludeScanId: string): Promise<string[]>;
 }
 
 export interface ScanRunResult {

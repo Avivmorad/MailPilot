@@ -1,8 +1,10 @@
 import { z } from "zod";
 
+import type { ActionStatus } from "@/lib/actions/reconcile-action";
 import { gmailThreadUrl } from "@/lib/gmail/deep-link";
-import { mailBucketForThread } from "@/lib/mail/buckets";
+import { mailBucketForThread, normalizeThreadStatus } from "@/lib/mail/buckets";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { correctionFromFeedback } from "@/lib/threads/apply-feedback";
 import { threadFeedbackSchema } from "@/lib/threads/feedback";
 
 export class ThreadQueryError extends Error {
@@ -202,12 +204,33 @@ export async function saveThreadFeedback(
   userId: string,
   threadId: string,
   kind: z.infer<typeof threadFeedbackSchema>["kind"],
-) {
+): Promise<{ applied: boolean }> {
   const db = createAdminClient();
-  const { data: thread } = await db.from("email_threads").select("id").eq("id", threadId).eq("user_id", userId).maybeSingle();
+  const { data: thread } = await db
+    .from("email_threads")
+    .select("id, status, requires_action, importance, short_display_title, summary")
+    .eq("id", threadId)
+    .eq("user_id", userId)
+    .maybeSingle();
   if (!thread) {
     throw new ThreadQueryError(404, "not_found", "Thread not found.");
   }
+  const { data: action } = await db
+    .from("action_items")
+    .select("id, status")
+    .eq("thread_id", threadId)
+    .eq("user_id", userId)
+    .maybeSingle();
+  const importance =
+    thread.importance === "high" || thread.importance === "medium" || thread.importance === "low"
+      ? thread.importance
+      : null;
+  const correction = correctionFromFeedback(kind, {
+    status: normalizeThreadStatus(typeof thread.status === "string" ? thread.status : null),
+    requiresAction: Boolean(thread.requires_action),
+    importance,
+    actionStatus: action ? (action.status as ActionStatus) : null,
+  });
   const { error } = await db.from("classification_feedback").insert({
     user_id: userId,
     thread_id: threadId,
@@ -216,4 +239,63 @@ export async function saveThreadFeedback(
   if (error) {
     throw new ThreadQueryError(500, "save_failed", "Failed to save feedback.");
   }
+  if (!correction.applied) {
+    return { applied: false };
+  }
+  if (Object.keys(correction.thread).length > 0) {
+    const threadPatch: Record<string, unknown> = {};
+    if (correction.thread.status) {
+      threadPatch.status = correction.thread.status;
+    }
+    if (correction.thread.requiresAction !== undefined) {
+      threadPatch.requires_action = correction.thread.requiresAction;
+    }
+    if (correction.thread.importance) {
+      threadPatch.importance = correction.thread.importance;
+    }
+    const { error: threadError } = await db
+      .from("email_threads")
+      .update(threadPatch)
+      .eq("id", threadId)
+      .eq("user_id", userId);
+    if (threadError) {
+      throw new ThreadQueryError(500, "save_failed", "Failed to apply the correction.");
+    }
+  }
+  if (correction.actionStatus) {
+    const now = new Date().toISOString();
+    const title =
+      (typeof thread.short_display_title === "string" && thread.short_display_title.trim()) ||
+      (typeof thread.summary === "string" && thread.summary.trim()) ||
+      "Open task";
+    if (action) {
+      const { error: actionError } = await db
+        .from("action_items")
+        .update({
+          status: correction.actionStatus,
+          manual_override: true,
+          source: "USER",
+          completed_at: correction.actionStatus === "COMPLETED" ? now : null,
+          snoozed_until: null,
+        })
+        .eq("id", action.id)
+        .eq("user_id", userId);
+      if (actionError) {
+        throw new ThreadQueryError(500, "save_failed", "Failed to apply the correction.");
+      }
+    } else if (correction.actionStatus !== "COMPLETED") {
+      const { error: insertError } = await db.from("action_items").insert({
+        user_id: userId,
+        thread_id: threadId,
+        status: correction.actionStatus,
+        title,
+        source: "USER",
+        manual_override: true,
+      });
+      if (insertError) {
+        throw new ThreadQueryError(500, "save_failed", "Failed to apply the correction.");
+      }
+    }
+  }
+  return { applied: true };
 }

@@ -103,7 +103,7 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
               Low classification confidence ({thread.confidence?.toFixed(2)}). Double-check before acting.
             </p>
           ) : null}
-          <div className="flex flex-wrap items-center gap-3 border-t pt-3">
+          <div className="space-y-3 border-t pt-3">
             <a
               href={thread.gmailUrl}
               target="_blank"
@@ -113,7 +113,13 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
               Open in Gmail
             </a>
             {thread.actionId ? (
-              <ActionControls actionId={thread.actionId} status={thread.actionStatus ?? "OPEN"} />
+              <ActionControls
+                key={`${thread.actionId}:${thread.actionStatus ?? ""}:${thread.waitingFor ?? ""}`}
+                actionId={thread.actionId}
+                status={thread.actionStatus ?? "OPEN"}
+                waitingFor={thread.waitingFor}
+                snoozedUntil={thread.snoozedUntil}
+              />
             ) : null}
           </div>
         </CardContent>

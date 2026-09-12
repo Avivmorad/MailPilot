@@ -13,6 +13,7 @@ export interface ActionListItem {
   actionSummary: string | null;
   actionReason: string | null;
   waitingFor: string | null;
+  snoozedUntil: string | null;
   deadline: string | null;
   urgency: string | null;
   latestMessageAt: string | null;
@@ -64,6 +65,7 @@ export function mapActionListItem(
     actionSummary,
     actionReason: joined?.action_reason ?? null,
     waitingFor: (row.waiting_for as string | null) ?? null,
+    snoozedUntil: typeof row.snoozed_until === "string" ? row.snoozed_until : null,
     deadline: (row.deadline as string | null) ?? null,
     urgency: (row.urgency as string | null) ?? null,
     latestMessageAt: joined?.latest_message_at ?? null,

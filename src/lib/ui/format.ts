@@ -91,10 +91,10 @@ export function formatRelativeTime(
 
 export type DeadlineProximity = "expired" | "soon" | "later";
 
-function daysUntilCalendarDate(
+export function daysUntilCalendarDate(
   isoDate: string,
   now: Date,
-  timeZone: string,
+  timeZone: string = DISPLAY_TZ,
 ): number | null {
   if (!ISO_DATE.test(isoDate)) {
     return null;

@@ -80,7 +80,13 @@ export function ActionItemCard({ item }: { item: ActionListItem }) {
 
       <div className="mt-3 space-y-3 border-t pt-3">
         <div className="flex flex-wrap items-center gap-3">
-          <ActionControls actionId={item.id} status={item.status} />
+          <ActionControls
+            key={`${item.id}:${item.status}:${item.waitingFor ?? ""}`}
+            actionId={item.id}
+            status={item.status}
+            waitingFor={item.waitingFor}
+            snoozedUntil={item.snoozedUntil}
+          />
           <a
             href={item.gmailUrl}
             target="_blank"

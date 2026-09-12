@@ -8,6 +8,7 @@ import { InboxSummary } from "@/components/threads/inbox-summary";
 import { buttonVariants } from "@/components/ui/button";
 import { listActionsForUser } from "@/lib/actions/queries";
 import { getGmailStatusForUser } from "@/lib/gmail/connections";
+import { gmailRecoveryActionLabel, shouldShowGmailRecoveryCard } from "@/lib/gmail/recovery";
 import { isStaleWaiting, isUncertainClassification, parseUncertainFilter } from "@/lib/mail/filters";
 import { actionStatusForMailTab, MAIL_TABS, mailTabEmptyCopy, parseMailTab } from "@/lib/mail/tabs";
 import { getSessionUser } from "@/lib/supabase/auth";
@@ -59,15 +60,15 @@ export default async function MailPage({
     uncertainOnly && actionStatus ? actionItems.filter((item) => isUncertainClassification(item.confidence)) : actionItems;
   const staleWaitingCount =
     tab === "waiting" ? actionItems.filter((item) => isStaleWaiting(item.updatedAt)).length : 0;
-  const connected = gmailStatus.connection?.status === "CONNECTED";
-  const emptyAction = connected ? (
+  const needsGmailRecovery = shouldShowGmailRecoveryCard(gmailStatus);
+  const emptyAction = needsGmailRecovery ? (
+    <a href="/api/gmail/connect" className={buttonVariants({ size: "sm" })}>
+      {gmailRecoveryActionLabel(gmailStatus)}
+    </a>
+  ) : (
     <Link href="/dashboard#scan" className={buttonVariants({ size: "sm" })}>
       Scan now
     </Link>
-  ) : (
-    <a href="/api/gmail/connect" className={buttonVariants({ size: "sm" })}>
-      Connect Gmail
-    </a>
   );
 
   return (

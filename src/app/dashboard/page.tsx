@@ -15,6 +15,7 @@ import { listActionsForUser } from "@/lib/actions/queries";
 import { getDashboardChangesForUser } from "@/lib/dashboard/queries";
 import { ensureDigestForLatestScan } from "@/lib/digest/build-digest";
 import { getGmailStatusForUser } from "@/lib/gmail/connections";
+import { shouldShowGmailRecoveryCard } from "@/lib/gmail/recovery";
 import { getOnboardingStepForUser } from "@/lib/onboarding/load";
 import { getInboxCountsForUser, getLatestScanRunForUser } from "@/lib/scans/manual";
 import { getSessionUser } from "@/lib/supabase/auth";
@@ -120,12 +121,7 @@ export default async function DashboardPage({
 
   const [params, gmailStatus] = await Promise.all([searchParams, getGmailStatusForUser(user.id)]);
   const connected = gmailStatus.connection?.status === "CONNECTED";
-  const showGmailCard =
-    Boolean(params.gmail) ||
-    Boolean(gmailStatus.loadError) ||
-    !gmailStatus.configured ||
-    !gmailStatus.connection ||
-    gmailStatus.connection.status === "DISCONNECTED";
+  const showGmailCard = Boolean(params.gmail) || shouldShowGmailRecoveryCard(gmailStatus);
   const emptyCounts = { processed: 0, important: 0, needAction: 0, waiting: 0, ignored: 0, fyi: 0 };
   const latestScan = connected ? await getLatestScanRunForUser(user.id) : null;
   const since = gmailStatus.connection?.lastSuccessfulScanAt ?? null;

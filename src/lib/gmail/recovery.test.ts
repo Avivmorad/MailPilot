@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { shouldShowGmailRecoveryCard } from "@/lib/gmail/recovery";
+import { gmailRecoveryActionLabel, shouldShowGmailRecoveryCard } from "@/lib/gmail/recovery";
 
 const connected = {
   configured: true,
@@ -19,7 +19,7 @@ describe("shouldShowGmailRecoveryCard", () => {
     expect(shouldShowGmailRecoveryCard(connected)).toBe(false);
   });
 
-  it("shows recovery for missing config, load errors, and expired connections", () => {
+  it("shows recovery for missing config, load errors, and non-connected statuses", () => {
     expect(shouldShowGmailRecoveryCard({ configured: false, loadError: null, connection: null })).toBe(true);
     expect(
       shouldShowGmailRecoveryCard({
@@ -41,5 +41,29 @@ describe("shouldShowGmailRecoveryCard", () => {
         connection: { ...connected.connection, status: "DISCONNECTED" },
       }),
     ).toBe(true);
+    expect(
+      shouldShowGmailRecoveryCard({
+        ...connected,
+        connection: { ...connected.connection, status: "ERROR" },
+      }),
+    ).toBe(true);
+  });
+});
+
+describe("gmailRecoveryActionLabel", () => {
+  it("asks to reconnect when the connection expired or errored", () => {
+    expect(
+      gmailRecoveryActionLabel({
+        ...connected,
+        connection: { ...connected.connection, status: "REAUTH_REQUIRED" },
+      }),
+    ).toBe("Reconnect Gmail");
+    expect(
+      gmailRecoveryActionLabel({
+        ...connected,
+        connection: { ...connected.connection, status: "ERROR" },
+      }),
+    ).toBe("Reconnect Gmail");
+    expect(gmailRecoveryActionLabel({ configured: true, loadError: null, connection: null })).toBe("Connect Gmail");
   });
 });

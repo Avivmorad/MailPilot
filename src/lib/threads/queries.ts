@@ -134,11 +134,14 @@ export async function listIgnoredThreadsForUser(userId: string, limit = 50): Pro
     .filter((row) => mailBucketForThread({ status: row.status }) === "ignored");
 }
 
+const THREAD_DETAIL_SELECT =
+  "id, user_id, gmail_connection_id, gmail_thread_id, subject, summary, short_display_title, importance, importance_reason, status, requires_action, requires_reply, action_summary, action_reason, waiting_for, urgency, deadline, deadline_text, category, action_type, confidence, latest_message_at";
+
 export async function getThreadDetailForUser(userId: string, threadId: string): Promise<ThreadDetail | null> {
   const db = createAdminClient();
   const { data: thread, error } = await db
     .from("email_threads")
-    .select("*")
+    .select(THREAD_DETAIL_SELECT)
     .eq("id", threadId)
     .eq("user_id", userId)
     .maybeSingle();

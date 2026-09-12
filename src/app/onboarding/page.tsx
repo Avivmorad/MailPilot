@@ -94,6 +94,8 @@ export default async function OnboardingPage({
                     status: String(latestScan.status),
                     threads_discovered: Number(latestScan.threads_discovered ?? 0),
                     threads_checked: Number(latestScan.threads_checked ?? 0),
+                    error_code: (latestScan.error_code as string | null | undefined) ?? null,
+                    error_message: (latestScan.error_message as string | null | undefined) ?? null,
                   }
                 : null
             }

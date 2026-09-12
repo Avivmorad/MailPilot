@@ -31,6 +31,9 @@ function rowToRecord(row: Record<string, unknown>): ActionRecord {
   };
 }
 
+const ACTION_ITEM_SELECT =
+  "id, user_id, thread_id, status, title, description, action_type, waiting_for, deadline, urgency, source, manual_override, completed_at, snoozed_until";
+
 export async function patchActionForUser(
   userId: string,
   actionId: string,
@@ -38,7 +41,12 @@ export async function patchActionForUser(
   now: Date = new Date(),
 ): Promise<ActionRecord> {
   const db = createAdminClient();
-  const { data, error } = await db.from("action_items").select("*").eq("id", actionId).eq("user_id", userId).maybeSingle();
+  const { data, error } = await db
+    .from("action_items")
+    .select(ACTION_ITEM_SELECT)
+    .eq("id", actionId)
+    .eq("user_id", userId)
+    .maybeSingle();
   if (error) {
     throw new ActionMutationError(500, "load_failed", "Failed to load action.");
   }

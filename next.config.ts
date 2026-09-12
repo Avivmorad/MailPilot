@@ -1,11 +1,16 @@
 import { withSentryConfig } from "@sentry/nextjs/config";
 import type { NextConfig } from "next";
 
+import { sentryInstrumentationTurbopackRules } from "./src/lib/observability/sentry-turbopack";
+
 const nextConfig: NextConfig = {
   // Pin the workspace root so Turbopack doesn't get confused by unrelated
   // lockfiles that may exist in parent directories.
+  // Own Sentry's instrumentation matchers so Turbopack does not require
+  // @sentry/nextjs/build/.../valueInjectionLoader.js (not in package exports).
   turbopack: {
     root: process.cwd(),
+    rules: sentryInstrumentationTurbopackRules(),
   },
 };
 

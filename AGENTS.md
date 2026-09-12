@@ -66,8 +66,15 @@ Run and fix all failures:
 npm run lint
 npm run typecheck
 npm test
+npm run test:integration
+npm run eval:scorecard
 npm run build
 ```
+
+`npm test` already includes unit tests next to source. `npm run eval:scorecard` is the durable
+classification quality gate (schema validity, action recall, deadline hallucination). There is
+no GitHub Actions workflow in this repo; keep those scripts in `package.json` and run them
+locally or in whatever CI you add later.
 
 <!-- BEGIN:nextjs-agent-rules -->
 

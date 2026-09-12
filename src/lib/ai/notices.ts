@@ -221,6 +221,9 @@ const EXPLICIT_USER_ACTION = [
   /update (your )?(payment|card)/,
   /can you /,
   /could you /,
+  /חשבונית.{0,40}לתשלום/,
+  /יתרה לתשלום/,
+  /אנא שלם/,
 ];
 
 const MARKETING_OR_JOB = [
@@ -241,6 +244,10 @@ const RECEIPT_OR_ROUTINE = [
   /order confirmation/,
   /thanks for your (order|purchase|payment)/,
   /refund (issued|processed)/,
+  /התשלום התקבל/,
+  /התשלום עבר בהצלחה/,
+  /אישור תשלום/,
+  /קבלה על תשלום/,
   /boarding pass/,
   /itinerary/,
   /appointment (is )?confirmed/,
@@ -404,6 +411,10 @@ const PAID_RECEIPT = [
   /order confirmation/,
   /thanks for your (order|purchase|payment)/,
   /refund (issued|processed)/,
+  /התשלום התקבל/,
+  /התשלום עבר בהצלחה/,
+  /אישור תשלום/,
+  /קבלה על תשלום/,
 ];
 
 export function isPaidReceiptNotice(parts: Array<string | null | undefined>): boolean {

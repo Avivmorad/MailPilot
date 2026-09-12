@@ -84,6 +84,7 @@ describe("isReceiptOrRoutineNotice", () => {
     expect(isReceiptOrRoutineNotice(["Invoice unpaid. Please pay the remaining balance."])).toBe(
       false,
     );
+    expect(isReceiptOrRoutineNotice(["התשלום התקבל. קבלה על תשלום מצורפת."])).toBe(true);
   });
 });
 

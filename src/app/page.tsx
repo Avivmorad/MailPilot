@@ -1,6 +1,8 @@
 import { ArrowRight, Clock3, Inbox, ListChecks, ShieldCheck, Sparkles, Tag } from "lucide-react";
+import Link from "next/link";
 
 import { Logo } from "@/components/brand/logo";
+import { SkipToContent } from "@/components/layout/skip-to-content";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
@@ -67,10 +69,13 @@ const dashboardStats = [
 export default function Home() {
   return (
     <div className="flex min-h-full flex-col">
+      <SkipToContent />
       <header className="border-border/60 border-b">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-4">
-          <Logo />
-          <nav className="flex items-center gap-2">
+          <Link href="/" aria-label="MailPilot home" className="rounded-lg focus-visible:ring-ring focus-visible:ring-3 focus-visible:outline-none">
+            <Logo />
+          </Link>
+          <nav aria-label="Landing" className="flex items-center gap-2">
             <a href="#features" className={buttonVariants({ variant: "ghost", size: "sm" })}>
               Features
             </a>
@@ -82,7 +87,7 @@ export default function Home() {
         </div>
       </header>
 
-      <main className="flex-1">
+      <main id="main-content" tabIndex={-1} className="flex-1">
         <section className="mx-auto w-full max-w-6xl px-6 pt-20 pb-16 text-center">
           <Badge variant="secondary" className="mb-6">
             Inbox triage for Gmail

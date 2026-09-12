@@ -30,12 +30,16 @@ export function ActionItemCard({ item }: { item: ActionListItem }) {
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <h3 className="text-foreground text-base leading-snug font-semibold tracking-tight" dir="auto">
-            <Link href={`/thread/${item.threadId}`} className="hover:underline">
+          <h3 className="text-foreground text-base leading-snug font-semibold tracking-tight break-words" dir="auto">
+            <Link href={`/thread/${item.threadId}`} className="hover:underline" title={item.title}>
               {item.title}
             </Link>
           </h3>
-          {meta ? <p className="text-muted-foreground mt-0.5 text-sm">{meta}</p> : null}
+          {meta ? (
+            <p className="text-muted-foreground mt-0.5 text-sm break-words" dir="auto">
+              {meta}
+            </p>
+          ) : null}
         </div>
         <div className="flex min-w-0 max-w-full shrink justify-end sm:max-w-[min(100%,20rem)]">
           <ThreadTags
@@ -74,7 +78,8 @@ export function ActionItemCard({ item }: { item: ActionListItem }) {
           href={item.gmailUrl}
           target="_blank"
           rel="noreferrer"
-          className="text-muted-foreground hover:text-foreground text-sm underline-offset-4 hover:underline"
+          className="text-muted-foreground hover:text-foreground focus-visible:ring-ring rounded-sm text-sm underline-offset-4 hover:underline focus-visible:ring-3 focus-visible:outline-none"
+          aria-label="Open in Gmail"
         >
           Open in Gmail
         </a>

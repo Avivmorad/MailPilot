@@ -17,7 +17,7 @@ export function DisconnectGmailButton() {
 
   return (
     <form action="/api/gmail/disconnect" method="post" onSubmit={onSubmit}>
-      <Button type="submit" variant="destructive">
+      <Button type="submit" variant="destructive" aria-label="Disconnect Gmail from MailPilot">
         Disconnect Gmail
       </Button>
     </form>

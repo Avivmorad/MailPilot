@@ -42,11 +42,11 @@ export function ActionControls({
   return (
     <div className="flex flex-wrap items-center gap-2">
       {status !== "COMPLETED" ? (
-        <Button type="button" size="sm" disabled={busy} onClick={() => void patch({ op: "complete" })}>
+          <Button type="button" size="sm" disabled={busy} aria-busy={busy} onClick={() => void patch({ op: "complete" })}>
           Done
         </Button>
       ) : (
-        <Button type="button" size="sm" variant="outline" disabled={busy} onClick={() => void patch({ op: "reopen" })}>
+        <Button type="button" size="sm" variant="outline" disabled={busy} aria-busy={busy} onClick={() => void patch({ op: "reopen" })}>
           Reopen
         </Button>
       )}
@@ -77,7 +77,11 @@ export function ActionControls({
           </select>
         </label>
       ) : null}
-      {error ? <p className="text-destructive w-full text-xs">{error}</p> : null}
+      {error ? (
+        <p className="text-destructive w-full text-xs" role="alert">
+          {error}
+        </p>
+      ) : null}
     </div>
   );
 }

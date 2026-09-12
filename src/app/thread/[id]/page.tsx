@@ -40,14 +40,17 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
   return (
     <AppChrome user={user} current="thread" width="narrow">
       <div>
-        <Link href={`/mail?tab=${backTab}`} className="text-muted-foreground hover:text-foreground text-sm hover:underline">
+        <Link
+          href={`/mail?tab=${backTab}`}
+          className="text-muted-foreground hover:text-foreground focus-visible:ring-ring inline-flex rounded-sm text-sm hover:underline focus-visible:ring-3 focus-visible:outline-none"
+        >
           ← Back to Mail
         </Link>
-        <h1 className="text-foreground mt-3 text-2xl font-bold tracking-tight text-balance sm:text-3xl" dir="auto">
+        <h1 className="text-foreground mt-3 text-2xl font-bold tracking-tight break-words text-balance sm:text-3xl" dir="auto">
           {thread.shortDisplayTitle ?? thread.subject ?? "Thread"}
         </h1>
         {thread.subject ? (
-          <p className="text-muted-foreground mt-1 text-sm" dir="auto">
+          <p className="text-muted-foreground mt-1 text-sm break-words" dir="auto">
             {thread.subject}
           </p>
         ) : null}

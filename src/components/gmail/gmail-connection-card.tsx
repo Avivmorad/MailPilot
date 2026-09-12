@@ -115,7 +115,12 @@ export function GmailConnectionCard({
       </CardHeader>
       <CardContent className="space-y-4">
         {flash ? (
-          <p className={flash.kind === "error" ? "text-destructive text-sm" : "text-sm"}>{flash.text}</p>
+          <p
+            className={flash.kind === "error" ? "text-destructive text-sm" : "text-sm"}
+            role={flash.kind === "error" ? "alert" : "status"}
+          >
+            {flash.text}
+          </p>
         ) : null}
 
         <div className="flex flex-wrap gap-2">

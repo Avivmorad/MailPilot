@@ -10,7 +10,7 @@ export function EmptyState({
   action?: ReactNode;
 }) {
   return (
-    <div className="border-border/80 bg-card rounded-xl border border-dashed px-5 py-10 text-center">
+    <div className="border-border/80 bg-card rounded-xl border border-dashed px-5 py-10 text-center" role="status">
       <p className="text-foreground font-semibold tracking-tight">{title}</p>
       {description ? (
         <p className="text-muted-foreground mx-auto mt-1.5 max-w-md text-sm leading-relaxed">

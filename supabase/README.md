@@ -9,6 +9,9 @@ Database schema and migrations for MailPilot.
     action items, and scan runs.
   - `0004_classification_feedback.sql` — thread classification feedback.
   - `0005_scan_progress.sql` — live scan progress (`threads_discovered` / `threads_checked`).
+  - `0006_digest_reports.sql` — in-app digest snapshots (not email).
+  - `0007_scan_scheduling.sql` — connection leases, `scan_jobs`, dispatcher claim.
+  - `0008_scan_admission.sql` — at most one RUNNING `scan_runs` row per connection.
 - Row Level Security is required on every user-accessible table (`user_id = auth.uid()`).
   Scan writes use the service role.
 

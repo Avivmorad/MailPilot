@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   isMissingScanSchemaError,
   isScanRunUniqueViolation,
+  SCAN_SCHEMA_MISSING_MESSAGE,
   scanStoreFailure,
   scanUserMessage,
   SCAN_USER_MESSAGES,
@@ -55,5 +56,11 @@ describe("scanUserMessage", () => {
     expect(scanUserMessage("partial_thread_failures", "thread_failures:1:t1")).toBe(
       SCAN_USER_MESSAGES.partial_thread_failures,
     );
+  });
+});
+
+describe("SCAN_SCHEMA_MISSING_MESSAGE", () => {
+  it("points operators at the full migration series", () => {
+    expect(SCAN_SCHEMA_MISSING_MESSAGE).toContain("0009_function_hardening.sql");
   });
 });

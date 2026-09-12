@@ -22,7 +22,18 @@
 
 # misc
 .DS_Store
+Thumbs.db
+Desktop.ini
 *.pem
+credentials.json
+client_secret*.json
+
+# supabase CLI / local scratch
+supabase/.temp/
+.t12-check/
+
+# Cursor local config (do not publish)
+.cursor/
 
 # debug
 npm-debug.log*

@@ -2,6 +2,10 @@ const DISPLAY_TZ = "Asia/Jerusalem";
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
+function part(parts: Intl.DateTimeFormatPart[], type: Intl.DateTimeFormatPartTypes): string {
+  return parts.find((item) => item.type === type)?.value ?? "";
+}
+
 function calendarDateInTimeZone(now: Date, timeZone: string): string {
   return new Intl.DateTimeFormat("en-CA", {
     timeZone,
@@ -29,16 +33,19 @@ export function formatDateTime(iso: string | null | undefined): string {
   if (!date) {
     return "—";
   }
-  return normalizeShortMonth(
-    new Intl.DateTimeFormat("en-GB", {
-      timeZone: DISPLAY_TZ,
-      day: "numeric",
-      month: "short",
-      hour: "2-digit",
-      minute: "2-digit",
-      hourCycle: "h23",
-    }).format(date),
-  );
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: DISPLAY_TZ,
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(date);
+  const day = part(parts, "day");
+  const month = normalizeShortMonth(part(parts, "month"));
+  const hour = part(parts, "hour");
+  const minute = part(parts, "minute");
+  return `${day} ${month}, ${hour}:${minute}`;
 }
 
 export function formatDate(isoDate: string | null | undefined): string {
@@ -50,13 +57,12 @@ export function formatDate(isoDate: string | null | undefined): string {
   if (!date) {
     return "—";
   }
-  return normalizeShortMonth(
-    new Intl.DateTimeFormat("en-GB", {
-      timeZone: dateOnly ? "UTC" : DISPLAY_TZ,
-      day: "numeric",
-      month: "short",
-    }).format(date),
-  );
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: dateOnly ? "UTC" : DISPLAY_TZ,
+    day: "numeric",
+    month: "short",
+  }).formatToParts(date);
+  return `${part(parts, "day")} ${normalizeShortMonth(part(parts, "month"))}`;
 }
 
 export function formatRelativeTime(iso: string | null | undefined, now: Date = new Date()): string {

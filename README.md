@@ -169,8 +169,12 @@ npm run format           # Prettier write
 
 Unit tests use Vitest with a jsdom environment and Testing Library. Test files live next to the
 code they cover as `*.test.ts(x)`. Phase 4 eval fixtures live in `tests/fixtures/` and
-`tests/evals/` (spec §48). Integration coverage for idempotent scans and RLS policies is
-`npm run test:integration`. See `docs/PROJECT_SPEC.md` §50–52 for the broader test plan.
+`tests/evals/` (spec §48). **Eval quality gate:** `npm run eval:scorecard` (also run by
+`npm test` via `eval-scorecard.test.ts`) fails when schema validity, action recall, or
+deadline hallucination regress below `EVAL_THRESHOLDS`. Integration coverage for mocked
+Gmail/Gemini scans, idempotency, RLS policies, and privacy deletion is
+`npm run test:integration`. See `docs/PROJECT_SPEC.md` §50–52 for the broader test plan. This
+repository does not ship a GitHub Actions workflow; add those npm scripts there if you introduce CI.
 
 ## Cron configuration
 

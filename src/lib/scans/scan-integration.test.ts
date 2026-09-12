@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { ActionRecord } from "@/lib/actions/reconcile-action";
 import type { EmailTriageProvider } from "@/lib/ai/analyze-thread";
+import type { ThreadAnalysisInput } from "@/lib/ai/types";
 import { threadAnalysisSchema, type ThreadAnalysis } from "@/lib/ai/schemas";
 import type { MailPilotLogicalLabel } from "@/lib/gmail/constants";
 import { MAILPILOT_LABELS } from "@/lib/gmail/constants";
@@ -70,6 +71,15 @@ function message(overrides: Partial<ParsedGmailMessage> = {}): ParsedGmailMessag
   };
 }
 
+type MemoryScanRun = {
+  id: string;
+  status: string;
+  startedAt: string;
+  connectionId: string;
+  errorCode?: string | null;
+  errorMessage?: string | null;
+};
+
 function createMemoryStore(
   userId: string,
   connectionId: string,
@@ -80,25 +90,12 @@ function createMemoryStore(
   messages: Map<string, string>;
   actions: Map<string, ActionRecord>;
   connection: { historyId: string | null; status: string; lastSuccessfulScanAt: string | null };
-  scanRuns: Array<{
-    id: string;
-    status: string;
-    startedAt: string;
-    connectionId: string;
-    errorCode?: string | null;
-    errorMessage?: string | null;
-  }>;
+  scanRuns: MemoryScanRun[];
 } {
   const threads = new Map<string, StoredThreadRow>();
   const messages = new Map<string, string>();
   const actions = new Map<string, ActionRecord>();
-  const scanRuns: Array<{
-    id: string;
-    status: string;
-    startedAt: string;
-    connectionId: string;
-    errorMessage?: string | null;
-  }> = [];
+  const scanRuns: MemoryScanRun[] = [];
   const connection = {
     lastSuccessfulScanAt: null as string | null,
     lastAttemptedScanAt: null as string | null,
@@ -329,6 +326,49 @@ async function scan(options: {
   });
 }
 
+function deletionPortForStores(
+  stores: Array<ReturnType<typeof createMemoryStore>>,
+): AnalysisDeletionPort {
+  return {
+    async connectionIdsForUser(userId) {
+      return stores.filter((store) => store.userId === userId).map((store) => store.connectionId);
+    },
+    async deleteWhereUser(table: UserScopedTable, userId) {
+      let removed = 0;
+      for (const store of stores) {
+        if (store.userId !== userId) {
+          continue;
+        }
+        if (table === "email_threads") {
+          removed += store.threads.size;
+          store.threads.clear();
+        } else if (table === "email_messages") {
+          removed += store.messages.size;
+          store.messages.clear();
+        } else if (table === "action_items") {
+          removed += store.actions.size;
+          store.actions.clear();
+        } else if (table === "scan_runs") {
+          removed += store.scanRuns.length;
+          store.scanRuns.length = 0;
+        }
+      }
+      return removed;
+    },
+    async deleteScanJobsForConnections() {
+      return 0;
+    },
+    async resetConnectionScanState(userId) {
+      for (const store of stores) {
+        if (store.userId === userId) {
+          store.connection.historyId = null;
+          store.connection.lastSuccessfulScanAt = null;
+        }
+      }
+    },
+  };
+}
+
 describe("scan integration", () => {
   it("keeps threads, messages, actions, labels, and digests unique after the same mailbox is scanned twice", async () => {
     const store = createMemoryStore("user-1", "conn-1");
@@ -497,5 +537,222 @@ describe("scan integration", () => {
     });
     await mailbox.loadLabelMap();
     expect(mailbox.labelCreateCount).toBe(MAILPILOT_LABELS.length);
+  });
+
+  it("runs an initial lookback scan and skips Gemini on an identical second scan", async () => {
+    const store = createMemoryStore("user-1", "conn-1");
+    const mailbox = createMailbox([message()]);
+    let analyzeCalls = 0;
+    const analyze = async () => {
+      analyzeCalls += 1;
+      return { ok: true as const, analysis: analysis() };
+    };
+
+    const first = await scan({ store, gmail: mailbox, analyze, forceLookback: true });
+    const second = await scan({ store, gmail: mailbox, analyze, forceLookback: true });
+
+    expect(first.mode).toBe("INITIAL");
+    expect(first.status).toBe("SUCCESS");
+    expect(second.status).toBe("SUCCESS");
+    expect(analyzeCalls).toBe(1);
+    expect(store.threads.size).toBe(1);
+    expect(store.messages.size).toBe(1);
+    expect(store.actions.size).toBe(1);
+  });
+
+  it("uses incremental history with no Gemini calls when nothing changed", async () => {
+    const store = createMemoryStore("user-1", "conn-1");
+    const mailbox = createMailbox([message()]);
+    let analyzeCalls = 0;
+    const analyze = async () => {
+      analyzeCalls += 1;
+      return { ok: true as const, analysis: analysis() };
+    };
+
+    const first = await scan({ store, gmail: mailbox, analyze, forceLookback: true });
+    const second = await scan({
+      store,
+      gmail: mailbox,
+      analyze,
+      now: new Date("2026-09-10T12:30:00.000Z"),
+    });
+
+    expect(first.mode).toBe("INITIAL");
+    expect(second.mode).toBe("INCREMENTAL");
+    expect(second.counters.threadsAnalyzed).toBe(0);
+    expect(second.counters.messagesDiscovered).toBe(0);
+    expect(analyzeCalls).toBe(1);
+    expect(store.messages.size).toBe(1);
+  });
+
+  it("reanalyzes only the thread that received a new Gmail message", async () => {
+    const store = createMemoryStore("user-1", "conn-1");
+    const mailbox = createMailbox([
+      message(),
+      message({
+        gmailMessageId: "m-other",
+        gmailThreadId: "t2",
+        historyId: "11",
+        subject: "Invoice",
+      }),
+    ]);
+    const analyzed = new Map<string, number>();
+    const analyze = async (input: ThreadAnalysisInput) => {
+      const key = input.latestSubject ?? "unknown";
+      analyzed.set(key, (analyzed.get(key) ?? 0) + 1);
+      return { ok: true as const, analysis: analysis() };
+    };
+
+    await scan({ store, gmail: mailbox, analyze, forceLookback: true });
+    mailbox.addMessage(
+      message({
+        gmailMessageId: "m-changed",
+        gmailThreadId: "t2",
+        historyId: "40",
+        subject: "Invoice",
+        internalDate: String(Date.parse("2026-09-10T13:00:00.000Z")),
+      }),
+    );
+    const second = await scan({
+      store,
+      gmail: mailbox,
+      analyze,
+      now: new Date("2026-09-10T13:05:00.000Z"),
+    });
+
+    expect(second.mode).toBe("INCREMENTAL");
+    expect(second.counters.threadsAnalyzed).toBe(1);
+    expect(analyzed.get("Budget")).toBe(1);
+    expect(analyzed.get("Invoice")).toBe(2);
+    expect(store.threads.size).toBe(2);
+    expect(store.messages.size).toBe(3);
+  });
+
+  it("recovers with an overlap lookback after a stale History ID", async () => {
+    const store = createMemoryStore("user-1", "conn-1");
+    const mailbox = createMailbox([message()]);
+    await scan({
+      store,
+      gmail: mailbox,
+      analyze: async () => ({ ok: true as const, analysis: analysis() }),
+      forceLookback: true,
+    });
+    store.connection.historyId = "missing";
+
+    const recovered = await scan({
+      store,
+      gmail: mailbox,
+      now: new Date("2026-09-10T14:00:00.000Z"),
+      analyze: async () => ({ ok: true as const, analysis: analysis() }),
+    });
+
+    expect(recovered.mode).toBe("RECOVERY");
+    expect(recovered.status).toBe("SUCCESS");
+    expect(store.threads.size).toBe(1);
+    expect(store.connection.historyId).not.toBe("missing");
+    expect(store.connection.historyId).toBeTruthy();
+  });
+
+  it("rejects a second scan while one is already running for the connection", async () => {
+    const store = createMemoryStore("user-1", "conn-1");
+    await store.insertScanRun({
+      userId: store.userId,
+      connectionId: store.connectionId,
+      triggerType: "MANUAL",
+      windowStart: "2026-09-10T11:00:00.000Z",
+      windowEnd: "2026-09-10T12:00:00.000Z",
+    });
+
+    await expect(
+      scan({
+        store,
+        gmail: createMailbox([message()]),
+        analyze: async () => ({ ok: true as const, analysis: analysis() }),
+      }),
+    ).rejects.toThrow(SCAN_IN_PROGRESS);
+    expect(store.threads.size).toBe(0);
+    expect(store.scanRuns.filter((run) => run.status === "RUNNING")).toHaveLength(1);
+  });
+
+  it("marks PARTIAL when one thread fails analysis and still stores the successful thread", async () => {
+    const store = createMemoryStore("user-1", "conn-1");
+    const mailbox = createMailbox([
+      message(),
+      message({
+        gmailMessageId: "m-fail",
+        gmailThreadId: "t-fail",
+        historyId: "11",
+        subject: "Fail",
+      }),
+    ]);
+    const result = await scan({
+      store,
+      gmail: mailbox,
+      forceLookback: true,
+      analyze: async (input: ThreadAnalysisInput) => {
+        if (input.latestSubject === "Fail") {
+          return { ok: false as const, error: new Error("gemini down") };
+        }
+        return { ok: true as const, analysis: analysis() };
+      },
+    });
+
+    expect(result.status).toBe("PARTIAL");
+    expect(store.actions.size).toBe(1);
+    expect(store.threads.size).toBe(2);
+    expect(store.scanRuns.at(-1)?.errorCode).toBe("partial_thread_failures");
+    expect(parseThreadFailureIds(store.scanRuns.at(-1)?.errorMessage)).toEqual(["t-fail"]);
+  });
+
+  it("marks REAUTH_REQUIRED when Gmail rejects a revoked token and does not apply labels", async () => {
+    const store = createMemoryStore("user-1", "conn-1");
+    const mailbox = createMailbox([message()]);
+    mailbox.fetchThread = async () => {
+      throw { response: { status: 401 }, message: "invalid_grant" };
+    };
+
+    await expect(
+      scan({
+        store,
+        gmail: mailbox,
+        forceLookback: true,
+        analyze: async () => ({ ok: true as const, analysis: analysis() }),
+      }),
+    ).rejects.toMatchObject({ response: { status: 401 } });
+
+    expect(store.connection.status).toBe("REAUTH_REQUIRED");
+    expect(store.scanRuns.at(-1)?.errorCode).toBe("reauth_required");
+    expect(store.scanRuns.at(-1)?.errorMessage).not.toMatch(/invalid_grant/);
+    expect(mailbox.appliedAdds).toEqual([]);
+  });
+
+  it("deletes only the authenticated user's scan artifacts after a successful scan", async () => {
+    const alice = createMemoryStore("user-a", "conn-a");
+    const bob = createMemoryStore("user-b", "conn-b");
+    await scan({
+      store: alice,
+      gmail: createMailbox([message()]),
+      analyze: async () => ({ ok: true as const, analysis: analysis() }),
+      forceLookback: true,
+    });
+    await scan({
+      store: bob,
+      gmail: createMailbox([message({ gmailMessageId: "m-bob", gmailThreadId: "t-bob" })]),
+      analyze: async () => ({ ok: true as const, analysis: analysis() }),
+      forceLookback: true,
+    });
+
+    const deleted = await deleteAnalysisDataForUser("user-a", deletionPortForStores([alice, bob]));
+
+    expect(deleted.email_threads).toBe(1);
+    expect(deleted.email_messages).toBe(1);
+    expect(deleted.action_items).toBe(1);
+    expect(alice.threads.size).toBe(0);
+    expect(alice.messages.size).toBe(0);
+    expect(alice.actions.size).toBe(0);
+    expect(alice.connection.historyId).toBeNull();
+    expect(bob.threads.size).toBe(1);
+    expect(bob.actions.size).toBe(1);
+    expect(bob.connection.historyId).toBeTruthy();
   });
 });

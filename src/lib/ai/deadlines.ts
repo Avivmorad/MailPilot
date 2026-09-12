@@ -1,5 +1,5 @@
 const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
-const INJECTION_LINE = /ignore previous instructions/i;
+const INJECTION_LINE = /ignore previous instructions|התעלם מהוראות קודמות/i;
 
 /**
  * ISO calendar dates that appear in the thread, excluding prompt-injection lines.

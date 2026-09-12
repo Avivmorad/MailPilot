@@ -7,6 +7,7 @@ describe("RLS isolation", () => {
   it("scopes product tables to auth.uid() so user A cannot read user B", () => {
     const migrationsDir = path.join(process.cwd(), "supabase/migrations");
     const sql = [
+      "0001_profiles.sql",
       "0002_gmail_connections.sql",
       "0003_initial_scan.sql",
       "0004_classification_feedback.sql",
@@ -18,7 +19,10 @@ describe("RLS isolation", () => {
       .join("\n");
 
     const required = [
+      "profiles_select_own",
       "gmail_connections_select_own",
+      "gmail_labels_select_own",
+      "user_triage_settings_select_own",
       "email_threads_select_own",
       "email_messages_select_own",
       "action_items_select_own",

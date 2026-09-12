@@ -134,6 +134,8 @@ OPEN -> WAITING -> OPEN -> COMPLETED
   - 3 ימים
   - 7 ימים
   - Custom
+
+  > **Superseded by [`PRODUCT_DECISIONS.md`](PRODUCT_DECISIONS.md):** choose **1 / 2 / 3 / 4 days, 1 / 2 / 3 weeks, or 1 month** (default **7 days**). See overlay § "MVP operating defaults".
 - Scheduled recurring scans.
 - Gmail thread/message fetching.
 - MIME parsing.
@@ -219,6 +221,8 @@ OPEN -> WAITING -> OPEN -> COMPLETED
 - package: `googleapis`
 
 ## AI
+
+> **Superseded by [`PRODUCT_DECISIONS.md`](PRODUCT_DECISIONS.md):** Google Gemini (`GEMINI_API_KEY`, `GEMINI_MODEL`) with JSON Schema structured output — not OpenAI. See overlay § "AI provider".
 
 - OpenAI API
 - Structured Outputs / strict schema
@@ -311,6 +315,8 @@ UI:
 
 # 6. Gmail Labels
 
+> **Superseded by [`PRODUCT_DECISIONS.md`](PRODUCT_DECISIONS.md):** use the `MailPilot/*` label namespace (not `AI/*`). Each thread has one canonical DB `status`; Gmail may show multiple `MailPilot/*` presentation labels. See overlay § "Gmail labels".
+
 בעת החיבור הראשון יש לוודא שקיימים labels:
 
 ```text
@@ -402,6 +408,8 @@ AI/Processed
 # 7. Scan Modes
 
 ## 7.1 Initial Scan
+
+> **Superseded by [`PRODUCT_DECISIONS.md`](PRODUCT_DECISIONS.md):** lookback options are **1 / 2 / 3 / 4 days, 1 / 2 / 3 weeks, or 1 month** (default **7 days**), not 24h / 3d / 7d / custom. See overlay § "MVP operating defaults".
 
 משתמש בוחר:
 
@@ -699,6 +707,8 @@ I'll review it tomorrow.
 ---
 
 # 12. AI Classification Contract
+
+> **Superseded by [`PRODUCT_DECISIONS.md`](PRODUCT_DECISIONS.md):** the `category` enum below is replaced by the 14-topic taxonomy in overlay § "Open-task topics". Legacy values map at read/group time.
 
 ה־AI מחזיר **JSON בלבד דרך Structured Outputs**.
 
@@ -1677,6 +1687,8 @@ Summary generation:
 
 # 27. Dashboard
 
+> **Superseded by [`PRODUCT_DECISIONS.md`](PRODUCT_DECISIONS.md):** the dashboard is a scan-status overview with counts; mail lists live on **Mail** tabs (Summary, Open, Waiting, etc.) — not as combined sections on `/dashboard`. See overlay § "Inbox summary vs open tasks".
+
 Route:
 
 ```text
@@ -1729,6 +1741,8 @@ Scan now
 ---
 
 # 28. Action Center
+
+> **Superseded by [`PRODUCT_DECISIONS.md`](PRODUCT_DECISIONS.md):** Open / Waiting / Completed / Snoozed tabs live under **Mail** in the app UI (not a standalone `/actions` page). The tab structure and card fields below remain the conceptual model. See overlay § "Inbox summary vs open tasks".
 
 Route:
 
@@ -1830,6 +1844,8 @@ Route:
 - daily
 
 ## Initial lookback
+
+> **Superseded by [`PRODUCT_DECISIONS.md`](PRODUCT_DECISIONS.md):** **1 / 2 / 3 / 4 days, 1 / 2 / 3 weeks, or 1 month** (default **7 days**). See overlay § "MVP operating defaults".
 
 - 1 day
 - 3 days
@@ -2890,6 +2906,8 @@ Needed so changes can be evaluated and rolled back.
 
 # 60. API/AI Abstraction
 
+> **Superseded by [`PRODUCT_DECISIONS.md`](PRODUCT_DECISIONS.md):** implementation is `GeminiEmailTriageProvider` (not `OpenAIEmailTriageProvider`). See overlay § "AI provider".
+
 Do not couple domain code directly to OpenAI SDK.
 
 Interface:
@@ -3216,6 +3234,8 @@ MVP is complete only when this flow works end-to-end:
 
 # 65. Example End-to-End Scenario
 
+> **Superseded by [`PRODUCT_DECISIONS.md`](PRODUCT_DECISIONS.md):** use `category: "career"` (not `"work"`) and `MailPilot/*` Gmail labels (not `AI/*`). See overlay §§ "Open-task topics" and "Gmail labels".
+
 Incoming:
 
 ```text
@@ -3263,6 +3283,8 @@ Reply with your availability for Monday or Tuesday.
 ---
 
 # 66. Waiting Example
+
+> **Superseded by [`PRODUCT_DECISIONS.md`](PRODUCT_DECISIONS.md):** Gmail labels use the `MailPilot/*` namespace (not `AI/*`). Waiting state is tracked in the DB; see overlay § "Gmail labels".
 
 User sends:
 
@@ -3372,7 +3394,7 @@ Cursor implementation must explicitly cover:
 11. AI call only for changed Threads.
 12. Counts are computed by backend/DB, not invented by LLM.
 13. User manual overrides take precedence over reprocessing unchanged content.
-14. Gmail user labels outside `AI/*` are never modified.
+14. Gmail user labels outside `AI/*` are never modified. (**Superseded:** use `MailPilot/*` — see [`PRODUCT_DECISIONS.md`](PRODUCT_DECISIONS.md) § "Gmail labels".)
 15. Attachment contents are not analyzed in MVP.
 
 ---

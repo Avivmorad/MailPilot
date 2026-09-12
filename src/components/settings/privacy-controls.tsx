@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -75,7 +76,11 @@ export function PrivacyControls() {
         <CardDescription>
           These actions only affect your MailPilot data. Disconnecting Gmail keeps summaries.
           Deleting analysis data removes mail that MailPilot stored. Deleting the account
-          removes everything and signs you out.
+          removes everything and signs you out. See the{" "}
+          <Link href="/privacy" className="text-foreground font-medium underline underline-offset-4">
+            privacy and Gmail data-use page
+          </Link>
+          .
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">

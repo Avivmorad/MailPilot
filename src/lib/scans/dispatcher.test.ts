@@ -26,6 +26,7 @@ describe("authorizeCronRequest", () => {
     expect(authorizeCronRequest(new Headers({ authorization: "Bearer other" }), "cron-secret")).toBe(
       false,
     );
+    expect(authorizeCronRequest(new Headers({ authorization: "Bearer cron-secret" }), "")).toBe(false);
   });
 });
 

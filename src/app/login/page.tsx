@@ -147,6 +147,15 @@ export default function LoginPage() {
         </CardContent>
       </Card>
       </main>
+      <p className="text-muted-foreground mt-6 text-center text-sm">
+        <Link href="/privacy" className="hover:text-foreground underline-offset-4 hover:underline">
+          Privacy
+        </Link>
+        <span aria-hidden="true"> · </span>
+        <Link href="/terms" className="hover:text-foreground underline-offset-4 hover:underline">
+          Terms
+        </Link>
+      </p>
     </div>
   );
 }

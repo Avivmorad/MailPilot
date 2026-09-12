@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { isInboxSummaryStatus, mapRecentThreadRow } from "@/lib/threads/queries";
+import { isInboxSummaryStatus, mapRecentThreadRow, ThreadQueryError } from "@/lib/threads/queries";
 
 describe("isInboxSummaryStatus", () => {
   it("keeps quick updates and excludes ignore and tasks", () => {
@@ -33,5 +33,15 @@ describe("mapRecentThreadRow", () => {
       category: "finance",
       latestMessageAt: "2026-09-10T10:00:00.000Z",
     });
+  });
+});
+
+describe("ThreadQueryError", () => {
+  it("carries status, code, and message", () => {
+    const error = new ThreadQueryError(500, "load_failed", "Failed to load thread.");
+    expect(error.status).toBe(500);
+    expect(error.code).toBe("load_failed");
+    expect(error.message).toBe("Failed to load thread.");
+    expect(error.name).toBe("ThreadQueryError");
   });
 });

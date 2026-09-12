@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 
 import { GroupedActionList } from "@/components/actions/grouped-action-list";
 import { AppChrome } from "@/components/layout/app-chrome";
+import { EmptyState } from "@/components/layout/empty-state";
 import { PageHeader } from "@/components/layout/page-header";
 import { InboxSummary } from "@/components/threads/inbox-summary";
 import { buttonVariants } from "@/components/ui/button";
@@ -49,10 +50,27 @@ export default async function MailPage({
   const actionStatus = actionStatusForMailTab(tab);
   const empty = mailTabEmptyCopy(tab);
 
+  let queryError = false;
+
   const [actionItems, summaryThreads, ignoredThreads, gmailStatus] = await Promise.all([
-    actionStatus ? listActionsForUser(user.id, actionStatus) : Promise.resolve([]),
-    tab === "summary" ? listRecentThreadsForUser(user.id, 50) : Promise.resolve([]),
-    tab === "ignored" ? listIgnoredThreadsForUser(user.id, 50) : Promise.resolve([]),
+    actionStatus
+      ? listActionsForUser(user.id, actionStatus).catch(() => {
+          queryError = true;
+          return [];
+        })
+      : Promise.resolve([]),
+    tab === "summary"
+      ? listRecentThreadsForUser(user.id, 50).catch(() => {
+          queryError = true;
+          return [];
+        })
+      : Promise.resolve([]),
+    tab === "ignored"
+      ? listIgnoredThreadsForUser(user.id, 50).catch(() => {
+          queryError = true;
+          return [];
+        })
+      : Promise.resolve([]),
     getGmailStatusForUser(user.id),
   ]);
   const uncertainCount = actionItems.filter((item) => isUncertainClassification(item.confidence)).length;
@@ -91,62 +109,77 @@ export default async function MailPage({
           </Link>
         ))}
       </nav>
-      {actionStatus && (uncertainCount > 0 || uncertainOnly) ? (
-        <p className="text-muted-foreground text-sm">
-          {uncertainOnly ? (
-            <>
-              Showing {visibleItems.length} uncertain{" "}
-              {visibleItems.length === 1 ? "classification" : "classifications"}.{" "}
-              <Link href={`/mail?tab=${tab}`} className="text-primary font-medium hover:underline">
-                Show all
-              </Link>
-            </>
-          ) : (
-            <>
-              {uncertainCount} classification{uncertainCount === 1 ? " is" : "s are"} uncertain.{" "}
-              <Link href={`/mail?tab=${tab}&uncertain=1`} className="text-primary font-medium hover:underline">
-                Show uncertain only
-              </Link>
-            </>
-          )}
-        </p>
-      ) : null}
-      {staleWaitingCount > 0 ? (
-        <p className="text-muted-foreground text-sm">
-          {staleWaitingCount} waiting item{staleWaitingCount === 1 ? " has" : "s have"} been quiet for a week or more.
-        </p>
-      ) : null}
-      {tab === "summary" ? (
-        <InboxSummary
-          threads={summaryThreads}
-          storageKey="mail-summary"
-          emptyTitle={empty.title}
-          emptyDescription={empty.description}
-          emptyAction={emptyAction}
-        />
-      ) : null}
-      {tab === "ignored" ? (
-        <InboxSummary
-          threads={ignoredThreads}
-          storageKey="mail-ignored"
-          emptyTitle={empty.title}
-          emptyDescription={empty.description}
-          emptyAction={emptyAction}
-        />
-      ) : null}
-      {actionStatus ? (
-        <GroupedActionList
-          items={visibleItems}
-          storageKey={`mail-${tab}${uncertainOnly ? "-uncertain" : ""}`}
-          emptyTitle={uncertainOnly ? "No uncertain classifications in this view." : empty.title}
-          emptyDescription={
-            uncertainOnly
-              ? "Threads the classifier is unsure about would appear here so you can double-check them."
-              : empty.description
+      {queryError ? (
+        <EmptyState
+          variant="error"
+          title={`Could not load ${tab === "open" ? "open tasks" : tab === "waiting" ? "waiting tasks" : tab === "summary" ? "summary threads" : tab === "ignored" ? "ignored mail" : "tasks"}`}
+          description="We had trouble reaching the database. Reload to try again. Your mailbox data is safe."
+          action={
+            <Link href={`/mail?tab=${tab}`} className={buttonVariants({ size: "sm", variant: "outline" })}>
+              Reload view
+            </Link>
           }
-          emptyAction={emptyAction}
         />
-      ) : null}
+      ) : (
+        <>
+          {actionStatus && (uncertainCount > 0 || uncertainOnly) ? (
+            <p className="text-muted-foreground text-sm">
+              {uncertainOnly ? (
+                <>
+                  Showing {visibleItems.length} uncertain{" "}
+                  {visibleItems.length === 1 ? "classification" : "classifications"}.{" "}
+                  <Link href={`/mail?tab=${tab}`} className="text-primary font-medium hover:underline">
+                    Show all
+                  </Link>
+                </>
+              ) : (
+                <>
+                  {uncertainCount} classification{uncertainCount === 1 ? " is" : "s are"} uncertain.{" "}
+                  <Link href={`/mail?tab=${tab}&uncertain=1`} className="text-primary font-medium hover:underline">
+                    Show uncertain only
+                  </Link>
+                </>
+              )}
+            </p>
+          ) : null}
+          {staleWaitingCount > 0 ? (
+            <p className="text-muted-foreground text-sm">
+              {staleWaitingCount} waiting item{staleWaitingCount === 1 ? " has" : "s have"} been quiet for a week or more.
+            </p>
+          ) : null}
+          {tab === "summary" ? (
+            <InboxSummary
+              threads={summaryThreads}
+              storageKey="mail-summary"
+              emptyTitle={empty.title}
+              emptyDescription={empty.description}
+              emptyAction={emptyAction}
+            />
+          ) : null}
+          {tab === "ignored" ? (
+            <InboxSummary
+              threads={ignoredThreads}
+              storageKey="mail-ignored"
+              emptyTitle={empty.title}
+              emptyDescription={empty.description}
+              emptyAction={emptyAction}
+            />
+          ) : null}
+          {actionStatus ? (
+            <GroupedActionList
+              items={visibleItems}
+              storageKey={`mail-${tab}${uncertainOnly ? "-uncertain" : ""}`}
+              emptyTitle={uncertainOnly ? "No uncertain classifications in this view." : empty.title}
+              emptyDescription={
+                uncertainOnly
+                  ? "Threads the classifier is unsure about would appear here so you can double-check them."
+                  : empty.description
+              }
+              emptyAction={emptyAction}
+            />
+          ) : null}
+        </>
+      )}
     </AppChrome>
   );
 }

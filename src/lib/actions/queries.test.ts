@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { mapActionListItem } from "@/lib/actions/queries";
+import { ActionQueryError, mapActionListItem } from "@/lib/actions/queries";
 
 const THREAD = {
   id: "thread-1",
@@ -61,5 +61,15 @@ describe("mapActionListItem", () => {
 
     expect(item.actionSummary).toBe("Pay the remaining balance.");
     expect(item.actionReason).toBeNull();
+  });
+});
+
+describe("ActionQueryError", () => {
+  it("carries status, code, and message", () => {
+    const error = new ActionQueryError(500, "load_failed", "Failed to load actions.");
+    expect(error.status).toBe(500);
+    expect(error.code).toBe("load_failed");
+    expect(error.message).toBe("Failed to load actions.");
+    expect(error.name).toBe("ActionQueryError");
   });
 });

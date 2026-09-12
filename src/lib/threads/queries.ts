@@ -107,10 +107,11 @@ export async function listRecentThreadsForUser(userId: string, limit = 24): Prom
     .in("status", [...INBOX_SUMMARY_STATUSES])
     .order("latest_message_at", { ascending: false })
     .limit(limit);
-  if (error || !data) {
-    return [];
+  if (error) {
+    throw new ThreadQueryError(500, "load_failed", "Failed to load recent threads.");
   }
-  return data
+  const rows = data ?? [];
+  return rows
     .map((row) => mapRecentThreadRow(row))
     .filter((row) => mailBucketForThread({ status: row.status }) === "summary");
 }
@@ -124,10 +125,11 @@ export async function listIgnoredThreadsForUser(userId: string, limit = 50): Pro
     .eq("status", "ignore")
     .order("latest_message_at", { ascending: false })
     .limit(limit);
-  if (error || !data) {
-    return [];
+  if (error) {
+    throw new ThreadQueryError(500, "load_failed", "Failed to load ignored threads.");
   }
-  return data
+  const rows = data ?? [];
+  return rows
     .map((row) => mapRecentThreadRow(row))
     .filter((row) => mailBucketForThread({ status: row.status }) === "ignored");
 }

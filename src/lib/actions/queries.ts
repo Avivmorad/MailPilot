@@ -95,6 +95,17 @@ async function gmailEmailForUser(userId: string): Promise<string> {
   return typeof data?.gmail_email === "string" ? data.gmail_email : "";
 }
 
+export class ActionQueryError extends Error {
+  constructor(
+    readonly status: number,
+    readonly code: string,
+    message: string,
+  ) {
+    super(message);
+    this.name = "ActionQueryError";
+  }
+}
+
 export async function listActionsForUser(
   userId: string,
   status: ActionStatus,
@@ -110,10 +121,11 @@ export async function listActionsForUser(
     .eq("user_id", userId)
     .eq("status", status)
     .limit(200);
-  if (error || !data) {
-    return [];
+  if (error) {
+    throw new ActionQueryError(500, "load_failed", "Failed to load actions from the database.");
   }
-  const mapped = data.map((row) => mapActionListItem(row as Record<string, unknown>, gmailEmail));
+  const rows = data ?? [];
+  const mapped = rows.map((row) => mapActionListItem(row as Record<string, unknown>, gmailEmail));
   const visible =
     status === "OPEN"
       ? mapped.filter(

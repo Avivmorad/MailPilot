@@ -29,6 +29,56 @@ interface ConnectionRow {
   next_scan_at: string | null;
 }
 
+export interface GmailMailboxClaim {
+  user_id: string;
+  gmail_email: string;
+  google_account_id: string | null;
+  status: string;
+}
+
+export const GMAIL_MAILBOX_IN_USE_MESSAGE =
+  "This Gmail inbox is already connected to another MailPilot account. Disconnect it there first, then try again.";
+
+/**
+ * True when another MailPilot user already has this inbox (or Google account) connected.
+ * DISCONNECTED rows do not count; the original owner can reconnect until someone else claims it.
+ */
+export function isGmailMailboxClaimedByAnotherUser(
+  currentUserId: string,
+  identity: { email: string; googleAccountId: string | null },
+  rows: GmailMailboxClaim[],
+): boolean {
+  const email = identity.email.trim().toLowerCase();
+  const googleAccountId = identity.googleAccountId;
+  return rows.some((row) => {
+    if (row.user_id === currentUserId) {
+      return false;
+    }
+    if (row.status === "DISCONNECTED") {
+      return false;
+    }
+    if (row.gmail_email.trim().toLowerCase() === email) {
+      return true;
+    }
+    return Boolean(googleAccountId && row.google_account_id === googleAccountId);
+  });
+}
+
+export function isGmailMailboxUniqueViolation(error: {
+  code?: string | null;
+  message?: string | null;
+}): boolean {
+  const message = error.message ?? "";
+  const namedIndex =
+    /gmail_connections_one_active_mailbox_email|gmail_connections_one_active_google_account/i.test(
+      message,
+    );
+  if (namedIndex) {
+    return true;
+  }
+  return error.code === "23505" && /gmail_connections/i.test(message);
+}
+
 export function toPublicConnection(row: ConnectionRow): GmailConnectionPublic {
   return {
     id: row.id,
@@ -143,6 +193,50 @@ export async function completeGmailOAuth(
     throw new GmailConnectError("persist", "Failed to persist profile for Gmail connection");
   }
 
+  const { data: emailClaims, error: emailClaimError } = await db
+    .from("gmail_connections")
+    .select("user_id, gmail_email, google_account_id, status")
+    .neq("status", "DISCONNECTED")
+    .ilike("gmail_email", identity.email);
+
+  const googleAccountQuery =
+    identity.googleAccountId == null || identity.googleAccountId === ""
+      ? Promise.resolve({ data: [] as GmailMailboxClaim[] | null, error: null })
+      : db
+          .from("gmail_connections")
+          .select("user_id, gmail_email, google_account_id, status")
+          .neq("status", "DISCONNECTED")
+          .eq("google_account_id", identity.googleAccountId);
+
+  const { data: googleClaims, error: googleClaimError } = await googleAccountQuery;
+
+  if (emailClaimError || googleClaimError) {
+    emitProductEvent({
+      type: "gmail.connect_failed",
+      step: "connection",
+      errorCode: emailClaimError?.code ?? googleClaimError?.code ?? "persist",
+    });
+    throw new GmailConnectError("persist", "Failed to persist Gmail connection");
+  }
+
+  const claims = [
+    ...((emailClaims ?? []) as GmailMailboxClaim[]),
+    ...((googleClaims ?? []) as GmailMailboxClaim[]),
+  ];
+  if (isGmailMailboxClaimedByAnotherUser(userId, identity, claims)) {
+    try {
+      await revokeRefreshToken(tokens.refreshToken);
+    } catch {
+      // Do not store the grant even if Google revoke fails.
+    }
+    emitProductEvent({
+      type: "gmail.connect_failed",
+      step: "connection",
+      errorCode: "mailbox_in_use",
+    });
+    throw new GmailConnectError("mailbox_in_use", GMAIL_MAILBOX_IN_USE_MESSAGE);
+  }
+
   const { data, error } = await db
     .from("gmail_connections")
     .upsert(
@@ -161,6 +255,14 @@ export async function completeGmailOAuth(
     .single();
 
   if (error || !data) {
+    if (error && isGmailMailboxUniqueViolation(error)) {
+      emitProductEvent({
+        type: "gmail.connect_failed",
+        step: "connection",
+        errorCode: "mailbox_in_use",
+      });
+      throw new GmailConnectError("mailbox_in_use", GMAIL_MAILBOX_IN_USE_MESSAGE);
+    }
     emitProductEvent({
       type: "gmail.connect_failed",
       step: "connection",

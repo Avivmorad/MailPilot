@@ -68,6 +68,9 @@ Rules:
 - The system **creates the labels if they are missing** on first connect, stores the
   `logical_name -> gmail_label_id` mapping (spec §6/§16.3), and never modifies user labels
   outside the `MailPilot/` namespace.
+- A Gmail inbox (`gmail_email` / Google account id) may be **actively connected to only one
+  MailPilot user**. Connecting the same mailbox from a second signup is rejected until the
+  first account disconnects it. Apply `0010_gmail_mailbox_uniqueness.sql`.
 
 > Note: this is a simplified product-facing label set. The spec's richer state model
 > (`waiting`, `reply`, etc.) is still tracked in the database; the reduced Gmail label set is a

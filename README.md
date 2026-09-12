@@ -92,6 +92,7 @@ Apply SQL in the Supabase SQL Editor, in this order:
 7. `supabase/migrations/0007_scan_scheduling.sql`
 8. `supabase/migrations/0008_scan_admission.sql` — one RUNNING scan per Gmail connection
 9. `supabase/migrations/0009_function_hardening.sql` — signup trigger not callable via the Data API
+10. `supabase/migrations/0010_gmail_mailbox_uniqueness.sql` — one active Gmail inbox per MailPilot user
 
 RLS is required on user-accessible tables (`user_id = auth.uid()`).
 

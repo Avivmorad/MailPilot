@@ -23,7 +23,9 @@ Phase 8 dispatcher: `GET`/`POST` `/api/cron/scan-dispatcher` claims due
 connections (`next_scan_at`), 270s job lease, one connection per Hobby run
 (`maxDuration` 300). Apply `0007_scan_scheduling.sql` and
 `0008_scan_admission.sql` (one RUNNING scan per connection). Apply
-`0009_function_hardening.sql` so signup triggers are not callable via the Data API. Default daily
+`0009_function_hardening.sql` so signup triggers are not callable via the Data API. Apply
+`0010_gmail_mailbox_uniqueness.sql` so one Gmail inbox cannot be connected to two MailPilot
+users at once. Default daily
 time is 08:00 Asia/Jerusalem. Phase 9: in-app digest after each
 successful/partial scan; email digest is a later extension. Also shipped:
 triage settings, reconnect/`REAUTH_REQUIRED`, privacy deletion, onboarding,

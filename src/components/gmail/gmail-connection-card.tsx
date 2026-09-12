@@ -34,6 +34,8 @@ function flashMessage(
     gmail_profile: "Google did not return a Gmail address for this account.",
     persist:
       "Could not save the Gmail connection. Apply supabase/migrations/0002_gmail_connections.sql in the SQL Editor, then try again.",
+    mailbox_in_use:
+      "This Gmail inbox is already connected to another MailPilot account. Disconnect it there first, then try again.",
     encryption_key:
       "TOKEN_ENCRYPTION_KEY is invalid. It must be 64 hex characters from `openssl rand -hex 32`. Update .env.local and restart.",
     token_exchange: "Google token exchange failed. Try Connect Gmail again.",

@@ -13,6 +13,7 @@ Database schema and migrations for MailPilot.
   - `0007_scan_scheduling.sql` — connection leases, `scan_jobs`, dispatcher claim.
   - `0008_scan_admission.sql` — at most one RUNNING `scan_runs` row per connection.
   - `0009_function_hardening.sql` — pin `search_path` on trigger functions; revoke Data API execute on `handle_new_user`.
+  - `0010_gmail_mailbox_uniqueness.sql` — one active Gmail inbox (`gmail_email` / Google account) per MailPilot user.
 - Row Level Security is required on every user-accessible table (`user_id = auth.uid()`).
   Scan writes use the service role.
 

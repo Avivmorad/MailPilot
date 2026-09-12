@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 import {
   gmailCallbackErrorRedirect,
   gmailStatusErrorMessage,
+  isGmailMailboxClaimedByAnotherUser,
+  isGmailMailboxUniqueViolation,
   toPublicConnection,
 } from "@/lib/gmail/connections";
 
@@ -43,6 +45,75 @@ describe("gmailStatusErrorMessage", () => {
   it("does not echo raw unknown database errors", () => {
     expect(gmailStatusErrorMessage({ code: "XX000", message: "internal boom" })).toBe(
       "Could not load Gmail connection status from the database.",
+    );
+  });
+});
+
+describe("isGmailMailboxClaimedByAnotherUser", () => {
+  const other: {
+    user_id: string;
+    gmail_email: string;
+    google_account_id: string | null;
+    status: string;
+  } = {
+    user_id: "user-a",
+    gmail_email: "shared@example.com",
+    google_account_id: "gid-1",
+    status: "CONNECTED",
+  };
+
+  it("rejects a second MailPilot user connecting the same inbox", () => {
+    expect(
+      isGmailMailboxClaimedByAnotherUser(
+        "user-b",
+        { email: "Shared@example.com", googleAccountId: null },
+        [other],
+      ),
+    ).toBe(true);
+  });
+
+  it("allows the same user to reconnect", () => {
+    expect(
+      isGmailMailboxClaimedByAnotherUser(
+        "user-a",
+        { email: "shared@example.com", googleAccountId: "gid-1" },
+        [other],
+      ),
+    ).toBe(false);
+  });
+
+  it("allows a new user after the previous connection is disconnected", () => {
+    expect(
+      isGmailMailboxClaimedByAnotherUser(
+        "user-b",
+        { email: "shared@example.com", googleAccountId: "gid-1" },
+        [{ ...other, status: "DISCONNECTED" }],
+      ),
+    ).toBe(false);
+  });
+
+  it("rejects the same Google account id on another user", () => {
+    expect(
+      isGmailMailboxClaimedByAnotherUser(
+        "user-b",
+        { email: "other@example.com", googleAccountId: "gid-1" },
+        [other],
+      ),
+    ).toBe(true);
+  });
+});
+
+describe("isGmailMailboxUniqueViolation", () => {
+  it("detects the active-mailbox unique indexes", () => {
+    expect(
+      isGmailMailboxUniqueViolation({
+        code: "23505",
+        message:
+          'duplicate key value violates unique constraint "gmail_connections_one_active_mailbox_email"',
+      }),
+    ).toBe(true);
+    expect(isGmailMailboxUniqueViolation({ code: "23505", message: "users_email_key" })).toBe(
+      false,
     );
   });
 });

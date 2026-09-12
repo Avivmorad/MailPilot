@@ -145,6 +145,9 @@ Copy `.env.example` to `.env.local` and fill in values. Never commit real secret
 1. Create a Supabase project and copy its URL and keys into `.env.local`.
 2. Apply the SQL files in `supabase/migrations/` (SQL Editor), in numeric order.
 3. Row Level Security is required on all user-accessible tables (`user_id = auth.uid()`).
+4. Authentication → URL configuration: add `{NEXT_PUBLIC_APP_URL}/auth/confirm` and
+   `{NEXT_PUBLIC_APP_URL}/login/update-password` as Redirect URLs so signup confirmation and
+   password reset links stay on this app. The confirm route only accepts those same-origin paths.
 
 ## Running & scripts
 

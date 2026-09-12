@@ -33,6 +33,15 @@ export function appStatusBanner(input: {
     };
   }
   if (input.scanStatus === "FAILED") {
+    if (input.errorCode === "reauth_required") {
+      return {
+        kind: "warning",
+        title: "Your Gmail connection needs to be refreshed.",
+        body: "Reconnect Gmail to continue scanning. Your existing summaries were kept.",
+        href: "/api/gmail/connect",
+        actionLabel: "Reconnect Gmail",
+      };
+    }
     if (input.errorCode === "gmail_quota") {
       return {
         kind: "error",

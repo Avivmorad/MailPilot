@@ -12,6 +12,16 @@ describe("appStatusBanner", () => {
     expect(banner?.title).toContain("refreshed");
   });
 
+  it("treats a reauth scan failure like an expired connection", () => {
+    const banner = appStatusBanner({
+      connectionStatus: "CONNECTED",
+      scanStatus: "FAILED",
+      errorCode: "reauth_required",
+    });
+    expect(banner?.actionLabel).toBe("Reconnect Gmail");
+    expect(banner?.title).toContain("refreshed");
+  });
+
   it("uses quota and AI-unavailable copy for failed scans", () => {
     expect(
       appStatusBanner({

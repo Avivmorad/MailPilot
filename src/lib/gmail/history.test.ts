@@ -24,7 +24,12 @@ describe("refsFromHistoryRecords", () => {
 
 describe("isStaleHistoryError", () => {
   it("treats 404/410 history responses as stale", () => {
-    expect(isStaleHistoryError({ response: { status: 404 }, message: "Requested entity was not found." })).toBe(true);
+    expect(
+      isStaleHistoryError({
+        response: { status: 404 },
+        message: "Requested entity was not found.",
+      }),
+    ).toBe(true);
     expect(isStaleHistoryError({ status: 410 })).toBe(true);
     expect(isStaleHistoryError({ response: { status: 500 } })).toBe(false);
   });

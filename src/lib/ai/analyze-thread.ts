@@ -20,9 +20,7 @@ export class ThreadTriageError extends Error {
   }
 }
 
-export type TriageOutcome =
-  | { ok: true; analysis: ThreadAnalysis }
-  | { ok: false; error: Error };
+export type TriageOutcome = { ok: true; analysis: ThreadAnalysis } | { ok: false; error: Error };
 
 /**
  * Validate, post-process, and enforce invariants. Gmail labels must only be

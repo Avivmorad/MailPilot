@@ -53,7 +53,10 @@ describe("logicalLabelsForAnalysis", () => {
       "low_priority",
       "processed",
     ]);
-    expect(logicalLabelsForAnalysis(analysis({ importance: "low" }))).toEqual(["low_priority", "processed"]);
+    expect(logicalLabelsForAnalysis(analysis({ importance: "low" }))).toEqual([
+      "low_priority",
+      "processed",
+    ]);
   });
 
   it("does not add low_priority when a low-importance thread still requires action", () => {

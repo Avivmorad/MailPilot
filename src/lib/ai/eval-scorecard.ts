@@ -1,10 +1,6 @@
 import { analyzeThread, type EmailTriageProvider } from "@/lib/ai/analyze-thread";
 import { groundedIsoDates } from "@/lib/ai/deadlines";
-import {
-  formatEvalThreadText,
-  loadEvalCases,
-  type EvalCase,
-} from "@/lib/ai/eval-fixtures";
+import { formatEvalThreadText, loadEvalCases, type EvalCase } from "@/lib/ai/eval-fixtures";
 import { isSecurityEventNotice } from "@/lib/ai/notices";
 import { threadAnalysisSchema, type ThreadAnalysis } from "@/lib/ai/schemas";
 import type { ThreadAnalysisInput } from "@/lib/ai/types";
@@ -108,7 +104,10 @@ function containsHebrew(text: string): boolean {
   return /[\u0590-\u05FF]/.test(text);
 }
 
-export function scorePrediction(evalCase: EvalCase, predicted: ThreadAnalysis | null): ScorecardCaseResult {
+export function scorePrediction(
+  evalCase: EvalCase,
+  predicted: ThreadAnalysis | null,
+): ScorecardCaseResult {
   const expected = evalCase.expected;
   const schemaValid = predicted ? threadAnalysisSchema.safeParse(predicted).success : false;
   const predictedAction = predicted?.requires_action === true;
@@ -122,14 +121,14 @@ export function scorePrediction(evalCase: EvalCase, predicted: ThreadAnalysis | 
     ]);
   const hebrewOrMixed = containsHebrew(formatEvalThreadText(evalCase.messages));
   const grounded = groundedIsoDates(formatEvalThreadText(evalCase.messages));
-  const deadlineHallucinated = Boolean(
-    predicted?.deadline && !grounded.has(predicted.deadline),
-  );
+  const deadlineHallucinated = Boolean(predicted?.deadline && !grounded.has(predicted.deadline));
   const actionTypeMatch = predicted?.action_type === expected.action_type;
 
   let riskLoss = 0;
   if (expected.requires_action && !predictedAction) {
-    riskLoss += security ? EVAL_RISK_WEIGHTS.securityFalseNegative : EVAL_RISK_WEIGHTS.actionFalseNegative;
+    riskLoss += security
+      ? EVAL_RISK_WEIGHTS.securityFalseNegative
+      : EVAL_RISK_WEIGHTS.actionFalseNegative;
   } else if (!expected.requires_action && predictedAction) {
     riskLoss += EVAL_RISK_WEIGHTS.actionFalsePositive;
   }

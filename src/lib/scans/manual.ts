@@ -11,7 +11,12 @@ import {
   INITIAL_LOOKBACK_DAYS,
   type InitialLookbackDays,
 } from "@/lib/scans/lookback";
-import { isMissingScanSchemaError, SCAN_IN_PROGRESS, SCAN_SCHEMA_MISSING_MESSAGE, scanUserMessage } from "@/lib/scans/errors";
+import {
+  isMissingScanSchemaError,
+  SCAN_IN_PROGRESS,
+  SCAN_SCHEMA_MISSING_MESSAGE,
+  scanUserMessage,
+} from "@/lib/scans/errors";
 import { openGmailScan, executeGmailScan } from "@/lib/scans/process-scan";
 import { createSupabaseScanStore } from "@/lib/scans/store";
 import { persistDigestAfterScan } from "@/lib/digest/build-digest";
@@ -56,7 +61,11 @@ export class ScanRequestError extends Error {
 export async function beginManualInitialScan(
   userId: string,
   lookbackDays: InitialLookbackDays = DEFAULT_LOOKBACK_DAYS,
-): Promise<{ scanId: string; triggerType: "INITIAL" | "MANUAL"; execute: () => Promise<ScanRunResult> }> {
+): Promise<{
+  scanId: string;
+  triggerType: "INITIAL" | "MANUAL";
+  execute: () => Promise<ScanRunResult>;
+}> {
   if (!isGmailConfigured()) {
     throw new ScanRequestError(503, "gmail_not_configured", "Gmail OAuth is not configured.");
   }
@@ -65,12 +74,16 @@ export async function beginManualInitialScan(
   }
 
   const store = createSupabaseScanStore();
-  let connection: { gmail: Awaited<ReturnType<typeof createGmailApiForUser>>["gmail"]; connectionId: string; gmailEmail: string };
+  let connection: {
+    gmail: Awaited<ReturnType<typeof createGmailApiForUser>>["gmail"];
+    connectionId: string;
+    gmailEmail: string;
+  };
   try {
     connection = await createGmailApiForUser(userId);
   } catch (error) {
     if (error instanceof GmailConnectError) {
-    throw new ScanRequestError(409, error.reason, scanUserMessage(error.reason, error.message));
+      throw new ScanRequestError(409, error.reason, scanUserMessage(error.reason, error.message));
     }
     throw error;
   }
@@ -86,11 +99,7 @@ export async function beginManualInitialScan(
       typeof existing?.last_attempted_scan_at === "string" ? existing.last_attempted_scan_at : null,
     )
   ) {
-    throw new ScanRequestError(
-      429,
-      "rate_limited",
-      scanUserMessage("rate_limited"),
-    );
+    throw new ScanRequestError(429, "rate_limited", scanUserMessage("rate_limited"));
   }
 
   const triggerType = existing?.last_successful_scan_at ? "MANUAL" : "INITIAL";

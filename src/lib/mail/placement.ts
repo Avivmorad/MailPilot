@@ -43,10 +43,7 @@ export function sanitizePlacementEvidence(value: string | null | undefined): str
 }
 
 /** Rule-level placement copy. Optional AI evidence is appended only when it adds a distinct sentence. */
-export function threadPlacementReason(input: {
-  tab: MailTab;
-  evidence?: string | null;
-}): string {
+export function threadPlacementReason(input: { tab: MailTab; evidence?: string | null }): string {
   const rule = PLACEMENT_RULE[input.tab];
   const evidence = sanitizePlacementEvidence(input.evidence);
   if (!evidence || evidence === rule || rule.includes(evidence)) {

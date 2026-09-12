@@ -20,7 +20,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json({ ok: true, applied: result.applied });
   } catch (error) {
     if (error instanceof ThreadQueryError) {
-      return NextResponse.json({ error: error.code, message: error.message }, { status: error.status });
+      return NextResponse.json(
+        { error: error.code, message: error.message },
+        { status: error.status },
+      );
     }
     return NextResponse.json({ error: "save_failed" }, { status: 500 });
   }

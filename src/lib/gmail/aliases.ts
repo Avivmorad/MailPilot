@@ -25,7 +25,9 @@ export function mergeUserEmails(...groups: Array<readonly string[] | undefined>)
   return merged;
 }
 
-export function sendAsEmailsFromList(response: gmail_v1.Schema$ListSendAsResponse | undefined): string[] {
+export function sendAsEmailsFromList(
+  response: gmail_v1.Schema$ListSendAsResponse | undefined,
+): string[] {
   const emails: string[] = [];
   for (const row of response?.sendAs ?? []) {
     if (typeof row.sendAsEmail === "string") {

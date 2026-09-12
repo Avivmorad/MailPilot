@@ -25,7 +25,10 @@ export function isStaleHistoryError(error: unknown): boolean {
     return true;
   }
   const message = errorMessage(error).toLowerCase();
-  return message.includes("historyid") && (message.includes("not found") || message.includes("no longer"));
+  return (
+    message.includes("historyid") &&
+    (message.includes("not found") || message.includes("no longer"))
+  );
 }
 
 function httpStatus(error: unknown): number | null {
@@ -56,7 +59,12 @@ function errorMessage(error: unknown): string {
   if (error instanceof Error) {
     return error.message;
   }
-  if (typeof error === "object" && error && "message" in error && typeof error.message === "string") {
+  if (
+    typeof error === "object" &&
+    error &&
+    "message" in error &&
+    typeof error.message === "string"
+  ) {
     return error.message;
   }
   return "";

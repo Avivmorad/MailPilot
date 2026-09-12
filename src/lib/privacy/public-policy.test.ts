@@ -4,7 +4,9 @@ import { GMAIL_MODIFY_SCOPE, PRIVACY_POLICY_SECTIONS } from "@/lib/privacy/publi
 
 describe("public privacy policy", () => {
   it("states the Gmail scope, no long-term bodies, and no sending mail", () => {
-    const text = PRIVACY_POLICY_SECTIONS.map((section) => `${section.title} ${section.body}`).join(" ");
+    const text = PRIVACY_POLICY_SECTIONS.map((section) => `${section.title} ${section.body}`).join(
+      " ",
+    );
     expect(text).toContain(GMAIL_MODIFY_SCOPE);
     expect(text).toMatch(/does not persist full email bodies/i);
     expect(text).toMatch(/does not send, delete, or archive mail/i);

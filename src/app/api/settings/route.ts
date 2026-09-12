@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 
-import { getScanPreferences, patchScanPreferencesSchema, updateScanPreferences } from "@/lib/settings/preferences";
+import {
+  getScanPreferences,
+  patchScanPreferencesSchema,
+  updateScanPreferences,
+} from "@/lib/settings/preferences";
 import { getSessionUser } from "@/lib/supabase/auth";
 
 export async function GET() {

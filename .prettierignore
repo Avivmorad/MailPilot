@@ -4,3 +4,6 @@ coverage
 *.log
 docs/PROJECT_SPEC.md
 package-lock.json
+supabase/.temp
+.t12-check
+.vercel

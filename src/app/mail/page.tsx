@@ -10,7 +10,11 @@ import { buttonVariants } from "@/components/ui/button";
 import { listActionsForUser } from "@/lib/actions/queries";
 import { getGmailStatusForUser } from "@/lib/gmail/connections";
 import { gmailRecoveryActionLabel, shouldShowGmailRecoveryCard } from "@/lib/gmail/recovery";
-import { isStaleWaiting, isUncertainClassification, parseUncertainFilter } from "@/lib/mail/filters";
+import {
+  isStaleWaiting,
+  isUncertainClassification,
+  parseUncertainFilter,
+} from "@/lib/mail/filters";
 import { actionStatusForMailTab, MAIL_TABS, mailTabEmptyCopy, parseMailTab } from "@/lib/mail/tabs";
 import { getSessionUser } from "@/lib/supabase/auth";
 import { listIgnoredThreadsForUser, listRecentThreadsForUser } from "@/lib/threads/queries";
@@ -73,9 +77,13 @@ export default async function MailPage({
       : Promise.resolve([]),
     getGmailStatusForUser(user.id),
   ]);
-  const uncertainCount = actionItems.filter((item) => isUncertainClassification(item.confidence)).length;
+  const uncertainCount = actionItems.filter((item) =>
+    isUncertainClassification(item.confidence),
+  ).length;
   const visibleItems =
-    uncertainOnly && actionStatus ? actionItems.filter((item) => isUncertainClassification(item.confidence)) : actionItems;
+    uncertainOnly && actionStatus
+      ? actionItems.filter((item) => isUncertainClassification(item.confidence))
+      : actionItems;
   const staleWaitingCount =
     tab === "waiting" ? actionItems.filter((item) => isStaleWaiting(item.updatedAt)).length : 0;
   const needsGmailRecovery = shouldShowGmailRecoveryCard(gmailStatus);
@@ -115,7 +123,10 @@ export default async function MailPage({
           title={`Could not load ${tab === "open" ? "open tasks" : tab === "waiting" ? "waiting tasks" : tab === "summary" ? "summary threads" : tab === "ignored" ? "ignored mail" : "tasks"}`}
           description="We had trouble reaching the database. Reload to try again. Your mailbox data is safe."
           action={
-            <Link href={`/mail?tab=${tab}`} className={buttonVariants({ size: "sm", variant: "outline" })}>
+            <Link
+              href={`/mail?tab=${tab}`}
+              className={buttonVariants({ size: "sm", variant: "outline" })}
+            >
               Reload view
             </Link>
           }
@@ -128,14 +139,20 @@ export default async function MailPage({
                 <>
                   Showing {visibleItems.length} uncertain{" "}
                   {visibleItems.length === 1 ? "classification" : "classifications"}.{" "}
-                  <Link href={`/mail?tab=${tab}`} className="text-primary font-medium hover:underline">
+                  <Link
+                    href={`/mail?tab=${tab}`}
+                    className="text-primary font-medium hover:underline"
+                  >
                     Show all
                   </Link>
                 </>
               ) : (
                 <>
                   {uncertainCount} classification{uncertainCount === 1 ? " is" : "s are"} uncertain.{" "}
-                  <Link href={`/mail?tab=${tab}&uncertain=1`} className="text-primary font-medium hover:underline">
+                  <Link
+                    href={`/mail?tab=${tab}&uncertain=1`}
+                    className="text-primary font-medium hover:underline"
+                  >
                     Show uncertain only
                   </Link>
                 </>
@@ -144,7 +161,8 @@ export default async function MailPage({
           ) : null}
           {staleWaitingCount > 0 ? (
             <p className="text-muted-foreground text-sm">
-              {staleWaitingCount} waiting item{staleWaitingCount === 1 ? " has" : "s have"} been quiet for a week or more.
+              {staleWaitingCount} waiting item{staleWaitingCount === 1 ? " has" : "s have"} been
+              quiet for a week or more.
             </p>
           ) : null}
           {tab === "summary" ? (
@@ -169,7 +187,9 @@ export default async function MailPage({
             <GroupedActionList
               items={visibleItems}
               storageKey={`mail-${tab}${uncertainOnly ? "-uncertain" : ""}`}
-              emptyTitle={uncertainOnly ? "No uncertain classifications in this view." : empty.title}
+              emptyTitle={
+                uncertainOnly ? "No uncertain classifications in this view." : empty.title
+              }
               emptyDescription={
                 uncertainOnly
                   ? "Threads the classifier is unsure about would appear here so you can double-check them."

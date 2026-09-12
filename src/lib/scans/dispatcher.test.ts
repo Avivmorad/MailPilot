@@ -23,10 +23,12 @@ describe("authorizeCronRequest", () => {
 
   it("rejects a missing or wrong secret", () => {
     expect(authorizeCronRequest(new Headers(), "cron-secret")).toBe(false);
-    expect(authorizeCronRequest(new Headers({ authorization: "Bearer other" }), "cron-secret")).toBe(
+    expect(
+      authorizeCronRequest(new Headers({ authorization: "Bearer other" }), "cron-secret"),
+    ).toBe(false);
+    expect(authorizeCronRequest(new Headers({ authorization: "Bearer cron-secret" }), "")).toBe(
       false,
     );
-    expect(authorizeCronRequest(new Headers({ authorization: "Bearer cron-secret" }), "")).toBe(false);
   });
 });
 

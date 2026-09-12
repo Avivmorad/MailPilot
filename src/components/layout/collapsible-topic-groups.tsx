@@ -3,7 +3,6 @@
 import { ChevronDown } from "lucide-react";
 import { useMemo, type ReactNode } from "react";
 
-
 import { ACTION_TOPIC_LABELS, type ActionTopic } from "@/lib/actions/topics";
 import { toggleCollapsedId } from "@/lib/ui/collapsed-state";
 import { useCollapsedIds } from "@/lib/ui/use-collapsed-ids";
@@ -54,7 +53,8 @@ export function CollapsibleTopicGroups({
             <section
               key={group.topic}
               className={cn(
-                variant === "panel" && "bg-card ring-foreground/10 overflow-hidden rounded-xl ring-1",
+                variant === "panel" &&
+                  "bg-card ring-foreground/10 overflow-hidden rounded-xl ring-1",
               )}
             >
               <button

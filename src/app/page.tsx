@@ -109,7 +109,11 @@ export default function Home() {
       <SkipToContent />
       <header className="border-border/60 border-b">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-4">
-          <Link href="/" aria-label="MailPilot home" className="rounded-lg focus-visible:ring-ring focus-visible:ring-3 focus-visible:outline-none">
+          <Link
+            href="/"
+            aria-label="MailPilot home"
+            className="focus-visible:ring-ring rounded-lg focus-visible:ring-3 focus-visible:outline-none"
+          >
             <Logo />
           </Link>
           <nav aria-label="Landing" className="flex items-center gap-2">
@@ -153,9 +157,12 @@ export default function Home() {
         <section id="preview" className="border-border/60 bg-muted/30 border-y">
           <div className="mx-auto w-full max-w-6xl px-6 py-12">
             <div className="mb-8 text-center">
-              <h2 className="text-foreground text-2xl font-bold tracking-tight">How a morning inbox looks</h2>
+              <h2 className="text-foreground text-2xl font-bold tracking-tight">
+                How a morning inbox looks
+              </h2>
               <p className="text-muted-foreground mt-2">
-                After a scan, MailPilot does not dump 32 emails into one list. It keeps tasks, waiting, and FYI apart.
+                After a scan, MailPilot does not dump 32 emails into one list. It keeps tasks,
+                waiting, and FYI apart.
               </p>
             </div>
             <div className="grid gap-4 lg:grid-cols-3">
@@ -167,10 +174,17 @@ export default function Home() {
                   </CardHeader>
                   <CardContent className="space-y-3">
                     {column.items.map((item) => (
-                      <article key={item.title} className="bg-background/80 rounded-lg p-3 ring-1 ring-foreground/10">
-                        <h3 className="text-foreground text-sm font-semibold tracking-tight">{item.title}</h3>
+                      <article
+                        key={item.title}
+                        className="bg-background/80 ring-foreground/10 rounded-lg p-3 ring-1"
+                      >
+                        <h3 className="text-foreground text-sm font-semibold tracking-tight">
+                          {item.title}
+                        </h3>
                         <p className="text-muted-foreground mt-0.5 text-xs">{item.meta}</p>
-                        <p className="text-muted-foreground mt-2 text-sm leading-relaxed">{item.body}</p>
+                        <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
+                          {item.body}
+                        </p>
                       </article>
                     ))}
                   </CardContent>
@@ -199,7 +213,9 @@ export default function Home() {
         <section id="features" className="mx-auto w-full max-w-6xl px-6 pb-16">
           <div className="mb-8 text-center">
             <h2 className="text-foreground text-2xl font-bold tracking-tight">What it does</h2>
-            <p className="text-muted-foreground mt-2">The product principles that shape every part of the build.</p>
+            <p className="text-muted-foreground mt-2">
+              The product principles that shape every part of the build.
+            </p>
           </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {features.map(({ icon: Icon, title, body }) => (
@@ -221,10 +237,16 @@ export default function Home() {
         <div className="text-muted-foreground mx-auto flex w-full max-w-6xl flex-col items-center justify-between gap-2 px-6 py-6 text-sm sm:flex-row">
           <Logo showWordmark={false} />
           <span className="flex flex-wrap items-center gap-x-4 gap-y-1">
-            <Link href="/privacy" className="hover:text-foreground underline-offset-4 hover:underline">
+            <Link
+              href="/privacy"
+              className="hover:text-foreground underline-offset-4 hover:underline"
+            >
               Privacy
             </Link>
-            <Link href="/terms" className="hover:text-foreground underline-offset-4 hover:underline">
+            <Link
+              href="/terms"
+              className="hover:text-foreground underline-offset-4 hover:underline"
+            >
               Terms
             </Link>
             <span>MailPilot. Not affiliated with Google.</span>

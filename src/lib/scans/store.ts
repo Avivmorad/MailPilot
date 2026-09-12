@@ -126,7 +126,8 @@ export function createSupabaseScanStore(): ScanStorePort {
       if (patch.finishedAt) row.finished_at = patch.finishedAt;
       if (patch.errorCode !== undefined) row.error_code = patch.errorCode;
       if (patch.errorMessage !== undefined) row.error_message = patch.errorMessage;
-      if (patch.messagesDiscovered !== undefined) row.messages_discovered = patch.messagesDiscovered;
+      if (patch.messagesDiscovered !== undefined)
+        row.messages_discovered = patch.messagesDiscovered;
       if (patch.messagesProcessed !== undefined) row.messages_processed = patch.messagesProcessed;
       if (patch.threadsAnalyzed !== undefined) row.threads_analyzed = patch.threadsAnalyzed;
       if (patch.threadsDiscovered !== undefined) row.threads_discovered = patch.threadsDiscovered;
@@ -135,7 +136,8 @@ export function createSupabaseScanStore(): ScanStorePort {
       if (patch.actionCount !== undefined) row.action_count = patch.actionCount;
       if (patch.replyCount !== undefined) row.reply_count = patch.replyCount;
       if (patch.waitingCount !== undefined) row.waiting_count = patch.waitingCount;
-      if (patch.informationalCount !== undefined) row.informational_count = patch.informationalCount;
+      if (patch.informationalCount !== undefined)
+        row.informational_count = patch.informationalCount;
       if (patch.ignoredCount !== undefined) row.ignored_count = patch.ignoredCount;
       const { error } = await db.from("scan_runs").update(row).eq("id", scanId);
       if (error) {
@@ -156,7 +158,9 @@ export function createSupabaseScanStore(): ScanStorePort {
           },
           { onConflict: "user_id" },
         )
-        .select("vip_senders, ignored_senders, ignored_domains, custom_ai_instructions, timezone, daily_scan_time")
+        .select(
+          "vip_senders, ignored_senders, ignored_domains, custom_ai_instructions, timezone, daily_scan_time",
+        )
         .single();
       if (error || !data) {
         failStore("Failed to load triage settings", error);
@@ -344,7 +348,10 @@ export function createSupabaseScanStore(): ScanStorePort {
       if (input.lastSuccessfulScanAt !== undefined) {
         patch.last_successful_scan_at = input.lastSuccessfulScanAt;
       }
-      const { error } = await db.from("gmail_connections").update(patch).eq("id", input.connectionId);
+      const { error } = await db
+        .from("gmail_connections")
+        .update(patch)
+        .eq("id", input.connectionId);
       if (error) {
         failStore("Failed to update Gmail connection scan state", error);
       }

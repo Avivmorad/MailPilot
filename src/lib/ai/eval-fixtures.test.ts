@@ -68,7 +68,9 @@ describe("threadAnalysisJsonSchema", () => {
 describe("AI module isolation", () => {
   it("does not import Gmail label mutation APIs", () => {
     const dir = path.join(process.cwd(), "src/lib/ai");
-    const files = readdirSync(dir).filter((name) => name.endsWith(".ts") && !name.endsWith(".test.ts"));
+    const files = readdirSync(dir).filter(
+      (name) => name.endsWith(".ts") && !name.endsWith(".test.ts"),
+    );
     for (const name of files) {
       const source = readFileSync(path.join(dir, name), "utf8");
       expect(source, name).not.toMatch(/@\/lib\/gmail\/labels/);

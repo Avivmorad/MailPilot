@@ -28,10 +28,14 @@ describe("sentry privacy", () => {
   });
 
   it("normalizes routes and redacts email and token material", () => {
-    expect(sanitizeSentryRoute("https://app.example/thread/11111111-2222-4333-a444-555555555555?code=secret")).toBe(
-      "/thread/[id]",
+    expect(
+      sanitizeSentryRoute(
+        "https://app.example/thread/11111111-2222-4333-a444-555555555555?code=secret",
+      ),
+    ).toBe("/thread/[id]");
+    expect(redactSensitiveText("user ada@example.com token ya29.abcDEF-_")).toBe(
+      "user [email] token [redacted]",
     );
-    expect(redactSensitiveText("user ada@example.com token ya29.abcDEF-_")).toBe("user [email] token [redacted]");
     expect(redactSensitiveText(`key ${"ab".repeat(32)}`)).toBe("key [redacted]");
   });
 
@@ -72,7 +76,9 @@ describe("sentry privacy", () => {
     const sanitized = sanitizeSentryEvent(event);
     expect(sanitized).not.toBeNull();
     const json = JSON.stringify(sanitized);
-    expect(json).not.toMatch(/ada@example\.com|OTP 123456|bank details|cron-secret|ya29|203\.0\.113|should-drop/i);
+    expect(json).not.toMatch(
+      /ada@example\.com|OTP 123456|bank details|cron-secret|ya29|203\.0\.113|should-drop/i,
+    );
     expect(sanitized?.user).toBeUndefined();
     expect(sanitized?.extra).toBeUndefined();
     expect(sanitized?.request?.data).toBeUndefined();

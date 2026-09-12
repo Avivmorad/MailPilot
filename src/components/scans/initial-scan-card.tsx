@@ -186,7 +186,9 @@ export function InitialScanCard({
               className="border-input bg-background h-9 w-full max-w-xs rounded-lg border px-3 text-sm"
               value={lookbackDays}
               disabled={!connected || busy}
-              onChange={(event) => setLookbackDays(Number(event.target.value) as InitialLookbackDays)}
+              onChange={(event) =>
+                setLookbackDays(Number(event.target.value) as InitialLookbackDays)
+              }
             >
               {INITIAL_LOOKBACK_DAYS.map((value) => (
                 <option key={value} value={value}>

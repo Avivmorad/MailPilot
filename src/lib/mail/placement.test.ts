@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { PLACEMENT_CORRECTIONS, sanitizePlacementEvidence, threadPlacementReason } from "@/lib/mail/placement";
+import {
+  PLACEMENT_CORRECTIONS,
+  sanitizePlacementEvidence,
+  threadPlacementReason,
+} from "@/lib/mail/placement";
 
 describe("threadPlacementReason", () => {
   it("explains each Mail tab without requiring model reasoning", () => {

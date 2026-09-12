@@ -22,7 +22,12 @@ export function EmptyState({
       )}
       role={isError ? "alert" : "status"}
     >
-      <p className={cn("font-semibold tracking-tight", isError ? "text-destructive" : "text-foreground")}>
+      <p
+        className={cn(
+          "font-semibold tracking-tight",
+          isError ? "text-destructive" : "text-foreground",
+        )}
+      >
         {title}
       </p>
       {description ? (

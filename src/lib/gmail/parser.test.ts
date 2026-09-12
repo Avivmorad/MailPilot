@@ -118,7 +118,9 @@ describe("parseGmailMessage", () => {
       { filename: "invoice.pdf", mimeType: "application/pdf", size: 123456 },
     ]);
     expect(JSON.stringify(parsed)).not.toContain("THIS-IS-BINARY-PDF-CONTENT");
-    expect(formatAttachmentsForPrompt(parsed.attachments)).toContain("invoice.pdf (application/pdf)");
+    expect(formatAttachmentsForPrompt(parsed.attachments)).toContain(
+      "invoice.pdf (application/pdf)",
+    );
     expect(formatAttachmentsForPrompt(parsed.attachments)).toContain("were not analyzed");
   });
 

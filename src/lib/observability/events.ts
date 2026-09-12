@@ -50,7 +50,10 @@ function redactUrl(value: string): string {
     url.hash = "";
     return url.toString();
   } catch {
-    return value.replace(/([?&](?:code|access_token|refresh_token|client_secret|key)=)[^&]+/gi, "$1redacted");
+    return value.replace(
+      /([?&](?:code|access_token|refresh_token|client_secret|key)=)[^&]+/gi,
+      "$1redacted",
+    );
   }
 }
 

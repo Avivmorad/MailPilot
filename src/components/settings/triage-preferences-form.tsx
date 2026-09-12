@@ -59,7 +59,9 @@ export function TriagePreferencesForm({
       });
       if (!response.ok) {
         setError(true);
-        setMessage("Could not save triage settings. Check emails, domains, and instruction length.");
+        setMessage(
+          "Could not save triage settings. Check emails, domains, and instruction length.",
+        );
         return;
       }
       setMessage("Triage settings saved. The next scan will use them.");
@@ -83,7 +85,9 @@ export function TriagePreferencesForm({
       </CardHeader>
       <CardContent className="space-y-4">
         <label className="block text-sm">
-          <span className="text-muted-foreground mb-1.5 block">VIP senders (one email per line)</span>
+          <span className="text-muted-foreground mb-1.5 block">
+            VIP senders (one email per line)
+          </span>
           <textarea
             className="border-input bg-background min-h-24 w-full rounded-lg border px-3 py-2 text-sm"
             value={vip}
@@ -93,7 +97,9 @@ export function TriagePreferencesForm({
           />
         </label>
         <label className="block text-sm">
-          <span className="text-muted-foreground mb-1.5 block">Ignored senders (one email per line)</span>
+          <span className="text-muted-foreground mb-1.5 block">
+            Ignored senders (one email per line)
+          </span>
           <textarea
             className="border-input bg-background min-h-24 w-full rounded-lg border px-3 py-2 text-sm"
             value={ignored}
@@ -103,7 +109,9 @@ export function TriagePreferencesForm({
           />
         </label>
         <label className="block text-sm">
-          <span className="text-muted-foreground mb-1.5 block">Ignored domains (one domain per line)</span>
+          <span className="text-muted-foreground mb-1.5 block">
+            Ignored domains (one domain per line)
+          </span>
           <textarea
             className="border-input bg-background min-h-20 w-full rounded-lg border px-3 py-2 text-sm"
             value={domains}

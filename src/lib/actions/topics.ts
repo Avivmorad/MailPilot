@@ -36,7 +36,9 @@ export function topicForItem(item: TopicableItem): ActionTopic {
   return category;
 }
 
-export function groupByTopic<T extends TopicableItem>(items: T[]): Array<{ topic: ActionTopic; items: T[] }> {
+export function groupByTopic<T extends TopicableItem>(
+  items: T[],
+): Array<{ topic: ActionTopic; items: T[] }> {
   const buckets = {} as Record<ActionTopic, T[]>;
   for (const topic of ACTION_TOPICS) {
     buckets[topic] = [];

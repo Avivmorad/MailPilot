@@ -128,9 +128,7 @@ export async function listActionsForUser(
   const mapped = rows.map((row) => mapActionListItem(row as Record<string, unknown>, gmailEmail));
   const visible =
     status === "OPEN"
-      ? mapped.filter(
-          (item) => !isNonTaskNotice([item.title, item.description, item.summary]),
-        )
+      ? mapped.filter((item) => !isNonTaskNotice([item.title, item.description, item.summary]))
       : mapped;
   if (status === "OPEN") {
     visible.sort(compareOpenActions);

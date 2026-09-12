@@ -52,7 +52,8 @@ export function gmailStatusErrorMessage(error: {
   if (
     code === "PGRST205" ||
     code === "42P01" ||
-    (/gmail_connections/i.test(message) && /does not exist|schema cache|could not find/i.test(message))
+    (/gmail_connections/i.test(message) &&
+      /does not exist|schema cache|could not find/i.test(message))
   ) {
     return "The gmail_connections table is missing. Apply supabase/migrations/0002_gmail_connections.sql in the Supabase SQL Editor, then reload.";
   }
@@ -75,14 +76,20 @@ export async function getGmailStatusForUser(userId: string): Promise<GmailStatus
     const db = createAdminClient();
     const { data, error } = await db
       .from("gmail_connections")
-      .select("id, user_id, gmail_email, google_account_id, status, last_successful_scan_at, next_scan_at")
+      .select(
+        "id, user_id, gmail_email, google_account_id, status, last_successful_scan_at, next_scan_at",
+      )
       .eq("user_id", userId)
       .order("updated_at", { ascending: false })
       .limit(1)
       .maybeSingle();
 
     if (error) {
-      emitProductEvent({ type: "gmail.connect_failed", step: "status", errorCode: error.code ?? "status" });
+      emitProductEvent({
+        type: "gmail.connect_failed",
+        step: "status",
+        errorCode: error.code ?? "status",
+      });
       return {
         configured: true,
         connection: null,
@@ -105,7 +112,10 @@ export async function getGmailStatusForUser(userId: string): Promise<GmailStatus
   }
 }
 
-export async function completeGmailOAuth(userId: string, code: string): Promise<GmailConnectionPublic> {
+export async function completeGmailOAuth(
+  userId: string,
+  code: string,
+): Promise<GmailConnectionPublic> {
   const env = getGmailEnv();
   const tokens = await exchangeAuthorizationCode(code);
   const identity = await fetchGmailIdentity(tokens.accessToken, tokens.refreshToken);
@@ -121,9 +131,15 @@ export async function completeGmailOAuth(userId: string, code: string): Promise<
   }
 
   const db = createAdminClient();
-  const { error: profileError } = await db.from("profiles").upsert({ id: userId }, { onConflict: "id" });
+  const { error: profileError } = await db
+    .from("profiles")
+    .upsert({ id: userId }, { onConflict: "id" });
   if (profileError) {
-    emitProductEvent({ type: "gmail.connect_failed", step: "profile", errorCode: profileError.code ?? "persist" });
+    emitProductEvent({
+      type: "gmail.connect_failed",
+      step: "profile",
+      errorCode: profileError.code ?? "persist",
+    });
     throw new GmailConnectError("persist", "Failed to persist profile for Gmail connection");
   }
 
@@ -139,7 +155,9 @@ export async function completeGmailOAuth(userId: string, code: string): Promise<
       },
       { onConflict: "user_id,gmail_email" },
     )
-    .select("id, user_id, gmail_email, google_account_id, status, last_successful_scan_at, next_scan_at")
+    .select(
+      "id, user_id, gmail_email, google_account_id, status, last_successful_scan_at, next_scan_at",
+    )
     .single();
 
   if (error || !data) {

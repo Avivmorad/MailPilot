@@ -14,7 +14,10 @@ describe("AppHeader", () => {
     render(<AppHeader email="user@example.com" current="mail" />);
 
     expect(screen.getByRole("navigation", { name: "Main" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "MailPilot home" })).toHaveAttribute("href", "/dashboard");
+    expect(screen.getByRole("link", { name: "MailPilot home" })).toHaveAttribute(
+      "href",
+      "/dashboard",
+    );
     expect(screen.getByRole("link", { name: "Mail" })).toHaveAttribute("aria-current", "page");
     expect(screen.getByRole("link", { name: "Dashboard" })).not.toHaveAttribute("aria-current");
   });

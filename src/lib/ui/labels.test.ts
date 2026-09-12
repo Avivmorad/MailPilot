@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { humanizeToken, labelForDirection, labelForScanStatus, labelForThreadStatus } from "@/lib/ui/labels";
+import {
+  humanizeToken,
+  labelForDirection,
+  labelForScanStatus,
+  labelForThreadStatus,
+} from "@/lib/ui/labels";
 
 describe("humanizeToken", () => {
   it("maps known product tokens to readable copy", () => {

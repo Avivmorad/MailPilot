@@ -67,17 +67,37 @@ export function ActionControls({
     <div className="flex flex-col gap-2">
       <div className="flex flex-wrap items-center gap-2">
         {status !== "COMPLETED" ? (
-          <Button type="button" size="sm" disabled={busy} aria-busy={busy} onClick={() => void patch({ op: "complete" })}>
+          <Button
+            type="button"
+            size="sm"
+            disabled={busy}
+            aria-busy={busy}
+            onClick={() => void patch({ op: "complete" })}
+          >
             Done
           </Button>
         ) : null}
         {showUndo ? (
-          <Button type="button" size="sm" variant="outline" disabled={busy} aria-busy={busy} onClick={() => void patch({ op: "reopen" })}>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            disabled={busy}
+            aria-busy={busy}
+            onClick={() => void patch({ op: "reopen" })}
+          >
             Undo
           </Button>
         ) : null}
         {showNeedsMe ? (
-          <Button type="button" size="sm" variant="outline" disabled={busy} aria-busy={busy} onClick={() => void patch({ op: "reopen" })}>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            disabled={busy}
+            aria-busy={busy}
+            onClick={() => void patch({ op: "reopen" })}
+          >
             Needs me
           </Button>
         ) : null}
@@ -116,7 +136,9 @@ export function ActionControls({
           </label>
         ) : null}
         {status === "SNOOZED" && snoozedUntil ? (
-          <span className="text-muted-foreground text-xs">Until {formatDate(snoozedUntil.slice(0, 10))}</span>
+          <span className="text-muted-foreground text-xs">
+            Until {formatDate(snoozedUntil.slice(0, 10))}
+          </span>
         ) : null}
       </div>
 

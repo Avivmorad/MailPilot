@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { defaultAuthNext, passwordResetRedirectTo, parseAuthOtpType, safeAuthNext } from "@/lib/auth/redirects";
+import {
+  defaultAuthNext,
+  passwordResetRedirectTo,
+  parseAuthOtpType,
+  safeAuthNext,
+} from "@/lib/auth/redirects";
 
 describe("auth redirects", () => {
   it("defaults recovery links to the password form", () => {

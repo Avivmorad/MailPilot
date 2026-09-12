@@ -7,7 +7,8 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: ui-sans-serif, system-ui, "Segoe UI", "Helvetica Neue", Arial, "Noto Sans Hebrew", sans-serif;
+  --font-sans:
+    ui-sans-serif, system-ui, "Segoe UI", "Helvetica Neue", Arial, "Noto Sans Hebrew", sans-serif;
   --font-mono: ui-monospace, "Cascadia Code", "Segoe UI Mono", Menlo, Monaco, Consolas, monospace;
   --font-heading: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);
@@ -127,7 +128,7 @@
     @apply font-sans;
   }
   body {
-    @apply bg-background text-foreground antialiased;
+    @apply bg-background text-foreground font-sans antialiased;
     line-height: 1.6;
   }
   :lang(he),

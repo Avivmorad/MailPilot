@@ -10,8 +10,14 @@ const AUTH_ERROR_MESSAGES: Array<{ match: RegExp; message: string }> = [
   },
   { match: /password should be at least/i, message: "Password must be at least 6 characters." },
   { match: /same password/i, message: "Choose a password you have not used before." },
-  { match: /rate limit|too many requests|over_request_rate_limit/i, message: "Too many attempts. Wait a minute and try again." },
-  { match: /invalid.*(token|otp|link)|otp_expired|flow_state/i, message: "This link is invalid or has expired. Request a new one." },
+  {
+    match: /rate limit|too many requests|over_request_rate_limit/i,
+    message: "Too many attempts. Wait a minute and try again.",
+  },
+  {
+    match: /invalid.*(token|otp|link)|otp_expired|flow_state/i,
+    message: "This link is invalid or has expired. Request a new one.",
+  },
   {
     match: /supabase configured|Invalid or missing public/i,
     message: "Something went wrong. Is Supabase configured in .env.local?",

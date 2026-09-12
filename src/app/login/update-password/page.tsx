@@ -52,7 +52,7 @@ export default function UpdatePasswordPage() {
         <Link
           href="/"
           aria-label="Back to home"
-          className="rounded-lg focus-visible:ring-ring focus-visible:ring-3 focus-visible:outline-none"
+          className="focus-visible:ring-ring rounded-lg focus-visible:ring-3 focus-visible:outline-none"
         >
           <Logo />
         </Link>
@@ -65,7 +65,8 @@ export default function UpdatePasswordPage() {
               <h1 className="text-base font-semibold">Choose a new password</h1>
             </CardTitle>
             <CardDescription>
-              Use the link from your email. If this page says the link expired, request another reset.
+              Use the link from your email. If this page says the link expired, request another
+              reset.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -122,7 +123,10 @@ export default function UpdatePasswordPage() {
               </Button>
             </form>
             <p className="text-muted-foreground mt-4 text-center text-sm">
-              <Link href="/login" className="text-foreground font-medium underline underline-offset-4">
+              <Link
+                href="/login"
+                className="text-foreground font-medium underline underline-offset-4"
+              >
                 Back to sign in
               </Link>
             </p>

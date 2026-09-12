@@ -59,10 +59,7 @@ export function formatDate(isoDate: string | null | undefined): string {
   );
 }
 
-export function formatRelativeTime(
-  iso: string | null | undefined,
-  now: Date = new Date(),
-): string {
+export function formatRelativeTime(iso: string | null | undefined, now: Date = new Date()): string {
   if (!iso) {
     return "—";
   }

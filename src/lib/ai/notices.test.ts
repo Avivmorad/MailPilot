@@ -46,15 +46,17 @@ describe("isLoginFyiNotice", () => {
 
   it("does not treat secure-now mail as dismissible FYI", () => {
     expect(isLoginFyiNotice(["Unusual sign-in detected. Secure your account now."])).toBe(false);
-    expect(isSecurityEventNotice(["Unusual sign-in detected. Secure your account now."])).toBe(true);
+    expect(isSecurityEventNotice(["Unusual sign-in detected. Secure your account now."])).toBe(
+      true,
+    );
   });
 });
 
 describe("isSecurityEventNotice", () => {
   it("treats new-device and Google security alerts as Open", () => {
-    expect(isSecurityEventNotice(["New sign-in on Windows. If this wasn't you, review activity."])).toBe(
-      true,
-    );
+    expect(
+      isSecurityEventNotice(["New sign-in on Windows. If this wasn't you, review activity."]),
+    ).toBe(true);
     expect(isSecurityEventNotice(["Google security alert: new device login"])).toBe(true);
     expect(isSecurityEventNotice(["כניסה חדשה ב-Mac OS"])).toBe(true);
   });
@@ -93,9 +95,9 @@ describe("isDocumentShareNotice", () => {
 
   it("keeps access requests and review asks as tasks", () => {
     expect(isDocumentShareNotice(["Ada requested access to Invoice Q3"])).toBe(false);
-    expect(
-      isDocumentShareNotice(["Ada shared a document with you. Please review and sign."]),
-    ).toBe(false);
+    expect(isDocumentShareNotice(["Ada shared a document with you. Please review and sign."])).toBe(
+      false,
+    );
   });
 });
 
@@ -154,9 +156,9 @@ describe("automated requests vs access granted", () => {
   it("treats signature, approval, and comment-to-act mail as actions", () => {
     expect(isAutomatedActionRequestNotice(["DocuSign: signature requested on the NDA"])).toBe(true);
     expect(isAutomatedActionRequestNotice(["Approval requested: Q3 budget"])).toBe(true);
-    expect(
-      isAutomatedActionRequestNotice(["Ada commented on Spec: please update section 2"]),
-    ).toBe(true);
+    expect(isAutomatedActionRequestNotice(["Ada commented on Spec: please update section 2"])).toBe(
+      true,
+    );
   });
 
   it("keeps access-granted shares as FYI", () => {

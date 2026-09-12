@@ -20,15 +20,20 @@ describe("shouldShowGmailRecoveryCard", () => {
   });
 
   it("shows recovery for missing config, load errors, and non-connected statuses", () => {
-    expect(shouldShowGmailRecoveryCard({ configured: false, loadError: null, connection: null })).toBe(true);
+    expect(
+      shouldShowGmailRecoveryCard({ configured: false, loadError: null, connection: null }),
+    ).toBe(true);
     expect(
       shouldShowGmailRecoveryCard({
         configured: true,
-        loadError: "Apply supabase/migrations/0002_gmail_connections.sql in the Supabase SQL Editor, then reload.",
+        loadError:
+          "Apply supabase/migrations/0002_gmail_connections.sql in the Supabase SQL Editor, then reload.",
         connection: null,
       }),
     ).toBe(true);
-    expect(shouldShowGmailRecoveryCard({ configured: true, loadError: null, connection: null })).toBe(true);
+    expect(
+      shouldShowGmailRecoveryCard({ configured: true, loadError: null, connection: null }),
+    ).toBe(true);
     expect(
       shouldShowGmailRecoveryCard({
         ...connected,
@@ -64,6 +69,8 @@ describe("gmailRecoveryActionLabel", () => {
         connection: { ...connected.connection, status: "ERROR" },
       }),
     ).toBe("Reconnect Gmail");
-    expect(gmailRecoveryActionLabel({ configured: true, loadError: null, connection: null })).toBe("Connect Gmail");
+    expect(gmailRecoveryActionLabel({ configured: true, loadError: null, connection: null })).toBe(
+      "Connect Gmail",
+    );
   });
 });

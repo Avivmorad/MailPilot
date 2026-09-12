@@ -29,7 +29,9 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
   }
 
   const lowConfidence = isUncertainClassification(thread.confidence);
-  const inbound = [...thread.messages].reverse().find((message) => message.direction.toLowerCase() === "inbound");
+  const inbound = [...thread.messages]
+    .reverse()
+    .find((message) => message.direction.toLowerCase() === "inbound");
   const senderMessage = inbound ?? thread.messages[thread.messages.length - 1];
   const sender = senderMessage?.senderName ?? senderMessage?.senderEmail ?? null;
   const backTab = mailBucketForThread({ status: thread.status, actionStatus: thread.actionStatus });
@@ -48,7 +50,10 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
         >
           ← Back to Mail
         </Link>
-        <h1 className="text-foreground mt-3 text-2xl font-bold tracking-tight break-words text-balance sm:text-3xl" dir="auto">
+        <h1
+          className="text-foreground mt-3 text-2xl font-bold tracking-tight text-balance break-words sm:text-3xl"
+          dir="auto"
+        >
           {thread.shortDisplayTitle ?? thread.subject ?? "Thread"}
         </h1>
         {thread.subject ? (
@@ -97,11 +102,14 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
             <LabeledField label="Why this tab" dir="auto">
               {threadPlacementReason({ tab: backTab, evidence: whyText })}
             </LabeledField>
-            {thread.waitingFor ? <LabeledField label="Waiting on">{thread.waitingFor}</LabeledField> : null}
+            {thread.waitingFor ? (
+              <LabeledField label="Waiting on">{thread.waitingFor}</LabeledField>
+            ) : null}
           </div>
           {lowConfidence ? (
-            <p className="text-amber-800 text-sm dark:text-amber-200">
-              Low classification confidence ({thread.confidence?.toFixed(2)}). Double-check before acting.
+            <p className="text-sm text-amber-800 dark:text-amber-200">
+              Low classification confidence ({thread.confidence?.toFixed(2)}). Double-check before
+              acting.
             </p>
           ) : null}
           <div className="space-y-3 border-t pt-3">
@@ -135,7 +143,10 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
             <p className="text-muted-foreground text-sm">No stored message metadata.</p>
           ) : (
             thread.messages.map((message) => (
-              <div key={message.id} className="border-border/70 border-b py-3 last:border-0 last:pb-0 first:pt-0">
+              <div
+                key={message.id}
+                className="border-border/70 border-b py-3 first:pt-0 last:border-0 last:pb-0"
+              >
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <p className="text-foreground text-sm font-semibold">
                     {message.senderName ?? message.senderEmail ?? "Unknown"}
@@ -144,7 +155,9 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
                       · {labelForDirection(message.direction)}
                     </span>
                   </p>
-                  <p className="text-muted-foreground text-xs">{formatDateTime(message.receivedAt)}</p>
+                  <p className="text-muted-foreground text-xs">
+                    {formatDateTime(message.receivedAt)}
+                  </p>
                 </div>
                 {message.snippet ? (
                   <p className="text-muted-foreground mt-1 text-sm leading-relaxed" dir="auto">

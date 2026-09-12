@@ -9,11 +9,36 @@ describe("summarizeDashboardChanges", () => {
   it("counts new, completed, reopened, overdue, and stale waiting work", () => {
     const summary = summarizeDashboardChanges(
       [
-        { status: "OPEN", createdAt: "2026-09-11T10:00:00.000Z", updatedAt: "2026-09-11T10:00:00.000Z", deadline: "2026-09-10" },
-        { status: "OPEN", createdAt: "2026-09-01T00:00:00.000Z", updatedAt: "2026-09-11T12:00:00.000Z", deadline: null },
-        { status: "COMPLETED", createdAt: "2026-09-01T00:00:00.000Z", updatedAt: "2026-09-11T09:00:00.000Z", deadline: null },
-        { status: "COMPLETED", createdAt: "2026-09-01T00:00:00.000Z", updatedAt: "2026-09-10T00:00:00.000Z", deadline: null },
-        { status: "WAITING", createdAt: "2026-08-01T00:00:00.000Z", updatedAt: "2026-08-01T00:00:00.000Z", deadline: null },
+        {
+          status: "OPEN",
+          createdAt: "2026-09-11T10:00:00.000Z",
+          updatedAt: "2026-09-11T10:00:00.000Z",
+          deadline: "2026-09-10",
+        },
+        {
+          status: "OPEN",
+          createdAt: "2026-09-01T00:00:00.000Z",
+          updatedAt: "2026-09-11T12:00:00.000Z",
+          deadline: null,
+        },
+        {
+          status: "COMPLETED",
+          createdAt: "2026-09-01T00:00:00.000Z",
+          updatedAt: "2026-09-11T09:00:00.000Z",
+          deadline: null,
+        },
+        {
+          status: "COMPLETED",
+          createdAt: "2026-09-01T00:00:00.000Z",
+          updatedAt: "2026-09-10T00:00:00.000Z",
+          deadline: null,
+        },
+        {
+          status: "WAITING",
+          createdAt: "2026-08-01T00:00:00.000Z",
+          updatedAt: "2026-08-01T00:00:00.000Z",
+          deadline: null,
+        },
       ],
       since,
       now,

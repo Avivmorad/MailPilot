@@ -48,7 +48,12 @@ describe("nextActionState", () => {
 
   it("undoes a snooze back to open", () => {
     const next = nextActionState(
-      { ...base, status: "SNOOZED", snoozedUntil: "2026-09-13T08:00:00.000Z", manualOverride: true },
+      {
+        ...base,
+        status: "SNOOZED",
+        snoozedUntil: "2026-09-13T08:00:00.000Z",
+        manualOverride: true,
+      },
       { op: "reopen" },
       now,
     );
@@ -63,7 +68,9 @@ describe("nextActionState", () => {
   });
 
   it("rejects a snooze date that is not in the allowed window", () => {
-    expect(() => nextActionState(base, { op: "snooze", until: "2026-09-10" }, now)).toThrow(ActionPatchError);
+    expect(() => nextActionState(base, { op: "snooze", until: "2026-09-10" }, now)).toThrow(
+      ActionPatchError,
+    );
   });
 
   it("marks waiting with an editable waiting-for value", () => {
@@ -79,6 +86,8 @@ describe("actionPatchSchema", () => {
     expect(actionPatchSchema.safeParse({ op: "snooze", days: 3 }).success).toBe(true);
     expect(actionPatchSchema.safeParse({ op: "snooze", until: "2026-09-20" }).success).toBe(true);
     expect(actionPatchSchema.safeParse({ op: "snooze" }).success).toBe(false);
-    expect(actionPatchSchema.safeParse({ op: "snooze", days: 3, until: "2026-09-20" }).success).toBe(false);
+    expect(
+      actionPatchSchema.safeParse({ op: "snooze", days: 3, until: "2026-09-20" }).success,
+    ).toBe(false);
   });
 });

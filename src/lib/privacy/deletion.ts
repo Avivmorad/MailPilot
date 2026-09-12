@@ -7,7 +7,10 @@ import {
 } from "@/lib/privacy/confirmations";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-export { DELETE_ACCOUNT_CONFIRMATION, DELETE_ANALYSIS_CONFIRMATION } from "@/lib/privacy/confirmations";
+export {
+  DELETE_ACCOUNT_CONFIRMATION,
+  DELETE_ANALYSIS_CONFIRMATION,
+} from "@/lib/privacy/confirmations";
 
 export const deleteAnalysisRequestSchema = z.object({
   confirmation: z.literal(DELETE_ANALYSIS_CONFIRMATION),
@@ -54,7 +57,10 @@ export async function deleteAnalysisDataForUser(
   return deleted;
 }
 
-export async function deleteAccountForUser(userId: string, port: AccountDeletionPort): Promise<void> {
+export async function deleteAccountForUser(
+  userId: string,
+  port: AccountDeletionPort,
+): Promise<void> {
   await deleteAnalysisDataForUser(userId, port);
   await port.disconnectGmail(userId);
   await port.deleteAuthUser(userId);
@@ -73,7 +79,10 @@ export function createSupabaseDeletionPort(): AccountDeletionPort {
     },
 
     async deleteWhereUser(table, userId) {
-      const { error, count } = await db.from(table).delete({ count: "exact" }).eq("user_id", userId);
+      const { error, count } = await db
+        .from(table)
+        .delete({ count: "exact" })
+        .eq("user_id", userId);
       if (error) {
         throw new Error(`Failed to delete ${table}`);
       }

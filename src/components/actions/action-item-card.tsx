@@ -8,17 +8,25 @@ import type { ActionListItem } from "@/lib/actions/queries";
 import { mailBucketForThread } from "@/lib/mail/buckets";
 import { isUncertainClassification } from "@/lib/mail/filters";
 import { threadPlacementReason } from "@/lib/mail/placement";
-import { classForDeadline, displayUrgencyForDeadline, formatDate, formatRelativeTime } from "@/lib/ui/format";
+import {
+  classForDeadline,
+  displayUrgencyForDeadline,
+  formatDate,
+  formatRelativeTime,
+} from "@/lib/ui/format";
 import { accentForUrgency } from "@/lib/ui/labels";
 import { cn } from "@/lib/utils";
 
 export function ActionItemCard({ item }: { item: ActionListItem }) {
   const urgencyLabel = displayUrgencyForDeadline(item.deadline, item.urgency);
   const doText =
-    item.actionSummary && item.actionSummary.trim() === item.title.trim() ? null : item.actionSummary;
+    item.actionSummary && item.actionSummary.trim() === item.title.trim()
+      ? null
+      : item.actionSummary;
   const whyText =
     item.actionReason &&
-    ((doText && item.actionReason.trim() === doText.trim()) || item.actionReason.trim() === item.title.trim())
+    ((doText && item.actionReason.trim() === doText.trim()) ||
+      item.actionReason.trim() === item.title.trim())
       ? null
       : item.actionReason;
   const tab = mailBucketForThread({
@@ -39,7 +47,10 @@ export function ActionItemCard({ item }: { item: ActionListItem }) {
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <h3 className="text-foreground text-base leading-snug font-semibold tracking-tight break-words" dir="auto">
+          <h3
+            className="text-foreground text-base leading-snug font-semibold tracking-tight break-words"
+            dir="auto"
+          >
             <Link href={`/thread/${item.threadId}`} className="hover:underline" title={item.title}>
               {item.title}
             </Link>
@@ -50,7 +61,7 @@ export function ActionItemCard({ item }: { item: ActionListItem }) {
             </p>
           ) : null}
         </div>
-        <div className="flex min-w-0 max-w-full shrink justify-end sm:max-w-[min(100%,20rem)]">
+        <div className="flex max-w-full min-w-0 shrink justify-end sm:max-w-[min(100%,20rem)]">
           <ThreadTags
             category={item.category}
             importance={item.importance}
@@ -60,7 +71,7 @@ export function ActionItemCard({ item }: { item: ActionListItem }) {
             showStatus={false}
           />
           {isUncertainClassification(item.confidence) ? (
-            <p className="text-amber-800 mt-1 text-right text-xs dark:text-amber-200">Uncertain</p>
+            <p className="mt-1 text-right text-xs text-amber-800 dark:text-amber-200">Uncertain</p>
           ) : null}
         </div>
       </div>

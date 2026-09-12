@@ -1,12 +1,6 @@
 import { z } from "zod";
 
-export const AUTH_OTP_TYPES = [
-  "email",
-  "recovery",
-  "invite",
-  "magiclink",
-  "email_change",
-] as const;
+export const AUTH_OTP_TYPES = ["email", "recovery", "invite", "magiclink", "email_change"] as const;
 
 export type AuthOtpType = (typeof AUTH_OTP_TYPES)[number];
 
@@ -31,7 +25,10 @@ export function defaultAuthNext(type: AuthOtpType | null): SafeAuthNextPath {
 }
 
 /** Only allow same-origin relative app paths. Reject protocol-relative and unknown routes. */
-export function safeAuthNext(raw: string | null | undefined, type: AuthOtpType | null): SafeAuthNextPath {
+export function safeAuthNext(
+  raw: string | null | undefined,
+  type: AuthOtpType | null,
+): SafeAuthNextPath {
   if (!raw) {
     return defaultAuthNext(type);
   }

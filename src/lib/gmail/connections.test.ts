@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { gmailCallbackErrorRedirect, gmailStatusErrorMessage, toPublicConnection } from "@/lib/gmail/connections";
+import {
+  gmailCallbackErrorRedirect,
+  gmailStatusErrorMessage,
+  toPublicConnection,
+} from "@/lib/gmail/connections";
 
 describe("toPublicConnection", () => {
   it("never includes the refresh token field", () => {

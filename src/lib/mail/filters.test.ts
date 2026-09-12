@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { isStaleWaiting, isUncertainClassification, parseUncertainFilter } from "@/lib/mail/filters";
+import {
+  isStaleWaiting,
+  isUncertainClassification,
+  parseUncertainFilter,
+} from "@/lib/mail/filters";
 
 describe("mail filters", () => {
   it("treats confidence below 0.8 as uncertain", () => {

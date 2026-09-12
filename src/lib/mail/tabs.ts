@@ -64,7 +64,8 @@ export function mailTabEmptyCopy(tab: MailTab): { title: string; description: st
     case "open":
       return {
         title: "Nothing currently needs your action.",
-        description: "When a thread still needs a real next step, it will show up here — grouped by category.",
+        description:
+          "When a thread still needs a real next step, it will show up here — grouped by category.",
       };
     case "waiting":
       return {
@@ -89,7 +90,8 @@ export function mailTabEmptyCopy(tab: MailTab): { title: string; description: st
     case "summary":
       return {
         title: "No leftover FYI yet",
-        description: "Run a scan to see useful updates. Receipts, OTPs, and marketing are in Ignored.",
+        description:
+          "Run a scan to see useful updates. Receipts, OTPs, and marketing are in Ignored.",
       };
   }
 }

@@ -17,6 +17,8 @@ export function authorizeCronRequest(headers: Headers, secret: string): boolean 
     return false;
   }
   const authorization = headers.get("authorization");
-  const bearer = authorization?.startsWith("Bearer ") ? authorization.slice("Bearer ".length) : null;
+  const bearer = authorization?.startsWith("Bearer ")
+    ? authorization.slice("Bearer ".length)
+    : null;
   return secretsMatch(bearer, secret) || secretsMatch(headers.get("x-cron-secret"), secret);
 }

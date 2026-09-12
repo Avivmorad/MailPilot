@@ -14,20 +14,21 @@ const NAV = [
 
 export type AppNavCurrent = (typeof NAV)[number]["href"] | "thread" | "onboarding";
 
-export function AppHeader({
-  email,
-  current,
-}: {
-  email?: string | null;
-  current: AppNavCurrent;
-}) {
+export function AppHeader({ email, current }: { email?: string | null; current: AppNavCurrent }) {
   return (
     <header className="border-border/70 bg-background/85 sticky top-0 z-40 border-b backdrop-blur-md">
       <div className="mx-auto flex w-full max-w-6xl items-center gap-3 px-4 py-3 sm:px-6">
-        <Link href="/dashboard" className="shrink-0 rounded-lg hover:opacity-90 focus-visible:ring-ring focus-visible:ring-3 focus-visible:outline-none" aria-label="MailPilot home">
+        <Link
+          href="/dashboard"
+          className="focus-visible:ring-ring shrink-0 rounded-lg hover:opacity-90 focus-visible:ring-3 focus-visible:outline-none"
+          aria-label="MailPilot home"
+        >
           <Logo />
         </Link>
-        <nav aria-label="Main" className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto sm:gap-2">
+        <nav
+          aria-label="Main"
+          className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto sm:gap-2"
+        >
           {NAV.map((item) => (
             <Link
               key={item.href}
@@ -46,7 +47,10 @@ export function AppHeader({
         </nav>
         <div className="flex shrink-0 items-center gap-1 sm:gap-2">
           {email ? (
-            <span className="text-muted-foreground hidden max-w-48 truncate text-sm lg:inline" title={email}>
+            <span
+              className="text-muted-foreground hidden max-w-48 truncate text-sm lg:inline"
+              title={email}
+            >
               {email}
             </span>
           ) : null}

@@ -7,3 +7,4 @@ package-lock.json
 supabase/.temp
 .t12-check
 .vercel
+.cursor

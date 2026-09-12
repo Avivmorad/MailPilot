@@ -177,8 +177,8 @@ must never be publicly executable.
 Hobby allows one cron). Combined with each user's `next_scan_at` (default 08:00
 Asia/Jerusalem), due connections are claimed on that daily tick. The route sets
 `maxDuration = 300` and a 270-second work budget, and processes **one connection per
-invocation** so the run can finish on Hobby. Manual **Scan now** uses a longer
-`maxDuration` on `/api/scans`.
+invocation** so the run can finish on Hobby. Manual **Scan now** uses the same
+Hobby `maxDuration = 300` on `/api/scans` (values above 300 fail to deploy).
 
 Apply `0007_scan_scheduling.sql` and `0008_scan_admission.sql` before relying on
 scheduled scans. Unique admission prevents a manual scan and the dispatcher from both

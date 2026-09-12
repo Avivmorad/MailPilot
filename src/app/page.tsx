@@ -12,17 +12,17 @@ const questions = [
   {
     icon: Inbox,
     title: "What happened?",
-    body: "A digest of everything that arrived in the period, summarized so you don't have to open each thread.",
+    body: "A digest of leftover FYI — useful updates, not receipts, OTPs, or marketing.",
   },
   {
     icon: ListChecks,
     title: "What needs me?",
-    body: "An Action Center of concrete next steps — reply, review, approve, pay — ranked by urgency and deadline.",
+    body: "Open tasks with a next step — reply, review, pay — ranked by urgency and deadline.",
   },
   {
     icon: Clock3,
     title: "What am I waiting for?",
-    body: "A Waiting list of threads where you already acted and the ball is in someone else's court.",
+    body: "Threads where you already acted and the next move is on someone else.",
   },
 ];
 
@@ -40,7 +40,7 @@ const features = [
   {
     icon: Tag,
     title: "Gmail labels, in sync",
-      body: "Applies managed MailPilot/ labels back to Gmail so your triage is visible everywhere — without touching your own labels.",
+    body: "Applies managed MailPilot/ labels back to Gmail so your triage is visible everywhere — without touching your own labels.",
   },
   {
     icon: Clock3,
@@ -59,12 +59,49 @@ const features = [
   },
 ];
 
-const dashboardStats = [
-  { label: "Processed", value: "32" },
-  { label: "Important", value: "6" },
-  { label: "Open tasks", value: "5" },
-  { label: "Waiting", value: "3" },
-];
+const previewColumns = [
+  {
+    tab: "Open",
+    accent: "border-l-orange-500",
+    hint: "Needs a next step from you",
+    items: [
+      {
+        title: "University registration",
+        meta: "Registrar · Due 12 Sep",
+        body: "Do: Choose courses and submit registration before the deadline.",
+      },
+      {
+        title: "Security alert: new Windows login",
+        meta: "Google · Urgent",
+        body: "Do: Confirm the sign-in was yours, or secure the account.",
+      },
+    ],
+  },
+  {
+    tab: "Waiting",
+    accent: "border-l-sky-500",
+    hint: "You already acted",
+    items: [
+      {
+        title: "Question sent to the hotel",
+        meta: "Booking.com · Waiting on the hotel",
+        body: "They confirmed your smart-TV question was forwarded. Nothing for you until they reply.",
+      },
+    ],
+  },
+  {
+    tab: "Summary",
+    accent: "border-l-zinc-400",
+    hint: "Useful FYI, not a task",
+    items: [
+      {
+        title: "Weekly product changelog",
+        meta: "Linear · FYI",
+        body: "Shipped: placement reasons, undo, and a change-focused dashboard.",
+      },
+    ],
+  },
+] as const;
 
 export default function Home() {
   return (
@@ -76,6 +113,9 @@ export default function Home() {
             <Logo />
           </Link>
           <nav aria-label="Landing" className="flex items-center gap-2">
+            <a href="#preview" className={buttonVariants({ variant: "ghost", size: "sm" })}>
+              Example
+            </a>
             <a href="#features" className={buttonVariants({ variant: "ghost", size: "sm" })}>
               Features
             </a>
@@ -88,7 +128,7 @@ export default function Home() {
       </header>
 
       <main id="main-content" tabIndex={-1} className="flex-1">
-        <section className="mx-auto w-full max-w-6xl px-6 pt-20 pb-16 text-center">
+        <section className="mx-auto w-full max-w-6xl px-6 pt-16 pb-10 text-center">
           <Badge variant="secondary" className="mb-6">
             Inbox triage for Gmail
           </Badge>
@@ -96,27 +136,57 @@ export default function Home() {
             Turn your inbox into a triage system, not a prettier list of emails.
           </h1>
           <p className="text-muted-foreground mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-pretty">
-            MailPilot connects to Gmail, understands each thread in context, and answers the only
-            three questions that matter about your inbox.
+            MailPilot connects to Gmail, understands each thread in context, and splits mail into
+            Open, Waiting, and Summary — three separate lists, not one mixed feed.
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <a href="/login" className={buttonVariants({ size: "lg" })}>
               Sign in
               <ArrowRight className="size-4" />
             </a>
-            <a href="#features" className={buttonVariants({ variant: "outline", size: "lg" })}>
-              Explore features
+            <a href="#preview" className={buttonVariants({ variant: "outline", size: "lg" })}>
+              See an example
             </a>
           </div>
         </section>
 
-        <section className="mx-auto w-full max-w-6xl px-6 pb-16">
+        <section id="preview" className="border-border/60 bg-muted/30 border-y">
+          <div className="mx-auto w-full max-w-6xl px-6 py-12">
+            <div className="mb-8 text-center">
+              <h2 className="text-foreground text-2xl font-bold tracking-tight">How a morning inbox looks</h2>
+              <p className="text-muted-foreground mt-2">
+                After a scan, MailPilot does not dump 32 emails into one list. It keeps tasks, waiting, and FYI apart.
+              </p>
+            </div>
+            <div className="grid gap-4 lg:grid-cols-3">
+              {previewColumns.map((column) => (
+                <Card key={column.tab} className={`border-l-4 ${column.accent}`}>
+                  <CardHeader>
+                    <CardTitle>{column.tab}</CardTitle>
+                    <CardDescription>{column.hint}</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {column.items.map((item) => (
+                      <article key={item.title} className="bg-background/80 rounded-lg p-3 ring-1 ring-foreground/10">
+                        <h3 className="text-foreground text-sm font-semibold tracking-tight">{item.title}</h3>
+                        <p className="text-muted-foreground mt-0.5 text-xs">{item.meta}</p>
+                        <p className="text-muted-foreground mt-2 text-sm leading-relaxed">{item.body}</p>
+                      </article>
+                    ))}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="mx-auto w-full max-w-6xl px-6 py-16">
           <div className="grid gap-4 sm:grid-cols-3">
             {questions.map(({ icon: Icon, title, body }) => (
               <Card key={title}>
                 <CardHeader>
                   <div className="bg-primary/10 text-primary mb-2 flex size-10 items-center justify-center rounded-lg">
-                    <Icon className="size-5" />
+                    <Icon className="size-5" aria-hidden />
                   </div>
                   <CardTitle>{title}</CardTitle>
                   <CardDescription>{body}</CardDescription>
@@ -126,60 +196,17 @@ export default function Home() {
           </div>
         </section>
 
-        <section id="preview" className="border-border/60 bg-muted/30 border-y">
-          <div className="mx-auto w-full max-w-6xl px-6 py-16">
-            <div className="mb-8 text-center">
-              <h2 className="text-foreground text-2xl font-bold tracking-tight">Your inbox, under control</h2>
-              <p className="text-muted-foreground mt-2">
-                Open tasks, waiting items, and an inbox digest — kept as separate lists.
-              </p>
-            </div>
-            <Card>
-              <CardHeader>
-                <CardTitle>Inbox overview</CardTitle>
-                <CardDescription>
-                  Last scan 14:10 · 27 emails processed · Next scan 15:10
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-                  {dashboardStats.map((stat) => (
-                    <div key={stat.label} className="border-border/60 rounded-lg border p-4">
-                      <div className="text-3xl font-semibold tabular-nums">{stat.value}</div>
-                      <div className="text-muted-foreground mt-1 text-sm">{stat.label}</div>
-                    </div>
-                  ))}
-                </div>
-                <div className="border-border/60 rounded-lg border p-4">
-                  <div className="mb-2 flex items-center gap-2">
-                    <Badge>Action</Badge>
-                    <Badge variant="secondary">Reply</Badge>
-                    <Badge variant="outline">Due Sep 12</Badge>
-                  </div>
-                  <div className="text-foreground font-semibold tracking-tight">University registration</div>
-                  <p className="text-muted-foreground mt-1 text-sm">
-                    Do: Choose courses and submit registration. Why: Registration closes after the
-                    deadline.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </section>
-
-        <section id="features" className="mx-auto w-full max-w-6xl px-6 py-16">
+        <section id="features" className="mx-auto w-full max-w-6xl px-6 pb-16">
           <div className="mb-8 text-center">
             <h2 className="text-foreground text-2xl font-bold tracking-tight">What it does</h2>
-            <p className="text-muted-foreground mt-2">
-              The product principles that shape every part of the build.
-            </p>
+            <p className="text-muted-foreground mt-2">The product principles that shape every part of the build.</p>
           </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {features.map(({ icon: Icon, title, body }) => (
               <Card key={title}>
                 <CardHeader>
                   <div className="bg-primary/10 text-primary mb-2 flex size-10 items-center justify-center rounded-lg">
-                    <Icon className="size-5" />
+                    <Icon className="size-5" aria-hidden />
                   </div>
                   <CardTitle className="text-base">{title}</CardTitle>
                   <CardDescription>{body}</CardDescription>

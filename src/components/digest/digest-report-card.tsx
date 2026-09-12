@@ -67,7 +67,12 @@ export function DigestReportCard({
             <ul className="divide-border divide-y text-sm">
               {preview.map((action) => (
                 <li key={action.threadId} className="py-2 first:pt-0 last:pb-0">
-                  <Link href={`/thread/${action.threadId}`} className="hover:text-primary font-medium hover:underline">
+                  <Link
+                    href={`/thread/${action.threadId}`}
+                    className="hover:text-primary font-medium break-words hover:underline"
+                    dir="auto"
+                    title={action.title}
+                  >
                     {action.title}
                   </Link>
                 </li>
@@ -125,7 +130,9 @@ export function DigestReportCard({
                   <li key={action.threadId} className="py-2 first:pt-0 last:pb-0">
                     <Link
                       href={`/thread/${action.threadId}`}
-                      className="hover:text-primary block font-medium hover:underline"
+                      className="hover:text-primary block font-medium break-words hover:underline"
+                      dir="auto"
+                      title={action.title}
                     >
                       {action.title}
                     </Link>

@@ -12,24 +12,21 @@ Owner-level product decisions that refine it live at
 overlay wins. Treat both as the source of truth. Implement phase-by-phase (see spec §63); do not
 invent different behavior without a documented reason.
 
-**Current status:** Phase 0–8 working (login, Connect Gmail, MIME/thread
-parser, Gemini triage, initial scan, dashboard overview, incremental
-Gmail History sync, daily scheduled scans). Phase 5: dashboard **Scan now**
-with lookback of 1 / 2 / 3 / 4 days, 1 / 2 / 3 weeks, or 1 month (default
-7 days), DB upserts, action/label reconciliation, and counters. Failed AI
-does not apply Gmail labels. Phase 6: dashboard stats/scan cards; Mail tabs
-(Summary, Open, Waiting, Completed, Snoozed, Ignored); thread details, mark
-complete, snooze, Open in Gmail. Phase 7: subsequent scans use the History
-API; stale historyId recovers with a 1-hour overlap query. Open tasks are
-grouped by category (Finance, Security, Career, and the rest of the taxonomy
-in PRODUCT_DECISIONS) and kept separate from the inbox
-summary; OTP and login-FYI notices are not open tasks.
-Phase 8: global cron dispatcher (`POST`/`GET` `/api/cron/scan-dispatcher`)
-claims due connections (`next_scan_at`), job lease, bounded retry, scan
-preferences, and scan history. Daily default is 08:00 Asia/Jerusalem.
-Phase 9: in-app digest after each successful/partial scan (period counts from
-DB, unique top open-task cards, digest history on `/digests`). Email digest
-delivery is a later extension.
+**Current status:** Phases 0–9 MVP features work. Login, Connect Gmail,
+MIME/thread parser, Gemini triage, dashboard Scan now (lookback 1–4 days,
+1–3 weeks, or 1 month, default 7 days), Mail tabs, History API incremental
+sync, daily scheduled scans, and in-app digests. Failed AI does not apply
+Gmail labels. Open tasks are grouped by category (Finance, Security, Career,
+and the rest of the taxonomy in PRODUCT_DECISIONS) and kept separate from
+the inbox summary; OTP and login-FYI notices are not open tasks.
+Phase 8 dispatcher: `GET`/`POST` `/api/cron/scan-dispatcher` claims due
+connections (`next_scan_at`), 270s job lease, one connection per Hobby run
+(`maxDuration` 300). Apply `0007_scan_scheduling.sql` and
+`0008_scan_admission.sql` (one RUNNING scan per connection). Default daily
+time is 08:00 Asia/Jerusalem. Phase 9: in-app digest after each
+successful/partial scan; email digest is a later extension. Also shipped:
+triage settings, reconnect/`REAUTH_REQUIRED`, privacy deletion, onboarding,
+structured observability, and skip-to-content / labeled nav.
 
 ## Repository rules
 

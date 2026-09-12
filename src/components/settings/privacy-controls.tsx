@@ -85,12 +85,13 @@ export function PrivacyControls() {
             Removes stored messages, threads, actions, digests, and scan history. Does not
             disconnect Gmail or delete your MailPilot login.
           </p>
-          <label className="block text-sm">
+          <label className="block text-sm" htmlFor="confirm-delete-analysis">
             <span className="text-muted-foreground mb-1.5 block">
               Type {DELETE_ANALYSIS_CONFIRMATION} to confirm
             </span>
             <input
-              className="border-input bg-background h-9 w-full max-w-md rounded-lg border px-3 text-sm"
+              id="confirm-delete-analysis"
+              className="border-input bg-background focus-visible:ring-ring h-9 w-full max-w-md rounded-lg border px-3 text-sm focus-visible:ring-3 focus-visible:outline-none"
               value={analysisConfirm}
               onChange={(event) => setAnalysisConfirm(event.target.value)}
               disabled={busy !== null}
@@ -101,6 +102,7 @@ export function PrivacyControls() {
             type="button"
             variant="destructive"
             disabled={busy !== null || analysisConfirm !== DELETE_ANALYSIS_CONFIRMATION}
+            aria-busy={busy === "analysis"}
             onClick={() => void deleteAnalysis()}
           >
             {busy === "analysis" ? "Deleting…" : "Delete analysis data"}
@@ -112,12 +114,13 @@ export function PrivacyControls() {
             Revokes Gmail access when possible, deletes all owned product data, and removes your
             login.
           </p>
-          <label className="block text-sm">
+          <label className="block text-sm" htmlFor="confirm-delete-account">
             <span className="text-muted-foreground mb-1.5 block">
               Type {DELETE_ACCOUNT_CONFIRMATION} to confirm
             </span>
             <input
-              className="border-input bg-background h-9 w-full max-w-md rounded-lg border px-3 text-sm"
+              id="confirm-delete-account"
+              className="border-input bg-background focus-visible:ring-ring h-9 w-full max-w-md rounded-lg border px-3 text-sm focus-visible:ring-3 focus-visible:outline-none"
               value={accountConfirm}
               onChange={(event) => setAccountConfirm(event.target.value)}
               disabled={busy !== null}
@@ -128,13 +131,19 @@ export function PrivacyControls() {
             type="button"
             variant="destructive"
             disabled={busy !== null || accountConfirm !== DELETE_ACCOUNT_CONFIRMATION}
+            aria-busy={busy === "account"}
             onClick={() => void deleteAccount()}
           >
             {busy === "account" ? "Deleting…" : "Delete account"}
           </Button>
         </section>
         {message ? (
-          <p className={error ? "text-destructive text-sm" : "text-sm"}>{message}</p>
+          <p
+            className={error ? "text-destructive text-sm" : "text-sm"}
+            role={error ? "alert" : "status"}
+          >
+            {message}
+          </p>
         ) : null}
       </CardContent>
     </Card>

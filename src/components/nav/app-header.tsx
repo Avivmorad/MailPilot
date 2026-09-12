@@ -24,17 +24,17 @@ export function AppHeader({
   return (
     <header className="border-border/70 bg-background/85 sticky top-0 z-40 border-b backdrop-blur-md">
       <div className="mx-auto flex w-full max-w-6xl items-center gap-3 px-4 py-3 sm:px-6">
-        <Link href="/dashboard" className="shrink-0 hover:opacity-90">
+        <Link href="/dashboard" className="shrink-0 rounded-lg hover:opacity-90 focus-visible:ring-ring focus-visible:ring-3 focus-visible:outline-none" aria-label="MailPilot home">
           <Logo />
         </Link>
-        <nav className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto sm:gap-2">
+        <nav aria-label="Main" className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto sm:gap-2">
           {NAV.map((item) => (
             <Link
               key={item.href}
               href={item.path}
               aria-current={current === item.href ? "page" : undefined}
               className={cn(
-                "rounded-lg px-2.5 py-1.5 text-sm whitespace-nowrap transition-colors sm:px-3",
+                "focus-visible:ring-ring inline-flex min-h-10 items-center rounded-lg px-2.5 py-1.5 text-sm whitespace-nowrap transition-colors focus-visible:ring-3 focus-visible:outline-none sm:px-3",
                 current === item.href
                   ? "bg-muted text-foreground font-medium"
                   : "text-muted-foreground hover:bg-muted/70 hover:text-foreground",

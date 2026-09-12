@@ -134,5 +134,6 @@
   [dir="rtl"],
   [dir="auto"] {
     line-height: 1.7;
+    unicode-bidi: isolate;
   }
 }

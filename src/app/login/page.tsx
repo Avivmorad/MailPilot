@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
 import { Logo } from "@/components/brand/logo";
+import { SkipToContent } from "@/components/layout/skip-to-content";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -60,14 +61,16 @@ export default function LoginPage() {
 
   return (
     <div className="bg-muted/30 relative flex min-h-full flex-1 flex-col items-center justify-center px-6 py-16">
+      <SkipToContent />
       <ThemeToggle className="absolute top-4 right-4" />
       <div className="mb-8">
-        <Link href="/" aria-label="Back to home">
+        <Link href="/" aria-label="Back to home" className="rounded-lg focus-visible:ring-ring focus-visible:ring-3 focus-visible:outline-none">
           <Logo />
         </Link>
       </div>
 
-      <Card className="w-full max-w-sm shadow-sm">
+      <main id="main-content" tabIndex={-1} className="w-full max-w-sm">
+      <Card className="w-full shadow-sm">
         <CardHeader>
           <CardTitle>{mode === "signin" ? "Sign in" : "Create your account"}</CardTitle>
           <CardDescription>
@@ -116,9 +119,13 @@ export default function LoginPage() {
                 {error}
               </p>
             ) : null}
-            {notice ? <p className="text-sm text-emerald-700 dark:text-emerald-400">{notice}</p> : null}
+            {notice ? (
+              <p className="text-sm text-emerald-700 dark:text-emerald-400" role="status">
+                {notice}
+              </p>
+            ) : null}
 
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Button type="submit" className="w-full" disabled={loading} aria-busy={loading}>
               {loading ? "Please wait…" : mode === "signin" ? "Sign in" : "Sign up"}
             </Button>
           </form>
@@ -139,6 +146,7 @@ export default function LoginPage() {
           </p>
         </CardContent>
       </Card>
+      </main>
     </div>
   );
 }

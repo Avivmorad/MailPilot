@@ -188,12 +188,21 @@ export function InitialScanCard({
               ))}
             </select>
           </label>
-          <Button type="button" size="lg" disabled={!connected || busy} onClick={() => void runScan()}>
+          <Button
+            type="button"
+            size="lg"
+            disabled={!connected || busy}
+            aria-busy={busy}
+            onClick={() => void runScan()}
+          >
             {busy ? "Scanning…" : incremental ? "Scan new mail" : "Scan now"}
           </Button>
         </div>
         {message ? (
-          <p className={error ? "text-destructive text-sm" : "text-sm"}>
+          <p
+            className={error ? "text-destructive text-sm" : "text-sm"}
+            role={error ? "alert" : "status"}
+          >
             {message}
             {error && errorCode === "reauth_required" ? (
               <>

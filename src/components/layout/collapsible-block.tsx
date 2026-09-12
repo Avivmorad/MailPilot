@@ -24,6 +24,7 @@ export function CollapsibleBlock({
 }) {
   const [collapsed, setCollapsed] = useCollapsedIds(storageKey);
   const open = !collapsed.includes(SECTION_ID);
+  const panelId = `${storageKey.replace(/[^a-zA-Z0-9_-]/g, "-")}-panel`;
 
   return (
     <section className="space-y-3">
@@ -31,7 +32,8 @@ export function CollapsibleBlock({
         <button
           type="button"
           aria-expanded={open}
-          className="hover:bg-muted/50 -ms-2 min-w-0 flex-1 rounded-lg px-2 py-1 text-start transition-colors"
+          aria-controls={panelId}
+          className="hover:bg-muted/50 focus-visible:ring-ring -ms-2 min-w-0 flex-1 rounded-lg px-2 py-1 text-start transition-colors focus-visible:ring-3 focus-visible:outline-none"
           onClick={() => setCollapsed(toggleCollapsedId(collapsed, SECTION_ID, open))}
         >
           <span className="flex items-center gap-2">
@@ -55,7 +57,7 @@ export function CollapsibleBlock({
           open ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
         )}
       >
-        <div className="overflow-hidden">
+        <div id={panelId} className="overflow-hidden">
           <div aria-hidden={!open} inert={!open ? true : undefined}>
             {children}
           </div>

@@ -66,14 +66,14 @@ export default async function MailPage({
   return (
     <AppChrome user={user} current="mail">
       <PageHeader title="Mail" description={tabDescription(tab)} />
-      <div className="bg-muted/70 flex flex-wrap gap-1 rounded-xl p-1">
+      <nav aria-label="Mail views" className="bg-muted/70 flex flex-wrap gap-1 rounded-xl p-1">
         {MAIL_TABS.map((item) => (
           <Link
             key={item.id}
             href={`/mail?tab=${item.id}`}
             aria-current={tab === item.id ? "page" : undefined}
             className={cn(
-              "rounded-lg px-3 py-1.5 text-sm transition-colors",
+              "focus-visible:ring-ring inline-flex min-h-10 items-center rounded-lg px-3 py-1.5 text-sm transition-colors focus-visible:ring-3 focus-visible:outline-none",
               tab === item.id
                 ? "bg-background text-foreground font-medium shadow-xs"
                 : "text-muted-foreground hover:text-foreground",
@@ -82,7 +82,7 @@ export default async function MailPage({
             {item.label}
           </Link>
         ))}
-      </div>
+      </nav>
       {tab === "summary" ? (
         <InboxSummary
           threads={summaryThreads}

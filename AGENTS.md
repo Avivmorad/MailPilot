@@ -25,7 +25,9 @@ connections (`next_scan_at`), 270s job lease, one connection per Hobby run
 `0008_scan_admission.sql` (one RUNNING scan per connection). Apply
 `0009_function_hardening.sql` so signup triggers are not callable via the Data API. Apply
 `0010_gmail_mailbox_uniqueness.sql` so one Gmail inbox cannot be connected to two MailPilot
-users at once. Default daily
+users at once. Apply `0011_check_constraints.sql` for status/confidence/counter checks. Apply
+`0012_scan_chunk_resume.sql` so large lookbacks continue across ~240s slices
+until every conversation is checked. Default daily
 time is 08:00 Asia/Jerusalem. Phase 9: in-app digest after each
 successful/partial scan; email digest is a later extension. Also shipped:
 triage settings, reconnect/`REAUTH_REQUIRED`, privacy deletion, onboarding,

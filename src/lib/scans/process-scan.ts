@@ -26,6 +26,7 @@ import {
 } from "@/lib/scans/lookback";
 import { plannedDiscoveryMode } from "@/lib/scans/mode";
 import { mapPool } from "@/lib/scans/pool";
+import { SCAN_STALE_PROGRESS_MS, SCAN_WORK_BUDGET_MS } from "@/lib/scans/dispatch-budget";
 import { nextDailyScanAt } from "@/lib/scans/schedule";
 import { formatThreadFailureMessage } from "@/lib/scans/thread-failures";
 import { emitProductEvent } from "@/lib/observability/events";
@@ -42,9 +43,7 @@ import {
   type StoredThreadRow,
 } from "@/lib/scans/types";
 
-const STALE_RUNNING_MS = 6 * 60 * 1000;
-// Leave time for in-flight requests and final persistence before the 300s host cap.
-export const SCAN_WORK_BUDGET_MS = 180_000;
+export { SCAN_WORK_BUDGET_MS, SCAN_STALE_PROGRESS_MS };
 
 function receivedAtIso(internalDate: string | null): string {
   const millis = Number(internalDate);
@@ -205,6 +204,7 @@ export type PreparedGmailScan = {
   gmail: ScanGmailPort;
   store: ScanStorePort;
   forceLookback?: boolean;
+  resume?: boolean;
 };
 
 export async function openGmailScan(input: ProcessGmailScanInput): Promise<PreparedGmailScan> {
@@ -216,13 +216,12 @@ export async function openGmailScan(input: ProcessGmailScanInput): Promise<Prepa
   const limits = getContextLimits();
 
   const running = await input.store.findRunningScan(input.connectionId);
-  if (running?.startedAt) {
-    const started = Date.parse(running.startedAt);
-    if (Number.isFinite(started) && now.getTime() - started < STALE_RUNNING_MS) {
+  if (running) {
+    const stamp = running.updatedAt ?? running.startedAt;
+    const progressed = stamp ? Date.parse(stamp) : NaN;
+    if (Number.isFinite(progressed) && now.getTime() - progressed < SCAN_STALE_PROGRESS_MS) {
       throw new Error(SCAN_IN_PROGRESS);
     }
-    await input.store.failScan(running.id, "stale_lease", "Previous scan lease expired");
-  } else if (running) {
     await input.store.failScan(running.id, "stale_lease", "Previous scan lease expired");
   }
 
@@ -251,6 +250,7 @@ export async function openGmailScan(input: ProcessGmailScanInput): Promise<Prepa
     triggerType,
     windowStart: plannedWindow.windowStart.toISOString(),
     windowEnd: plannedWindow.windowEnd.toISOString(),
+    lookbackDays,
   });
   await input.store.updateConnectionScan({
     connectionId: input.connectionId,
@@ -274,6 +274,44 @@ export async function openGmailScan(input: ProcessGmailScanInput): Promise<Prepa
     gmail: input.gmail,
     store: input.store,
     forceLookback: input.forceLookback,
+    resume: false,
+  };
+}
+
+export async function resumeGmailScan(input: {
+  scanId: string;
+  gmailEmail: string;
+  gmail: ScanGmailPort;
+  store: ScanStorePort;
+  provider: EmailTriageProvider;
+  modelName: string;
+  analyze?: typeof tryAnalyzeThread;
+  now?: Date;
+}): Promise<PreparedGmailScan> {
+  const checkpoint = await input.store.getScanCheckpoint(input.scanId);
+  if (!checkpoint) {
+    throw new Error("scan_not_found");
+  }
+  const now = input.now ?? new Date();
+  const settings = await input.store.getSettings(checkpoint.userId);
+  const sendAsEmails = await safeListSendAsEmails(input.gmail.listSendAsEmails?.bind(input.gmail));
+  const state = await input.store.getConnectionScanState(checkpoint.connectionId);
+  return {
+    scanId: checkpoint.scanId,
+    lookbackDays: checkpoint.lookbackDays,
+    now,
+    analyze: input.analyze ?? tryAnalyzeThread,
+    modelName: input.modelName,
+    provider: input.provider,
+    limits: getContextLimits(),
+    state,
+    settings,
+    userEmails: mergeUserEmails([input.gmailEmail], sendAsEmails),
+    userId: checkpoint.userId,
+    connectionId: checkpoint.connectionId,
+    gmail: input.gmail,
+    store: input.store,
+    resume: true,
   };
 }
 
@@ -309,36 +347,60 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
   });
 
   try {
-    const historyBoundary = await gmail.getProfileHistoryId();
-    const discovery = await discoverChangedMessages({
-      gmail,
-      lookbackDays,
-      now,
-      state,
-      forceLookback,
-    });
-    const refs = discovery.refs;
-    const retryThreadIds = await store.listPendingFailedThreadIds(connectionId, scanId);
-    const threadIds = uniqueThreadIds([
-      ...refs,
-      ...retryThreadIds.map((threadId) => ({ threadId })),
-    ]);
+    const checkpoint = await store.getScanCheckpoint(scanId);
+    let historyBoundary = checkpoint?.historyBoundary ?? null;
+    let discoveryMode: ScanDiscoveryMode = checkpoint?.discoveryMode ?? "INITIAL";
+    let messagesDiscovered = checkpoint?.messagesDiscovered ?? 0;
+    let threadIds = checkpoint?.discoveredThreadIds ?? [];
+    let cursor = checkpoint?.threadCursor ?? 0;
+    const failedGmailThreadIds = [...(checkpoint?.failedThreadIds ?? [])];
     const analyses: ThreadAnalysis[] = [];
-    const failedGmailThreadIds: string[] = [];
-    let threadsAnalyzed = 0;
-    let threadsChecked = 0;
-    let threadFailures = 0;
-    let messagesProcessed = 0;
-    let progressWrites = Promise.resolve();
+    let threadsAnalyzed = checkpoint?.threadsAnalyzed ?? 0;
+    let messagesProcessed = checkpoint?.messagesProcessed ?? 0;
+    const priorTallies = {
+      importantCount: checkpoint?.importantCount ?? 0,
+      actionCount: checkpoint?.actionCount ?? 0,
+      replyCount: checkpoint?.replyCount ?? 0,
+      waitingCount: checkpoint?.waitingCount ?? 0,
+      informationalCount: checkpoint?.informationalCount ?? 0,
+      ignoredCount: checkpoint?.ignoredCount ?? 0,
+    };
+
+    if (!checkpoint?.discoveryComplete) {
+      historyBoundary = await gmail.getProfileHistoryId();
+      const discovery = await discoverChangedMessages({
+        gmail,
+        lookbackDays,
+        now,
+        state,
+        forceLookback,
+      });
+      discoveryMode = discovery.mode;
+      messagesDiscovered = discovery.refs.length;
+      const retryThreadIds = await store.listPendingFailedThreadIds(connectionId, scanId);
+      threadIds = uniqueThreadIds([
+        ...discovery.refs,
+        ...retryThreadIds.map((threadId) => ({ threadId })),
+      ]);
+      cursor = 0;
+      await store.updateScanRun(scanId, {
+        status: "RUNNING",
+        lookbackDays,
+        discoveryMode,
+        discoveryComplete: true,
+        discoveredThreadIds: threadIds,
+        threadCursor: 0,
+        historyBoundary,
+        messagesDiscovered,
+        threadsDiscovered: threadIds.length,
+        threadsChecked: 0,
+      });
+    }
+
     const labelMap =
       threadIds.length > 0 ? await gmail.loadLabelMap() : new Map<MailPilotLogicalLabel, string>();
-
-    await store.updateScanRun(scanId, {
-      status: "RUNNING",
-      messagesDiscovered: refs.length,
-      threadsDiscovered: threadIds.length,
-      threadsChecked: 0,
-    });
+    let progressWrites = Promise.resolve();
+    let threadsChecked = cursor;
 
     const persistProgress = () => {
       const checked = threadsChecked;
@@ -347,7 +409,7 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
         try {
           await store.updateScanRun(scanId, {
             status: "RUNNING",
-            messagesDiscovered: refs.length,
+            messagesDiscovered,
             messagesProcessed: processed,
             threadsDiscovered: threadIds.length,
             threadsChecked: checked,
@@ -359,45 +421,107 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
     };
 
     const analysisKey = analysisPromptKey(settings);
-    await mapPool(threadIds, limits.AI_MAX_CONCURRENCY, async (gmailThreadId) => {
-      if (Date.now() - startedMs >= SCAN_WORK_BUDGET_MS) {
-        threadFailures += 1;
-        failedGmailThreadIds.push(gmailThreadId);
-        return;
-      }
-      try {
-        const messages = await gmail.fetchThread(gmailThreadId);
-        if (messages.length === 0) {
-          return;
-        }
-        const chronological = [...messages].sort(
-          (a, b) => Number(a.internalDate ?? 0) - Number(b.internalDate ?? 0),
-        );
-        const latest = chronological[chronological.length - 1];
-        if (!latest) {
-          return;
-        }
-        const existing = await store.getThread(connectionId, gmailThreadId);
-        const context = buildThreadContext(chronological, userEmails);
-        const latestDirection = context.messages.at(-1)?.direction ?? "UNKNOWN";
-        const latestAt = receivedAtIso(latest.internalDate);
+    let admitIndex = cursor;
+    const remaining = Math.max(0, threadIds.length - cursor);
+    const workerCount = Math.min(Math.max(1, limits.AI_MAX_CONCURRENCY), Math.max(1, remaining));
+    await mapPool(
+      Array.from({ length: workerCount }, (_, i) => i),
+      workerCount,
+      async () => {
+        for (;;) {
+          if (Date.now() - startedMs >= SCAN_WORK_BUDGET_MS) {
+            return;
+          }
+          const index = admitIndex;
+          if (index >= threadIds.length) {
+            return;
+          }
+          admitIndex += 1;
+          const gmailThreadId = threadIds[index];
+          if (!gmailThreadId) {
+            continue;
+          }
+          try {
+            const messages = await gmail.fetchThread(gmailThreadId);
+            if (messages.length === 0) {
+              continue;
+            }
+            const chronological = [...messages].sort(
+              (a, b) => Number(a.internalDate ?? 0) - Number(b.internalDate ?? 0),
+            );
+            const latest = chronological[chronological.length - 1];
+            if (!latest) {
+              continue;
+            }
+            const existing = await store.getThread(connectionId, gmailThreadId);
+            const context = buildThreadContext(chronological, userEmails);
+            const latestDirection = context.messages.at(-1)?.direction ?? "UNKNOWN";
+            const latestAt = receivedAtIso(latest.internalDate);
 
-        let analysis = existing ? analysisFromStoredThread(existing) : null;
-        const unchanged = shouldReuseStoredAnalysis(existing, latest.gmailMessageId, analysisKey);
+            let analysis = existing ? analysisFromStoredThread(existing) : null;
+            const unchanged = shouldReuseStoredAnalysis(
+              existing,
+              latest.gmailMessageId,
+              analysisKey,
+            );
 
-        if (!unchanged) {
-          const outcome = await analyze(
-            threadAnalysisInputFromContext(context, userEmails, {
-              vipSenders: settings.vipSenders,
-              ignoreSenders: settings.ignoredSenders,
-              ignoreDomains: settings.ignoredDomains,
-              customInstructions: settings.customAiInstructions,
-            }),
-            provider,
-          );
-          if (!outcome.ok) {
-            threadFailures += 1;
-            failedGmailThreadIds.push(gmailThreadId);
+            if (!unchanged) {
+              const outcome = await analyze(
+                threadAnalysisInputFromContext(context, userEmails, {
+                  vipSenders: settings.vipSenders,
+                  ignoreSenders: settings.ignoredSenders,
+                  ignoreDomains: settings.ignoredDomains,
+                  customInstructions: settings.customAiInstructions,
+                }),
+                provider,
+              );
+              if (!outcome.ok) {
+                failedGmailThreadIds.push(gmailThreadId);
+                const threadId = await store.upsertThread({
+                  userId,
+                  connectionId,
+                  gmailThreadId,
+                  subject: latest.subject,
+                  participants: participantsOf(chronological),
+                  latestMessageAt: latestAt,
+                  latestMessageDirection: latestDirection,
+                  analysis,
+                  lastAnalyzedMessageId: existing?.lastAnalyzedMessageId ?? null,
+                  promptVersion: analysis ? (existing?.promptVersion ?? null) : null,
+                  modelName: analysis ? modelName : null,
+                });
+                for (const message of chronological) {
+                  const from = parseEmailAddress(message.from);
+                  await store.upsertMessage({
+                    userId,
+                    connectionId,
+                    threadId,
+                    message,
+                    direction: classifyDirection({
+                      from,
+                      to: parseAddressList(message.to),
+                      cc: parseAddressList(message.cc),
+                      userEmails,
+                    }),
+                    receivedAt: receivedAtIso(message.internalDate),
+                    contentHash: messageContentHash(message),
+                  });
+                  messagesProcessed += 1;
+                }
+                continue;
+              }
+              analysis = outcome.analysis;
+              threadsAnalyzed += 1;
+              emitProductEvent({
+                type: "thread.analyzed",
+                scanId,
+                threadReused: 0,
+                status: analysis.status,
+                category: analysis.category,
+                requiresAction: analysis.requires_action,
+              });
+            }
+
             const threadId = await store.upsertThread({
               userId,
               connectionId,
@@ -407,10 +531,13 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
               latestMessageAt: latestAt,
               latestMessageDirection: latestDirection,
               analysis,
-              lastAnalyzedMessageId: existing?.lastAnalyzedMessageId ?? null,
-              promptVersion: analysis ? (existing?.promptVersion ?? null) : null,
+              lastAnalyzedMessageId: analysis
+                ? latest.gmailMessageId
+                : (existing?.lastAnalyzedMessageId ?? null),
+              promptVersion: analysis ? analysisKey : null,
               modelName: analysis ? modelName : null,
             });
+
             for (const message of chronological) {
               const from = parseEmailAddress(message.from);
               await store.upsertMessage({
@@ -429,116 +556,104 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
               });
               messagesProcessed += 1;
             }
-            return;
+
+            if (analysis) {
+              analyses.push(analysis);
+              const existingAction = await store.getAction(threadId);
+              const nextAction = reconcileActionItem({
+                analysis,
+                existing: existingAction,
+                latestDirection,
+                latestMessageAt: latestAt,
+              });
+              if (nextAction) {
+                emitProductEvent({
+                  type: "action.upserted",
+                  threadId,
+                  status: nextAction.status,
+                  created: existingAction ? 0 : 1,
+                });
+                await store.upsertAction(userId, threadId, nextAction);
+              }
+
+              const desiredLogical = logicalLabelsForAnalysis(analysis);
+              const desiredIds = desiredLogical
+                .map((name) => labelMap.get(name))
+                .filter((id): id is string => typeof id === "string");
+              const currentIds = mailpilotIdsOnMessage(latest.labelIds, labelMap);
+              const diff = labelDiff(currentIds, desiredIds);
+              await gmail.modifyThreadLabels(gmailThreadId, diff.addLabelIds, diff.removeLabelIds);
+            }
+          } catch (error) {
+            if (
+              isGmailAuthError(error) ||
+              (error instanceof GmailConnectError && error.reason === "reauth_required")
+            ) {
+              throw error;
+            }
+            failedGmailThreadIds.push(gmailThreadId);
+          } finally {
+            threadsChecked = Math.max(threadsChecked, index + 1);
+            persistProgress();
           }
-          analysis = outcome.analysis;
-          threadsAnalyzed += 1;
-          emitProductEvent({
-            type: "thread.analyzed",
-            scanId,
-            threadReused: 0,
-            status: analysis.status,
-            category: analysis.category,
-            requiresAction: analysis.requires_action,
-          });
         }
-
-        const threadId = await store.upsertThread({
-          userId,
-          connectionId,
-          gmailThreadId,
-          subject: latest.subject,
-          participants: participantsOf(chronological),
-          latestMessageAt: latestAt,
-          latestMessageDirection: latestDirection,
-          analysis,
-          lastAnalyzedMessageId: analysis
-            ? latest.gmailMessageId
-            : (existing?.lastAnalyzedMessageId ?? null),
-          promptVersion: analysis ? analysisKey : null,
-          modelName: analysis ? modelName : null,
-        });
-
-        for (const message of chronological) {
-          const from = parseEmailAddress(message.from);
-          await store.upsertMessage({
-            userId,
-            connectionId,
-            threadId,
-            message,
-            direction: classifyDirection({
-              from,
-              to: parseAddressList(message.to),
-              cc: parseAddressList(message.cc),
-              userEmails,
-            }),
-            receivedAt: receivedAtIso(message.internalDate),
-            contentHash: messageContentHash(message),
-          });
-          messagesProcessed += 1;
-        }
-
-        if (analysis) {
-          analyses.push(analysis);
-          const existingAction = await store.getAction(threadId);
-          const nextAction = reconcileActionItem({
-            analysis,
-            existing: existingAction,
-            latestDirection,
-            latestMessageAt: latestAt,
-          });
-          if (nextAction) {
-            emitProductEvent({
-              type: "action.upserted",
-              threadId,
-              status: nextAction.status,
-              created: existingAction ? 0 : 1,
-            });
-            await store.upsertAction(userId, threadId, nextAction);
-          }
-
-          const desiredLogical = logicalLabelsForAnalysis(analysis);
-          const desiredIds = desiredLogical
-            .map((name) => labelMap.get(name))
-            .filter((id): id is string => typeof id === "string");
-          const currentIds = mailpilotIdsOnMessage(latest.labelIds, labelMap);
-          const diff = labelDiff(currentIds, desiredIds);
-          await gmail.modifyThreadLabels(gmailThreadId, diff.addLabelIds, diff.removeLabelIds);
-        }
-      } catch (error) {
-        if (
-          isGmailAuthError(error) ||
-          (error instanceof GmailConnectError && error.reason === "reauth_required")
-        ) {
-          throw error;
-        }
-        threadFailures += 1;
-        failedGmailThreadIds.push(gmailThreadId);
-      } finally {
-        threadsChecked += 1;
-        persistProgress();
-      }
-    });
+      },
+    );
     await progressWrites;
 
-    const tallies = countersFromAnalyses(analyses);
+    const nextCursor = admitIndex;
+    const chunkTallies = countersFromAnalyses(analyses);
     const counters = {
       ...EMPTY_SCAN_COUNTERS,
-      messagesDiscovered: refs.length,
+      messagesDiscovered,
       messagesProcessed,
       threadsAnalyzed,
-      ...tallies,
+      importantCount: priorTallies.importantCount + chunkTallies.importantCount,
+      actionCount: priorTallies.actionCount + chunkTallies.actionCount,
+      replyCount: priorTallies.replyCount + chunkTallies.replyCount,
+      waitingCount: priorTallies.waitingCount + chunkTallies.waitingCount,
+      informationalCount: priorTallies.informationalCount + chunkTallies.informationalCount,
+      ignoredCount: priorTallies.ignoredCount + chunkTallies.ignoredCount,
     };
-    const status = threadFailures > 0 ? "PARTIAL" : "SUCCESS";
+    const uniqueFailed = [...new Set(failedGmailThreadIds)];
+
+    if (nextCursor < threadIds.length) {
+      await store.updateScanRun(scanId, {
+        ...counters,
+        status: "RUNNING",
+        threadsDiscovered: threadIds.length,
+        threadsChecked: nextCursor,
+        threadCursor: nextCursor,
+        failedThreadIds: uniqueFailed,
+        discoveryComplete: true,
+        discoveredThreadIds: threadIds,
+        historyBoundary,
+        lookbackDays,
+        discoveryMode,
+      });
+      emitProductEvent({
+        type: "scan.continued",
+        scanId,
+        connectionId,
+        threadsChecked: nextCursor,
+        threadsDiscovered: threadIds.length,
+        durationMs: Date.now() - startedMs,
+      });
+      return { scanId, status: "CONTINUED", counters, lookbackDays, mode: discoveryMode };
+    }
+
+    const status = uniqueFailed.length > 0 ? "PARTIAL" : "SUCCESS";
     const finishedAt = new Date().toISOString();
     await store.updateScanRun(scanId, {
       ...counters,
       status,
       finishedAt,
       threadsDiscovered: threadIds.length,
-      threadsChecked,
+      threadsChecked: threadIds.length,
+      threadCursor: threadIds.length,
+      failedThreadIds: uniqueFailed,
       errorCode: status === "PARTIAL" ? "partial_thread_failures" : null,
-      errorMessage: status === "PARTIAL" ? formatThreadFailureMessage(failedGmailThreadIds) : null,
+      errorMessage: status === "PARTIAL" ? formatThreadFailureMessage(uniqueFailed) : null,
     });
 
     // Advance the History API cursor only after a fully successful scan. A PARTIAL
@@ -567,12 +682,12 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
       scanId,
       status,
       threadsAnalyzed,
-      threadFailures,
+      threadFailures: uniqueFailed.length,
       durationMs: Date.now() - startedMs,
       errorCode: status === "PARTIAL" ? "partial_thread_failures" : null,
     });
 
-    return { scanId, status, counters, lookbackDays, mode: discovery.mode };
+    return { scanId, status, counters, lookbackDays, mode: discoveryMode };
   } catch (error) {
     const reauth =
       isGmailAuthError(error) ||

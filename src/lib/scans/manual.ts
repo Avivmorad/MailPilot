@@ -22,6 +22,7 @@ import { createSupabaseScanStore } from "@/lib/scans/store";
 import { persistDigestAfterScan } from "@/lib/digest/build-digest";
 import { emitProductEvent } from "@/lib/observability/events";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { scheduleContinueFallback, scheduleScanContinuation } from "@/lib/scans/continue";
 import type { ScanRunResult } from "@/lib/scans/types";
 
 export const manualScanRequestSchema = z.object({
@@ -127,6 +128,12 @@ export async function beginManualInitialScan(
           await persistDigestAfterScan({ userId, scanId: prepared.scanId });
         } catch {
           emitProductEvent({ type: "digest.created", scanId: prepared.scanId, persisted: 0 });
+        }
+      }
+      if (result.status === "CONTINUED") {
+        const chained = await scheduleScanContinuation(prepared.scanId);
+        if (!chained) {
+          await scheduleContinueFallback(connection.connectionId);
         }
       }
       return result;

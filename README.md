@@ -72,6 +72,7 @@ Copy from [`.env.example`](.env.example). Server secrets must never use a `NEXT_
 | `SUPABASE_SERVICE_ROLE_KEY`                                                             | Server-only privileged key                                  |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` / `GOOGLE_REDIRECT_URI`                     | Gmail OAuth                                                 |
 | `TOKEN_ENCRYPTION_KEY`                                                                  | 32-byte key for AES-256-GCM refresh-token encryption        |
+| `TOKEN_ENCRYPTION_PREVIOUS_KEY`                                                         | Optional previous key during rotation                       |
 | `GEMINI_API_KEY` / `GEMINI_MODEL`                                                       | Gemini access; model is configurable, not hard-coded        |
 | `CRON_SECRET`                                                                           | Protects `/api/cron/scan-dispatcher`                        |
 | `MAX_THREAD_MESSAGES` / `MAX_MESSAGE_CHARS` / `MAX_THREAD_CHARS` / `AI_MAX_CONCURRENCY` | Context and cost controls                                   |
@@ -93,6 +94,8 @@ Apply SQL in the Supabase SQL Editor, in this order:
 8. `supabase/migrations/0008_scan_admission.sql` — one RUNNING scan per Gmail connection
 9. `supabase/migrations/0009_function_hardening.sql` — signup trigger not callable via the Data API
 10. `supabase/migrations/0010_gmail_mailbox_uniqueness.sql` — one active Gmail inbox per MailPilot user
+11. `supabase/migrations/0011_check_constraints.sql` — status, confidence, and counter checks
+12. `supabase/migrations/0012_scan_chunk_resume.sql` — resume large scans across 5-minute function slices
 
 RLS is required on user-accessible tables (`user_id = auth.uid()`).
 

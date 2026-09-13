@@ -31,7 +31,11 @@ These map onto the spec as follows:
   (`initial_lookback_days` / Gmail `newer_than`, spec §7.1 / §16.4).
 - Manual Scan now shows a live progress bar (conversations checked / total and percent).
   Totals are unique Gmail threads in the window, stored on `scan_runs.threads_discovered`
-  and `scan_runs.threads_checked`.
+  and `scan_runs.threads_checked`. A scan that cannot finish inside one Vercel Hobby
+  invocation (~240s of work, 300s `maxDuration`) stays `RUNNING`, persists a thread
+  cursor (`0012_scan_chunk_resume.sql`), and continues on the next slice until done.
+  History ID and the in-app digest advance only when the whole window finishes
+  (`SUCCESS` or `PARTIAL`).
 - Gmail calls use a rolling one-minute unit budget (default 12,000 of Google's ~15,000
   units/user/minute). When the budget is full the scan pauses until the oldest units
   expire, then continues. Scan now returns immediately and keeps running in the background.

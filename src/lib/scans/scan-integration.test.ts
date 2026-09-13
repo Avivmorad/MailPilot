@@ -121,7 +121,39 @@ function createMemoryStore(
     scanRuns,
     async findRunningScan(id) {
       const running = scanRuns.find((run) => run.status === "RUNNING" && run.connectionId === id);
-      return running ? { id: running.id, startedAt: running.startedAt } : null;
+      return running
+        ? { id: running.id, startedAt: running.startedAt, updatedAt: running.startedAt }
+        : null;
+    },
+    async getScanCheckpoint(scanId) {
+      const run = scanRuns.find((item) => item.id === scanId);
+      if (!run) {
+        return null;
+      }
+      return {
+        scanId: run.id,
+        userId,
+        connectionId: run.connectionId,
+        lookbackDays: 7,
+        triggerType: "MANUAL",
+        discoveryMode: null,
+        discoveryComplete: false,
+        discoveredThreadIds: [],
+        threadCursor: 0,
+        historyBoundary: null,
+        failedThreadIds: [],
+        messagesDiscovered: 0,
+        messagesProcessed: 0,
+        threadsAnalyzed: 0,
+        importantCount: 0,
+        actionCount: 0,
+        replyCount: 0,
+        waitingCount: 0,
+        informationalCount: 0,
+        ignoredCount: 0,
+        startedAt: run.startedAt,
+        updatedAt: run.startedAt,
+      };
     },
     async failScan(scanId, errorCode, errorMessage) {
       const run = scanRuns.find((item) => item.id === scanId);
@@ -661,6 +693,7 @@ describe("scan integration", () => {
       triggerType: "MANUAL",
       windowStart: "2026-09-10T11:00:00.000Z",
       windowEnd: "2026-09-10T12:00:00.000Z",
+      lookbackDays: 7,
     });
 
     await expect(

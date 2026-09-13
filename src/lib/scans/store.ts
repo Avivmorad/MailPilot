@@ -7,6 +7,7 @@ import { emitProductEvent } from "@/lib/observability/events";
 import { scanStoreFailure, isScanRunUniqueViolation, SCAN_IN_PROGRESS } from "@/lib/scans/errors";
 import { parseThreadFailureIds } from "@/lib/scans/thread-failures";
 import { timestampOrNull } from "@/lib/scans/timestamps";
+import { asDiscoveryMode, asLookbackDays, parseJsonStringArray } from "@/lib/scans/checkpoint";
 import type { ScanSettings, ScanStorePort, StoredThreadRow } from "@/lib/scans/types";
 
 function failStore(operation: string, error: { message?: string } | null): never {
@@ -68,7 +69,7 @@ export function createSupabaseScanStore(): ScanStorePort {
     async findRunningScan(connectionId) {
       const { data, error } = await db
         .from("scan_runs")
-        .select("id, started_at")
+        .select("id, started_at, updated_at")
         .eq("gmail_connection_id", connectionId)
         .eq("status", "RUNNING")
         .order("created_at", { ascending: false })
@@ -80,7 +81,57 @@ export function createSupabaseScanStore(): ScanStorePort {
       if (!data) {
         return null;
       }
-      return { id: data.id as string, startedAt: (data.started_at as string | null) ?? null };
+      return {
+        id: data.id as string,
+        startedAt: (data.started_at as string | null) ?? null,
+        updatedAt: (data.updated_at as string | null) ?? null,
+      };
+    },
+
+    async getScanCheckpoint(scanId) {
+      const { data, error } = await db
+        .from("scan_runs")
+        .select(
+          "id, user_id, gmail_connection_id, lookback_days, trigger_type, discovery_mode, discovery_complete, discovered_thread_ids, thread_cursor, history_boundary, failed_thread_ids, messages_discovered, messages_processed, threads_analyzed, important_count, action_count, reply_count, waiting_count, informational_count, ignored_count, started_at, updated_at",
+        )
+        .eq("id", scanId)
+        .maybeSingle();
+      if (error) {
+        failStore("Failed to load scan checkpoint", error);
+      }
+      if (!data) {
+        return null;
+      }
+      return {
+        scanId: data.id as string,
+        userId: data.user_id as string,
+        connectionId: data.gmail_connection_id as string,
+        lookbackDays: asLookbackDays(data.lookback_days),
+        triggerType:
+          data.trigger_type === "INITIAL" ||
+          data.trigger_type === "MANUAL" ||
+          data.trigger_type === "RECOVERY" ||
+          data.trigger_type === "SCHEDULED"
+            ? data.trigger_type
+            : "MANUAL",
+        discoveryMode: asDiscoveryMode(data.discovery_mode),
+        discoveryComplete: Boolean(data.discovery_complete),
+        discoveredThreadIds: parseJsonStringArray(data.discovered_thread_ids),
+        threadCursor: typeof data.thread_cursor === "number" ? data.thread_cursor : 0,
+        historyBoundary: (data.history_boundary as string | null) ?? null,
+        failedThreadIds: parseJsonStringArray(data.failed_thread_ids),
+        messagesDiscovered: Number(data.messages_discovered ?? 0),
+        messagesProcessed: Number(data.messages_processed ?? 0),
+        threadsAnalyzed: Number(data.threads_analyzed ?? 0),
+        importantCount: Number(data.important_count ?? 0),
+        actionCount: Number(data.action_count ?? 0),
+        replyCount: Number(data.reply_count ?? 0),
+        waitingCount: Number(data.waiting_count ?? 0),
+        informationalCount: Number(data.informational_count ?? 0),
+        ignoredCount: Number(data.ignored_count ?? 0),
+        startedAt: (data.started_at as string | null) ?? null,
+        updatedAt: (data.updated_at as string | null) ?? null,
+      };
     },
 
     async failScan(scanId, errorCode, errorMessage) {
@@ -108,6 +159,7 @@ export function createSupabaseScanStore(): ScanStorePort {
           status: "RUNNING",
           window_start: input.windowStart,
           window_end: input.windowEnd,
+          lookback_days: input.lookbackDays,
           started_at: new Date().toISOString(),
         })
         .select("id")
@@ -139,6 +191,14 @@ export function createSupabaseScanStore(): ScanStorePort {
       if (patch.informationalCount !== undefined)
         row.informational_count = patch.informationalCount;
       if (patch.ignoredCount !== undefined) row.ignored_count = patch.ignoredCount;
+      if (patch.lookbackDays !== undefined) row.lookback_days = patch.lookbackDays;
+      if (patch.discoveryMode !== undefined) row.discovery_mode = patch.discoveryMode;
+      if (patch.discoveryComplete !== undefined) row.discovery_complete = patch.discoveryComplete;
+      if (patch.discoveredThreadIds !== undefined)
+        row.discovered_thread_ids = patch.discoveredThreadIds;
+      if (patch.threadCursor !== undefined) row.thread_cursor = patch.threadCursor;
+      if (patch.historyBoundary !== undefined) row.history_boundary = patch.historyBoundary;
+      if (patch.failedThreadIds !== undefined) row.failed_thread_ids = patch.failedThreadIds;
       const { error } = await db.from("scan_runs").update(row).eq("id", scanId);
       if (error) {
         failStore("Failed to update scan run", error);

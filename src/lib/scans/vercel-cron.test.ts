@@ -25,8 +25,13 @@ describe("vercel.json crons", () => {
       "utf8",
     );
     const scans = readFileSync(path.join(process.cwd(), "src/app/api/scans/route.ts"), "utf8");
+    const cont = readFileSync(
+      path.join(process.cwd(), "src/app/api/scans/continue/route.ts"),
+      "utf8",
+    );
     expect(dispatcher).toMatch(/export const maxDuration = 300;/);
     expect(scans).toMatch(/export const maxDuration = 300;/);
+    expect(cont).toMatch(/export const maxDuration = 300;/);
     expect(scans).not.toMatch(/maxDuration = 800/);
   });
 

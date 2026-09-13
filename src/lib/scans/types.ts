@@ -81,8 +81,40 @@ export interface ScanGmailPort {
   listSendAsEmails?(): Promise<string[]>;
 }
 
+export interface ScanCheckpoint {
+  scanId: string;
+  userId: string;
+  connectionId: string;
+  lookbackDays: InitialLookbackDays;
+  triggerType: ScanTriggerType;
+  discoveryMode: ScanDiscoveryMode | null;
+  discoveryComplete: boolean;
+  discoveredThreadIds: string[];
+  threadCursor: number;
+  historyBoundary: string | null;
+  failedThreadIds: string[];
+  messagesDiscovered: number;
+  messagesProcessed: number;
+  threadsAnalyzed: number;
+  importantCount: number;
+  actionCount: number;
+  replyCount: number;
+  waitingCount: number;
+  informationalCount: number;
+  ignoredCount: number;
+  startedAt: string | null;
+  updatedAt: string | null;
+}
+
+export interface RunningScanRef {
+  id: string;
+  startedAt: string | null;
+  updatedAt: string | null;
+}
+
 export interface ScanStorePort {
-  findRunningScan(connectionId: string): Promise<{ id: string; startedAt: string | null } | null>;
+  findRunningScan(connectionId: string): Promise<RunningScanRef | null>;
+  getScanCheckpoint(scanId: string): Promise<ScanCheckpoint | null>;
   failScan(scanId: string, errorCode: string, errorMessage: string): Promise<void>;
   insertScanRun(input: {
     userId: string;
@@ -90,6 +122,7 @@ export interface ScanStorePort {
     triggerType: ScanTriggerType;
     windowStart: string;
     windowEnd: string;
+    lookbackDays: InitialLookbackDays;
   }): Promise<string>;
   updateScanRun(
     scanId: string,
@@ -100,6 +133,13 @@ export interface ScanStorePort {
       finishedAt?: string;
       errorCode?: string | null;
       errorMessage?: string | null;
+      lookbackDays?: InitialLookbackDays;
+      discoveryMode?: ScanDiscoveryMode;
+      discoveryComplete?: boolean;
+      discoveredThreadIds?: string[];
+      threadCursor?: number;
+      historyBoundary?: string | null;
+      failedThreadIds?: string[];
     },
   ): Promise<void>;
   getSettings(userId: string): Promise<ScanSettings>;
@@ -142,7 +182,7 @@ export interface ScanStorePort {
 
 export interface ScanRunResult {
   scanId: string;
-  status: "SUCCESS" | "PARTIAL" | "FAILED";
+  status: "SUCCESS" | "PARTIAL" | "FAILED" | "CONTINUED";
   counters: ScanCounters;
   lookbackDays: InitialLookbackDays;
   mode: ScanDiscoveryMode;

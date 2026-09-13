@@ -9,6 +9,7 @@ import type { ParsedGmailMessage } from "@/lib/gmail/parser";
 import type { InitialLookbackDays } from "@/lib/scans/lookback";
 import {
   analysisPromptKey,
+  SCAN_WORK_BUDGET_MS,
   openGmailScan,
   processInitialScan,
   shouldReuseStoredAnalysis,
@@ -288,6 +289,40 @@ async function runScan(options: {
 }
 
 describe("processInitialScan", () => {
+  it("stops admitting work at the budget and preserves the cursor for retry", async () => {
+    const store = createMemoryStore();
+    store.connection.historyId = "old-history";
+    store.connection.lastSuccessfulScanAt = "2026-09-09T12:00:00.000Z";
+    const clock = vi.spyOn(Date, "now").mockReturnValue(0);
+    const fetchThread = vi.fn(async () => [parsedMessage()]);
+    try {
+      const result = await runScan({
+        store,
+        gmail: {
+          getProfileHistoryId: async () => "new-history",
+          listHistoryChanges: async () => {
+            clock.mockReturnValue(SCAN_WORK_BUDGET_MS);
+            return {
+              ok: true,
+              refs: [{ id: "m1", threadId: "t1" }],
+              latestHistoryId: "new-history",
+            };
+          },
+          listMessageRefs: async () => [],
+          fetchThread,
+          loadLabelMap: async () => LABEL_MAP,
+          modifyThreadLabels: async () => {},
+        },
+      });
+      expect(result.status).toBe("PARTIAL");
+      expect(fetchThread).not.toHaveBeenCalled();
+      expect(store.connection.historyId).toBe("old-history");
+      expect(parseThreadFailureIds(store.scanRuns[0].errorMessage)).toEqual(["t1"]);
+      expect(store.scanRuns[0].status).toBe("PARTIAL");
+    } finally {
+      clock.mockRestore();
+    }
+  });
   it("upserts a thread once, applies labels after analysis, and keeps counters consistent", async () => {
     const store = createMemoryStore();
     const modifyThreadLabels = vi.fn(async () => undefined);

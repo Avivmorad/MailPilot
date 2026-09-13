@@ -8,7 +8,10 @@ export function parseJsonStringArray(value: unknown): string[] {
   return value.filter((item): item is string => typeof item === "string" && item.length > 0);
 }
 
-export function asLookbackDays(value: unknown, fallback: InitialLookbackDays = 7): InitialLookbackDays {
+export function asLookbackDays(
+  value: unknown,
+  fallback: InitialLookbackDays = 7,
+): InitialLookbackDays {
   const n = typeof value === "number" ? value : Number(value);
   return isInitialLookbackDays(n) ? n : fallback;
 }
@@ -27,7 +30,10 @@ export function scanHasRemainingWork(checkpoint: ScanCheckpoint): boolean {
   return checkpoint.threadCursor < checkpoint.discoveredThreadIds.length;
 }
 
-export function progressAgeMs(checkpoint: { updatedAt: string | null; startedAt: string | null }, nowMs: number): number {
+export function progressAgeMs(
+  checkpoint: { updatedAt: string | null; startedAt: string | null },
+  nowMs: number,
+): number {
   const stamp = checkpoint.updatedAt ?? checkpoint.startedAt;
   const parsed = stamp ? Date.parse(stamp) : NaN;
   if (!Number.isFinite(parsed)) {

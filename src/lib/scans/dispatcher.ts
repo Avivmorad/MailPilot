@@ -90,15 +90,17 @@ async function runClaimedConnection(
     const store = createSupabaseScanStore();
     const running = await store.findRunningScan(claimed.id);
     const checkpoint = running ? await store.getScanCheckpoint(running.id) : null;
-    const remaining =
-      checkpoint && scanHasRemainingWork(checkpoint) ? checkpoint : null;
+    const remaining = checkpoint && scanHasRemainingWork(checkpoint) ? checkpoint : null;
     const age = remaining ? progressAgeMs(remaining, now.getTime()) : Number.POSITIVE_INFINITY;
 
     if (remaining && age < SCAN_HEARTBEAT_BUSY_MS) {
       if (jobId) {
         await finishScanJob(jobId, "FAILED", "scan_in_progress");
       }
-      await setNextScanAt(claimed.id, new Date(now.getTime() + SCAN_CONTINUE_RETRY_MS).toISOString());
+      await setNextScanAt(
+        claimed.id,
+        new Date(now.getTime() + SCAN_CONTINUE_RETRY_MS).toISOString(),
+      );
       return { connectionId: claimed.id, status: "SKIPPED", error: "scan_chunk_in_progress" };
     }
 

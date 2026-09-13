@@ -7,11 +7,7 @@ import { emitProductEvent } from "@/lib/observability/events";
 import { scanStoreFailure, isScanRunUniqueViolation, SCAN_IN_PROGRESS } from "@/lib/scans/errors";
 import { parseThreadFailureIds } from "@/lib/scans/thread-failures";
 import { timestampOrNull } from "@/lib/scans/timestamps";
-import {
-  asDiscoveryMode,
-  asLookbackDays,
-  parseJsonStringArray,
-} from "@/lib/scans/checkpoint";
+import { asDiscoveryMode, asLookbackDays, parseJsonStringArray } from "@/lib/scans/checkpoint";
 import type { ScanSettings, ScanStorePort, StoredThreadRow } from "@/lib/scans/types";
 
 function failStore(operation: string, error: { message?: string } | null): never {

@@ -26,9 +26,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "invalid_scan" }, { status: 400 });
   }
 
-  const running = runScanInBackground(parsed.data.scanId, () => continueScanRun(parsed.data.scanId), {
-    scanType: "manual",
-  });
+  const running = runScanInBackground(
+    parsed.data.scanId,
+    () => continueScanRun(parsed.data.scanId),
+    {
+      scanType: "manual",
+    },
+  );
   after(async () => {
     await running;
   });

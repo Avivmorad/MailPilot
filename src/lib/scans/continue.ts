@@ -53,7 +53,10 @@ export async function scheduleScanContinuation(
   }
 }
 
-export async function scheduleContinueFallback(connectionId: string, now = new Date()): Promise<void> {
+export async function scheduleContinueFallback(
+  connectionId: string,
+  now = new Date(),
+): Promise<void> {
   const db = createAdminClient();
   const retryAt = new Date(now.getTime() + SCAN_CONTINUE_RETRY_MS).toISOString();
   await db.from("gmail_connections").update({ next_scan_at: retryAt }).eq("id", connectionId);

@@ -187,7 +187,11 @@ function createMemoryStore(): ScanStorePort & {
         (run) => run.status === "RUNNING" && (run.connectionId ?? "conn-1") === connectionId,
       );
       return running
-        ? { id: running.id, startedAt: running.startedAt, updatedAt: running.updatedAt ?? running.startedAt }
+        ? {
+            id: running.id,
+            startedAt: running.startedAt,
+            updatedAt: running.updatedAt ?? running.startedAt,
+          }
         : null;
     },
     async getScanCheckpoint(scanId) {

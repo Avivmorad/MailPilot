@@ -15,9 +15,9 @@ describe("scan continuation scheduling", () => {
     vi.stubEnv("NEXT_PUBLIC_APP_URL", "https://mail.example");
     vi.stubEnv("CRON_SECRET", "cron-secret");
     const fetchImpl = vi.fn(async () => new Response(null, { status: 202 })) as typeof fetch;
-    await expect(scheduleScanContinuation("11111111-1111-4111-8111-111111111111", fetchImpl)).resolves.toBe(
-      true,
-    );
+    await expect(
+      scheduleScanContinuation("11111111-1111-4111-8111-111111111111", fetchImpl),
+    ).resolves.toBe(true);
     expect(fetchImpl).toHaveBeenCalledWith(
       "https://mail.example/api/scans/continue",
       expect.objectContaining({

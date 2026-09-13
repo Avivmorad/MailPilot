@@ -31,6 +31,7 @@ export async function POST(request: Request) {
     () => continueScanRun(parsed.data.scanId),
     {
       scanType: "manual",
+      jobKey: `continue:${parsed.data.scanId}:${crypto.randomUUID()}`,
     },
   );
   after(async () => {

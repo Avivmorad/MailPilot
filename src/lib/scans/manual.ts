@@ -17,12 +17,13 @@ import {
   SCAN_SCHEMA_MISSING_MESSAGE,
   scanUserMessage,
 } from "@/lib/scans/errors";
-import { openGmailScan, executeGmailScan } from "@/lib/scans/process-scan";
+import { progressAgeMs, scanHasRemainingWork } from "@/lib/scans/checkpoint";
+import { SCAN_STALE_PROGRESS_MS } from "@/lib/scans/dispatch-budget";
+import { openGmailScan, executeGmailScan, resumeGmailScan } from "@/lib/scans/process-scan";
 import { createSupabaseScanStore } from "@/lib/scans/store";
 import { persistDigestAfterScan } from "@/lib/digest/build-digest";
 import { emitProductEvent } from "@/lib/observability/events";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { scheduleContinueFallback, scheduleScanContinuation } from "@/lib/scans/continue";
 import type { ScanRunResult } from "@/lib/scans/types";
 
 export const manualScanRequestSchema = z.object({
@@ -95,6 +96,38 @@ export async function beginManualInitialScan(
     .select("last_attempted_scan_at, last_successful_scan_at")
     .eq("id", connection.connectionId)
     .maybeSingle();
+
+  const running = await store.findRunningScan(connection.connectionId);
+  const checkpoint = running ? await store.getScanCheckpoint(running.id) : null;
+  if (checkpoint && scanHasRemainingWork(checkpoint)) {
+    const age = progressAgeMs(checkpoint, Date.now());
+    if (age < SCAN_STALE_PROGRESS_MS) {
+      const prepared = await resumeGmailScan({
+        scanId: checkpoint.scanId,
+        gmailEmail: connection.gmailEmail,
+        gmail: createGmailScanPort(connection.gmail, connection.connectionId),
+        store,
+        provider: createEmailTriageProvider(),
+        modelName: getGeminiEnv().GEMINI_MODEL,
+      });
+      return {
+        scanId: prepared.scanId,
+        triggerType: checkpoint.triggerType === "INITIAL" ? "INITIAL" : "MANUAL",
+        execute: async () => {
+          const result = await executeGmailScan(prepared);
+          if (result.status === "SUCCESS" || result.status === "PARTIAL") {
+            try {
+              await persistDigestAfterScan({ userId, scanId: prepared.scanId });
+            } catch {
+              emitProductEvent({ type: "digest.created", scanId: prepared.scanId, persisted: 0 });
+            }
+          }
+          return result;
+        },
+      };
+    }
+  }
+
   if (
     isManualScanRateLimited(
       typeof existing?.last_attempted_scan_at === "string" ? existing.last_attempted_scan_at : null,
@@ -128,12 +161,6 @@ export async function beginManualInitialScan(
           await persistDigestAfterScan({ userId, scanId: prepared.scanId });
         } catch {
           emitProductEvent({ type: "digest.created", scanId: prepared.scanId, persisted: 0 });
-        }
-      }
-      if (result.status === "CONTINUED") {
-        const chained = await scheduleScanContinuation(prepared.scanId);
-        if (!chained) {
-          await scheduleContinueFallback(connection.connectionId);
         }
       }
       return result;

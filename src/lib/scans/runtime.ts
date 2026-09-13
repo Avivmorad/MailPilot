@@ -1,11 +1,14 @@
 import { emitProductEvent } from "@/lib/observability/events";
 import type { SentryScanTypeTag } from "@/lib/observability/sentry-privacy";
 import { captureSafeException } from "@/lib/observability/sentry-report";
+import { chainIfContinued } from "@/lib/scans/continue";
 
 const inflight = new Map<string, Promise<void>>();
 
 export type ScanRuntimeTags = {
   scanType?: SentryScanTypeTag;
+  /** Distinct from scanId so a continue slice is not joined to the finishing slice. */
+  jobKey?: string;
 };
 
 /**
@@ -17,13 +20,17 @@ export function runScanInBackground(
   execute: () => Promise<unknown>,
   tags: ScanRuntimeTags = {},
 ): Promise<void> {
-  const existing = inflight.get(scanId);
+  const key = tags.jobKey ?? scanId;
+  const existing = inflight.get(key);
   if (existing) {
     return existing;
   }
   const promise = Promise.resolve()
     .then(() => execute())
-    .then(() => undefined)
+    .then(async (value) => {
+      inflight.delete(key);
+      await chainIfContinued(value);
+    })
     .catch((error: unknown) => {
       emitProductEvent({
         type: "scan.failed",
@@ -36,8 +43,8 @@ export function runScanInBackground(
       });
     })
     .finally(() => {
-      inflight.delete(scanId);
+      inflight.delete(key);
     });
-  inflight.set(scanId, promise);
+  inflight.set(key, promise);
   return promise;
 }

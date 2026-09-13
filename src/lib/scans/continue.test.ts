@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { scanAppBaseUrl, scheduleScanContinuation } from "@/lib/scans/continue";
+import { chainIfContinued, scanAppBaseUrl, scheduleScanContinuation } from "@/lib/scans/continue";
 
 describe("scan continuation scheduling", () => {
   it("prefers NEXT_PUBLIC_APP_URL then Vercel URL", () => {
@@ -25,5 +25,25 @@ describe("scan continuation scheduling", () => {
       }),
     );
     vi.unstubAllEnvs();
+  });
+
+  it("chains only CONTINUED results after the current slice returns", async () => {
+    vi.stubEnv("NEXT_PUBLIC_APP_URL", "https://mail.example");
+    vi.stubEnv("CRON_SECRET", "cron-secret");
+    const fetchImpl = vi.fn(async () => new Response(null, { status: 202 })) as typeof fetch;
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = fetchImpl;
+    try {
+      await chainIfContinued({ status: "SUCCESS", scanId: "11111111-1111-4111-8111-111111111111" });
+      expect(fetchImpl).not.toHaveBeenCalled();
+      await chainIfContinued({
+        status: "CONTINUED",
+        scanId: "11111111-1111-4111-8111-111111111111",
+      });
+      expect(fetchImpl).toHaveBeenCalledTimes(1);
+    } finally {
+      globalThis.fetch = originalFetch;
+      vi.unstubAllEnvs();
+    }
   });
 });

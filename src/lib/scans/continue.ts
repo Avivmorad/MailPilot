@@ -62,6 +62,25 @@ export async function scheduleContinueFallback(
   await db.from("gmail_connections").update({ next_scan_at: retryAt }).eq("id", connectionId);
 }
 
+export async function chainIfContinued(value: unknown): Promise<void> {
+  if (!value || typeof value !== "object" || !("status" in value) || !("scanId" in value)) {
+    return;
+  }
+  const result = value as ScanRunResult;
+  if (result.status !== "CONTINUED") {
+    return;
+  }
+  const chained = await scheduleScanContinuation(result.scanId);
+  if (chained) {
+    return;
+  }
+  const store = createSupabaseScanStore();
+  const checkpoint = await store.getScanCheckpoint(result.scanId);
+  if (checkpoint) {
+    await scheduleContinueFallback(checkpoint.connectionId);
+  }
+}
+
 export async function continueScanRun(scanId: string): Promise<ScanRunResult> {
   const store = createSupabaseScanStore();
   const checkpoint = await store.getScanCheckpoint(scanId);
@@ -83,12 +102,6 @@ export async function continueScanRun(scanId: string): Promise<ScanRunResult> {
       await persistDigestAfterScan({ userId: checkpoint.userId, scanId });
     } catch {
       emitProductEvent({ type: "digest.created", scanId, persisted: 0 });
-    }
-  }
-  if (result.status === "CONTINUED") {
-    const chained = await scheduleScanContinuation(scanId);
-    if (!chained) {
-      await scheduleContinueFallback(checkpoint.connectionId);
     }
   }
   return result;

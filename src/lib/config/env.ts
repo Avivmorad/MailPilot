@@ -23,11 +23,17 @@ const supabaseAdminSchema = supabasePublicSchema.extend({
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
 });
 
+const optionalSecret = z.preprocess(
+  (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+  z.string().min(1).optional(),
+);
+
 const gmailEnvSchema = supabaseAdminSchema.extend({
   GOOGLE_CLIENT_ID: z.string().min(1),
   GOOGLE_CLIENT_SECRET: z.string().min(1),
   GOOGLE_REDIRECT_URI: z.string().min(1),
   TOKEN_ENCRYPTION_KEY: z.string().min(1),
+  TOKEN_ENCRYPTION_PREVIOUS_KEY: optionalSecret,
 });
 
 const contextLimitsSchema = z.object({

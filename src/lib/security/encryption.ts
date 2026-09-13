@@ -59,6 +59,49 @@ export function decryptSecret(value: string, keyMaterial: string): string {
   return Buffer.concat([decipher.update(ciphertext), decipher.final()]).toString("utf8");
 }
 
+export type UnwrapSecretResult = {
+  plaintext: string;
+  usedPreviousKey: boolean;
+};
+
+/**
+ * Decrypt with the current key, then the optional previous key used during rotation.
+ */
+export function unwrapSecretWithRotation(
+  value: string,
+  currentKey: string,
+  previousKey?: string,
+): UnwrapSecretResult {
+  try {
+    return { plaintext: decryptSecret(value, currentKey), usedPreviousKey: false };
+  } catch (currentError) {
+    const previous = previousKey?.trim();
+    if (!previous || previous === currentKey) {
+      throw currentError;
+    }
+    return { plaintext: decryptSecret(value, previous), usedPreviousKey: true };
+  }
+}
+
+/**
+ * If the ciphertext was produced with the previous key, return a new envelope
+ * under the current key so later reads do not need the old key.
+ */
+export function rotateSecretEnvelope(
+  value: string,
+  currentKey: string,
+  previousKey?: string,
+): { plaintext: string; rotatedCiphertext: string | null } {
+  const unwrapped = unwrapSecretWithRotation(value, currentKey, previousKey);
+  if (!unwrapped.usedPreviousKey) {
+    return { plaintext: unwrapped.plaintext, rotatedCiphertext: null };
+  }
+  return {
+    plaintext: unwrapped.plaintext,
+    rotatedCiphertext: encryptSecret(unwrapped.plaintext, currentKey),
+  };
+}
+
 export function timingSafeStringEqual(left: string, right: string): boolean {
   const a = Buffer.from(left);
   const b = Buffer.from(right);

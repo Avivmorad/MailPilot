@@ -24,6 +24,22 @@ describe("parseGmailEnv", () => {
     });
 
     expect(env.GOOGLE_CLIENT_ID).toBe("client-id");
+    expect(env.TOKEN_ENCRYPTION_PREVIOUS_KEY).toBeUndefined();
+  });
+
+  it("accepts an optional previous encryption key for rotation", () => {
+    const env = parseGmailEnv({
+      NEXT_PUBLIC_SUPABASE_URL: "https://example.supabase.co",
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: "anon-key",
+      SUPABASE_SERVICE_ROLE_KEY: "service-role-key",
+      GOOGLE_CLIENT_ID: "client-id",
+      GOOGLE_CLIENT_SECRET: "client-secret",
+      GOOGLE_REDIRECT_URI: "http://localhost:3000/api/gmail/callback",
+      TOKEN_ENCRYPTION_KEY: "0".repeat(64),
+      TOKEN_ENCRYPTION_PREVIOUS_KEY: "1".repeat(64),
+    });
+
+    expect(env.TOKEN_ENCRYPTION_PREVIOUS_KEY).toBe("1".repeat(64));
   });
 
   it("throws when Google secrets are missing", () => {

@@ -9,8 +9,12 @@ import { authorizeCronRequest } from "@/lib/scans/cron-auth";
 import {
   DISPATCH_DEFAULT_LIMIT,
   DISPATCH_LEASE_SECONDS,
+  SCAN_CONTINUE_RETRY_MS,
+  SCAN_HEARTBEAT_BUSY_MS,
+  SCAN_STALE_PROGRESS_MS,
   hasDispatchBudget,
 } from "@/lib/scans/dispatch-budget";
+import { progressAgeMs, scanHasRemainingWork } from "@/lib/scans/checkpoint";
 import { SCAN_IN_PROGRESS } from "@/lib/scans/errors";
 import { createGmailScanPort } from "@/lib/scans/gmail-port";
 import {
@@ -26,14 +30,15 @@ import {
   type ClaimedConnection,
 } from "@/lib/scans/leases";
 import { DEFAULT_LOOKBACK_DAYS } from "@/lib/scans/lookback";
-import { openGmailScan, executeGmailScan } from "@/lib/scans/process-scan";
+import { openGmailScan, executeGmailScan, resumeGmailScan } from "@/lib/scans/process-scan";
+import { scheduleScanContinuation } from "@/lib/scans/continue";
 import { nextScanAfterFailure } from "@/lib/scans/schedule";
 import { createSupabaseScanStore } from "@/lib/scans/store";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export { authorizeCronRequest };
 
-export type DispatcherResultStatus = "SUCCESS" | "PARTIAL" | "FAILED" | "SKIPPED";
+export type DispatcherResultStatus = "SUCCESS" | "PARTIAL" | "FAILED" | "SKIPPED" | "CONTINUED";
 
 export interface DispatcherConnectionResult {
   connectionId: string;
@@ -82,18 +87,44 @@ async function runClaimedConnection(
     }
 
     const api = await createGmailApiForConnection(claimed.id);
-    const prepared = await openGmailScan({
-      userId: api.userId,
-      connectionId: claimed.id,
-      gmailEmail: api.gmailEmail,
-      lookbackDays: DEFAULT_LOOKBACK_DAYS,
-      triggerType: "SCHEDULED",
-      gmail: createGmailScanPort(api.gmail, claimed.id),
-      store: createSupabaseScanStore(),
-      provider: createEmailTriageProvider(),
-      modelName: getGeminiEnv().GEMINI_MODEL,
-      now,
-    });
+    const store = createSupabaseScanStore();
+    const running = await store.findRunningScan(claimed.id);
+    const checkpoint = running ? await store.getScanCheckpoint(running.id) : null;
+    const remaining =
+      checkpoint && scanHasRemainingWork(checkpoint) ? checkpoint : null;
+    const age = remaining ? progressAgeMs(remaining, now.getTime()) : Number.POSITIVE_INFINITY;
+
+    if (remaining && age < SCAN_HEARTBEAT_BUSY_MS) {
+      if (jobId) {
+        await finishScanJob(jobId, "FAILED", "scan_in_progress");
+      }
+      await setNextScanAt(claimed.id, new Date(now.getTime() + SCAN_CONTINUE_RETRY_MS).toISOString());
+      return { connectionId: claimed.id, status: "SKIPPED", error: "scan_chunk_in_progress" };
+    }
+
+    const prepared =
+      remaining && age < SCAN_STALE_PROGRESS_MS
+        ? await resumeGmailScan({
+            scanId: remaining.scanId,
+            gmailEmail: api.gmailEmail,
+            gmail: createGmailScanPort(api.gmail, claimed.id),
+            store,
+            provider: createEmailTriageProvider(),
+            modelName: getGeminiEnv().GEMINI_MODEL,
+            now,
+          })
+        : await openGmailScan({
+            userId: api.userId,
+            connectionId: claimed.id,
+            gmailEmail: api.gmailEmail,
+            lookbackDays: DEFAULT_LOOKBACK_DAYS,
+            triggerType: "SCHEDULED",
+            gmail: createGmailScanPort(api.gmail, claimed.id),
+            store,
+            provider: createEmailTriageProvider(),
+            modelName: getGeminiEnv().GEMINI_MODEL,
+            now,
+          });
 
     if (!jobId) {
       throw new Error("scan_job_missing");
@@ -107,6 +138,18 @@ async function runClaimedConnection(
       } catch {
         emitProductEvent({ type: "digest.created", scanId: prepared.scanId, persisted: 0 });
       }
+    }
+
+    if (result.status === "CONTINUED") {
+      const chained = await scheduleScanContinuation(prepared.scanId);
+      if (!chained) {
+        await setNextScanAt(
+          claimed.id,
+          new Date(now.getTime() + SCAN_CONTINUE_RETRY_MS).toISOString(),
+        );
+      }
+      await finishScanJob(jobId, "SUCCESS", null);
+      return { connectionId: claimed.id, status: "CONTINUED", scanId: prepared.scanId };
     }
 
     await finishScanJob(jobId, "SUCCESS", null);

@@ -15,6 +15,7 @@ describe("RLS isolation", () => {
       "0007_scan_scheduling.sql",
       "0009_function_hardening.sql",
       "0010_gmail_mailbox_uniqueness.sql",
+      "0011_check_constraints.sql",
     ]
       .map((name) => readFileSync(path.join(migrationsDir, name), "utf8"))
       .join("\n");
@@ -41,5 +42,7 @@ describe("RLS isolation", () => {
     expect(sql).toContain("set search_path = ''");
     expect(sql).toContain("gmail_connections_one_active_mailbox_email");
     expect(sql).toContain("gmail_connections_one_active_google_account");
+    expect(sql).toContain("action_items_status_check");
+    expect(sql).toContain("email_threads_confidence_check");
   });
 });

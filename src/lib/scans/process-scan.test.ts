@@ -6,12 +6,15 @@ import { TRIAGE_PROMPT_VERSION } from "@/lib/ai/prompts";
 import { threadAnalysisSchema, type ThreadAnalysis } from "@/lib/ai/schemas";
 import type { MailPilotLogicalLabel } from "@/lib/gmail/constants";
 import type { ParsedGmailMessage } from "@/lib/gmail/parser";
+import { asLookbackDays } from "@/lib/scans/checkpoint";
 import type { InitialLookbackDays } from "@/lib/scans/lookback";
 import {
   analysisPromptKey,
+  executeGmailScan,
   SCAN_WORK_BUDGET_MS,
   openGmailScan,
   processInitialScan,
+  resumeGmailScan,
   shouldReuseStoredAnalysis,
 } from "@/lib/scans/process-scan";
 import { parseThreadFailureIds } from "@/lib/scans/thread-failures";
@@ -91,9 +94,27 @@ function createMemoryStore(): ScanStorePort & {
     id: string;
     status: string;
     startedAt: string;
+    updatedAt?: string;
     connectionId?: string;
     errorCode?: string | null;
     errorMessage?: string | null;
+    lookbackDays?: number;
+    discoveryComplete?: boolean;
+    discoveredThreadIds?: string[];
+    threadCursor?: number;
+    historyBoundary?: string | null;
+    failedThreadIds?: string[];
+    messagesDiscovered?: number;
+    messagesProcessed?: number;
+    threadsAnalyzed?: number;
+    importantCount?: number;
+    actionCount?: number;
+    replyCount?: number;
+    waitingCount?: number;
+    informationalCount?: number;
+    ignoredCount?: number;
+    discoveryMode?: string;
+    userId?: string;
   }>;
   progressChecks: number[];
 } {
@@ -107,11 +128,29 @@ function createMemoryStore(): ScanStorePort & {
     id: string;
     status: string;
     startedAt: string;
+    updatedAt?: string;
     threadsDiscovered?: number;
     threadsChecked?: number;
     connectionId?: string;
     errorCode?: string | null;
     errorMessage?: string | null;
+    lookbackDays?: number;
+    discoveryComplete?: boolean;
+    discoveredThreadIds?: string[];
+    threadCursor?: number;
+    historyBoundary?: string | null;
+    failedThreadIds?: string[];
+    messagesDiscovered?: number;
+    messagesProcessed?: number;
+    threadsAnalyzed?: number;
+    importantCount?: number;
+    actionCount?: number;
+    replyCount?: number;
+    waitingCount?: number;
+    informationalCount?: number;
+    ignoredCount?: number;
+    discoveryMode?: string;
+    userId?: string;
   }> = [];
   const progressChecks: number[] = [];
   const connection = {
@@ -134,14 +173,7 @@ function createMemoryStore(): ScanStorePort & {
     messages: typeof messages;
     actions: typeof actions;
     connection: typeof connection;
-    scanRuns: Array<{
-      id: string;
-      status: string;
-      startedAt: string;
-      connectionId?: string;
-      errorCode?: string | null;
-      errorMessage?: string | null;
-    }>;
+    scanRuns: typeof scanRuns;
     progressChecks: number[];
   } = {
     threads,
@@ -154,7 +186,44 @@ function createMemoryStore(): ScanStorePort & {
       const running = scanRuns.find(
         (run) => run.status === "RUNNING" && (run.connectionId ?? "conn-1") === connectionId,
       );
-      return running ? { id: running.id, startedAt: running.startedAt } : null;
+      return running
+        ? { id: running.id, startedAt: running.startedAt, updatedAt: running.updatedAt ?? running.startedAt }
+        : null;
+    },
+    async getScanCheckpoint(scanId) {
+      const run = scanRuns.find((item) => item.id === scanId);
+      if (!run) {
+        return null;
+      }
+      return {
+        scanId: run.id,
+        userId: run.userId ?? "user-1",
+        connectionId: run.connectionId ?? "conn-1",
+        lookbackDays: asLookbackDays(run.lookbackDays),
+        triggerType: "MANUAL" as const,
+        discoveryMode:
+          run.discoveryMode === "INITIAL" ||
+          run.discoveryMode === "INCREMENTAL" ||
+          run.discoveryMode === "RECOVERY"
+            ? run.discoveryMode
+            : null,
+        discoveryComplete: Boolean(run.discoveryComplete),
+        discoveredThreadIds: run.discoveredThreadIds ?? [],
+        threadCursor: run.threadCursor ?? 0,
+        historyBoundary: run.historyBoundary ?? null,
+        failedThreadIds: run.failedThreadIds ?? [],
+        messagesDiscovered: run.messagesDiscovered ?? 0,
+        messagesProcessed: run.messagesProcessed ?? 0,
+        threadsAnalyzed: run.threadsAnalyzed ?? 0,
+        importantCount: run.importantCount ?? 0,
+        actionCount: run.actionCount ?? 0,
+        replyCount: run.replyCount ?? 0,
+        waitingCount: run.waitingCount ?? 0,
+        informationalCount: run.informationalCount ?? 0,
+        ignoredCount: run.ignoredCount ?? 0,
+        startedAt: run.startedAt,
+        updatedAt: run.updatedAt ?? run.startedAt,
+      };
     },
     async failScan(scanId) {
       const run = scanRuns.find((item) => item.id === scanId);
@@ -169,11 +238,15 @@ function createMemoryStore(): ScanStorePort & {
         throw new Error("SCAN_IN_PROGRESS");
       }
       const id = crypto.randomUUID();
+      const startedAt = new Date().toISOString();
       scanRuns.push({
         id,
         status: "RUNNING",
-        startedAt: new Date().toISOString(),
+        startedAt,
+        updatedAt: startedAt,
         connectionId: input.connectionId,
+        userId: input.userId,
+        lookbackDays: input.lookbackDays,
       });
       return id;
     },
@@ -181,6 +254,7 @@ function createMemoryStore(): ScanStorePort & {
       const run = scanRuns.find((item) => item.id === scanId);
       if (run) {
         run.status = patch.status;
+        run.updatedAt = new Date().toISOString();
         if (patch.threadsDiscovered !== undefined) {
           run.threadsDiscovered = patch.threadsDiscovered;
         }
@@ -193,6 +267,39 @@ function createMemoryStore(): ScanStorePort & {
         }
         if (patch.errorMessage !== undefined) {
           run.errorMessage = patch.errorMessage;
+        }
+        if (patch.lookbackDays !== undefined) {
+          run.lookbackDays = patch.lookbackDays;
+        }
+        if (patch.discoveryComplete !== undefined) {
+          run.discoveryComplete = patch.discoveryComplete;
+        }
+        if (patch.discoveredThreadIds !== undefined) {
+          run.discoveredThreadIds = patch.discoveredThreadIds;
+        }
+        if (patch.threadCursor !== undefined) {
+          run.threadCursor = patch.threadCursor;
+        }
+        if (patch.historyBoundary !== undefined) {
+          run.historyBoundary = patch.historyBoundary;
+        }
+        if (patch.failedThreadIds !== undefined) {
+          run.failedThreadIds = patch.failedThreadIds;
+        }
+        if (patch.messagesDiscovered !== undefined) {
+          run.messagesDiscovered = patch.messagesDiscovered;
+        }
+        if (patch.messagesProcessed !== undefined) {
+          run.messagesProcessed = patch.messagesProcessed;
+        }
+        if (patch.threadsAnalyzed !== undefined) {
+          run.threadsAnalyzed = patch.threadsAnalyzed;
+        }
+        if (patch.importantCount !== undefined) {
+          run.importantCount = patch.importantCount;
+        }
+        if (patch.discoveryMode !== undefined) {
+          run.discoveryMode = patch.discoveryMode;
         }
       }
     },
@@ -314,15 +421,73 @@ describe("processInitialScan", () => {
           modifyThreadLabels: async () => {},
         },
       });
-      expect(result.status).toBe("PARTIAL");
+      expect(result.status).toBe("CONTINUED");
       expect(fetchThread).not.toHaveBeenCalled();
       expect(store.connection.historyId).toBe("old-history");
-      expect(parseThreadFailureIds(store.scanRuns[0].errorMessage)).toEqual(["t1"]);
-      expect(store.scanRuns[0].status).toBe("PARTIAL");
+      expect(store.scanRuns[0].status).toBe("RUNNING");
+      expect(store.scanRuns[0].threadCursor).toBe(0);
+      expect(store.scanRuns[0].discoveredThreadIds).toEqual(["t1"]);
     } finally {
       clock.mockRestore();
     }
   });
+
+  it("resumes remaining threads on the next invocation without re-analyzing finished ones", async () => {
+    vi.stubEnv("AI_MAX_CONCURRENCY", "1");
+    const store = createMemoryStore();
+    const clock = vi.spyOn(Date, "now").mockReturnValue(0);
+    const analyze = vi.fn(async () => ({ ok: true as const, analysis: validAnalysis() }));
+    const fetchThread = vi.fn(async (threadId: string) => [
+      parsedMessage({ gmailThreadId: threadId, gmailMessageId: `m-${threadId}` }),
+    ]);
+    const gmail: ScanGmailPort = {
+      getProfileHistoryId: async () => "hist-new",
+      listHistoryChanges: async () => {
+        throw new Error("history should not run on the initial scan");
+      },
+      listMessageRefs: async () => [
+        { id: "m-t1", threadId: "t1" },
+        { id: "m-t2", threadId: "t2" },
+      ],
+      fetchThread,
+      loadLabelMap: async () => LABEL_MAP,
+      modifyThreadLabels: async () => {},
+    };
+    try {
+      fetchThread.mockImplementation(async (threadId: string) => {
+        clock.mockReturnValue(SCAN_WORK_BUDGET_MS);
+        return [parsedMessage({ gmailThreadId: threadId, gmailMessageId: `m-${threadId}` })];
+      });
+      const first = await runScan({ store, gmail, analyze });
+      expect(first.status).toBe("CONTINUED");
+      expect(analyze).toHaveBeenCalledTimes(1);
+      expect(store.scanRuns[0]?.threadCursor).toBe(1);
+      expect(store.connection.historyId).toBeNull();
+
+      clock.mockReturnValue(0);
+      const prepared = await resumeGmailScan({
+        scanId: first.scanId,
+        gmailEmail: "me@example.com",
+        gmail,
+        store,
+        provider: unusedProvider(),
+        modelName: "gemini-test",
+        analyze,
+      });
+      fetchThread.mockImplementation(async (threadId: string) => [
+        parsedMessage({ gmailThreadId: threadId, gmailMessageId: `m-${threadId}` }),
+      ]);
+      const second = await executeGmailScan(prepared);
+      expect(second.status).toBe("SUCCESS");
+      expect(analyze).toHaveBeenCalledTimes(2);
+      expect(store.scanRuns[0]?.status).toBe("SUCCESS");
+      expect(store.connection.historyId).toBe("hist-new");
+    } finally {
+      clock.mockRestore();
+      vi.unstubAllEnvs();
+    }
+  });
+
   it("upserts a thread once, applies labels after analysis, and keeps counters consistent", async () => {
     const store = createMemoryStore();
     const modifyThreadLabels = vi.fn(async () => undefined);
@@ -877,6 +1042,7 @@ describe("openGmailScan admission", () => {
       triggerType: "MANUAL",
       windowStart: "2026-09-10T00:00:00.000Z",
       windowEnd: "2026-09-10T12:00:00.000Z",
+      lookbackDays: 7,
     });
     const second = store.insertScanRun({
       userId: "user-1",
@@ -884,6 +1050,7 @@ describe("openGmailScan admission", () => {
       triggerType: "SCHEDULED",
       windowStart: "2026-09-10T00:00:00.000Z",
       windowEnd: "2026-09-10T12:00:00.000Z",
+      lookbackDays: 7,
     });
     const results = await Promise.allSettled([first, second]);
     const accepted = results.filter((result) => result.status === "fulfilled");
@@ -903,6 +1070,7 @@ describe("openGmailScan admission", () => {
       id: "stale",
       status: "RUNNING",
       startedAt: new Date(now.getTime() - 21 * 60_000).toISOString(),
+      updatedAt: new Date(now.getTime() - 21 * 60_000).toISOString(),
       connectionId: "conn-1",
     });
     const prepared = await admit(store, now);

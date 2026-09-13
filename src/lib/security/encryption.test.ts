@@ -65,6 +65,7 @@ describe("encryptSecret / decryptSecret", () => {
     const encrypted = encryptSecret("secret", HEX_KEY);
     expect(() => rotateSecretEnvelope(encrypted, "cd".repeat(32), "ef".repeat(32))).toThrowError();
   });
+});
 
 describe("timingSafeStringEqual", () => {
   it("returns true for equal strings", () => {

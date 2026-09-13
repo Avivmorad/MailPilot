@@ -229,6 +229,18 @@ function createMemoryStore(): ScanStorePort & {
         updatedAt: run.updatedAt ?? run.startedAt,
       };
     },
+    async getScanStatus(scanId) {
+      const run = scanRuns.find((item) => item.id === scanId);
+      if (
+        run?.status === "RUNNING" ||
+        run?.status === "SUCCESS" ||
+        run?.status === "PARTIAL" ||
+        run?.status === "FAILED"
+      ) {
+        return run.status;
+      }
+      return null;
+    },
     async failScan(scanId) {
       const run = scanRuns.find((item) => item.id === scanId);
       if (run) {
@@ -257,6 +269,9 @@ function createMemoryStore(): ScanStorePort & {
     async updateScanRun(scanId, patch) {
       const run = scanRuns.find((item) => item.id === scanId);
       if (run) {
+        if (patch.status === "RUNNING" && run.status !== "RUNNING") {
+          return;
+        }
         run.status = patch.status;
         run.updatedAt = new Date().toISOString();
         if (patch.threadsDiscovered !== undefined) {
@@ -948,6 +963,43 @@ describe("processInitialScan", () => {
     expect(store.progressChecks[0]).toBe(0);
     expect(store.progressChecks).toContain(1);
     expect(store.progressChecks.at(-1)).toBe(2);
+  });
+
+  it("stops a cancelled scan without finishing remaining threads or advancing history", async () => {
+    vi.stubEnv("AI_MAX_CONCURRENCY", "1");
+    const store = createMemoryStore();
+    const analyze = vi.fn(async () => ({ ok: true as const, analysis: validAnalysis() }));
+    try {
+      const result = await runScan({
+        store,
+        gmail: {
+          listMessageRefs: async () => [
+            { id: "m1", threadId: "t1" },
+            { id: "m2", threadId: "t2" },
+          ],
+          listHistoryChanges: async () => {
+            throw new Error("history should not run on the initial scan");
+          },
+          fetchThread: async (threadId) => {
+            const running = store.scanRuns.find((run) => run.status === "RUNNING");
+            if (running) {
+              await store.failScan(running.id, "cancelled", "stopped");
+            }
+            return [parsedMessage({ gmailThreadId: threadId, gmailMessageId: `m-${threadId}` })];
+          },
+          getProfileHistoryId: async () => "hist-new",
+          loadLabelMap: async () => LABEL_MAP,
+          modifyThreadLabels: async () => undefined,
+        },
+        analyze,
+      });
+      expect(result.status).toBe("FAILED");
+      expect(store.scanRuns[0]?.status).toBe("FAILED");
+      expect(store.connection.historyId).toBeNull();
+      expect(analyze.mock.calls.length).toBeLessThan(2);
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 });
 

@@ -41,6 +41,15 @@ describe("appStatusBanner", () => {
     expect(aiBanner?.href).toBe("/dashboard#scan");
     expect(aiBanner?.actionLabel).toBe("Try again");
 
+    const cancelledBanner = appStatusBanner({
+      connectionStatus: "CONNECTED",
+      scanStatus: "FAILED",
+      errorCode: "cancelled",
+    });
+    expect(cancelledBanner?.kind).toBe("info");
+    expect(cancelledBanner?.title).toBe("Scan stopped.");
+    expect(cancelledBanner?.actionLabel).toBe("Scan again");
+
     const genericBanner = appStatusBanner({
       connectionStatus: "CONNECTED",
       scanStatus: "FAILED",

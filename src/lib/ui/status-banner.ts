@@ -60,6 +60,15 @@ export function appStatusBanner(input: {
         actionLabel: "Try again",
       };
     }
+    if (input.errorCode === "cancelled") {
+      return {
+        kind: "info",
+        title: "Scan stopped.",
+        body: "Already-checked conversations were kept. You can start a new scan when you want.",
+        href: "/dashboard#scan",
+        actionLabel: "Scan again",
+      };
+    }
     return {
       kind: "error",
       title: "The last scan failed.",

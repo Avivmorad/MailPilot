@@ -12,6 +12,8 @@ export const SCAN_USER_MESSAGES = {
     "The last scan failed. Try again in a few minutes. Your existing summaries were kept.",
   rate_limited: "A scan was started too recently. Please wait two minutes before scanning again.",
   scan_in_progress: "A scan is already running for this Gmail account.",
+  cancelled: "Scan stopped. Already-checked conversations were kept. You can start again.",
+  not_running: "That scan is not running.",
 } as const;
 
 export function scanUserMessage(code: string | null | undefined, fallback?: string | null): string {

@@ -10,7 +10,7 @@ import { createGmailScanPort } from "@/lib/scans/gmail-port";
 import { executeGmailScan, resumeGmailScan } from "@/lib/scans/process-scan";
 import { createSupabaseScanStore } from "@/lib/scans/store";
 import { createAdminClient } from "@/lib/supabase/admin";
-import type { ScanRunResult } from "@/lib/scans/types";
+import { EMPTY_SCAN_COUNTERS, type ScanRunResult } from "@/lib/scans/types";
 
 export const continueScanRequestSchema = z.object({
   scanId: z.string().uuid(),
@@ -83,9 +83,19 @@ export async function chainIfContinued(value: unknown): Promise<void> {
 
 export async function continueScanRun(scanId: string): Promise<ScanRunResult> {
   const store = createSupabaseScanStore();
+  const status = await store.getScanStatus(scanId);
   const checkpoint = await store.getScanCheckpoint(scanId);
   if (!checkpoint) {
     throw new Error("scan_not_found");
+  }
+  if (status !== "RUNNING") {
+    return {
+      scanId,
+      status: "FAILED",
+      counters: EMPTY_SCAN_COUNTERS,
+      lookbackDays: checkpoint.lookbackDays,
+      mode: checkpoint.discoveryMode ?? "INITIAL",
+    };
   }
   const api = await createGmailApiForConnection(checkpoint.connectionId);
   const prepared = await resumeGmailScan({

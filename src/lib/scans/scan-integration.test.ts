@@ -155,6 +155,18 @@ function createMemoryStore(
         updatedAt: run.startedAt,
       };
     },
+    async getScanStatus(scanId) {
+      const run = scanRuns.find((item) => item.id === scanId);
+      if (
+        run?.status === "RUNNING" ||
+        run?.status === "SUCCESS" ||
+        run?.status === "PARTIAL" ||
+        run?.status === "FAILED"
+      ) {
+        return run.status;
+      }
+      return null;
+    },
     async failScan(scanId, errorCode, errorMessage) {
       const run = scanRuns.find((item) => item.id === scanId);
       if (run) {
@@ -181,6 +193,9 @@ function createMemoryStore(
     async updateScanRun(scanId, patch) {
       const run = scanRuns.find((item) => item.id === scanId);
       if (run) {
+        if (patch.status === "RUNNING" && run.status !== "RUNNING") {
+          return;
+        }
         run.status = patch.status;
         if (patch.errorCode !== undefined) {
           run.errorCode = patch.errorCode;

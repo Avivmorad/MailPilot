@@ -49,6 +49,10 @@ export function isManualScanRateLimited(
   return Number.isFinite(lastAttempt) && nowMs - lastAttempt < MANUAL_SCAN_RATE_LIMIT_MS;
 }
 
+export function skipsManualScanRateLimit(errorCode: string | null | undefined): boolean {
+  return errorCode === "cancelled";
+}
+
 export class ScanRequestError extends Error {
   constructor(
     readonly status: number,
@@ -128,7 +132,12 @@ export async function beginManualInitialScan(
     }
   }
 
+  const latest = await getLatestScanRunForUser(userId);
+  const skipRateLimit = skipsManualScanRateLimit(
+    typeof latest?.error_code === "string" ? latest.error_code : null,
+  );
   if (
+    !skipRateLimit &&
     isManualScanRateLimited(
       typeof existing?.last_attempted_scan_at === "string" ? existing.last_attempted_scan_at : null,
     )

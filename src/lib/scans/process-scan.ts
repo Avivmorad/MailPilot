@@ -346,7 +346,19 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
     lookbackDays,
   });
 
+  const asFailedResult = (mode: ScanDiscoveryMode): ScanRunResult => ({
+    scanId,
+    status: "FAILED",
+    counters: EMPTY_SCAN_COUNTERS,
+    lookbackDays,
+    mode,
+  });
+
   try {
+    const liveStatus = await store.getScanStatus(scanId);
+    if (liveStatus && liveStatus !== "RUNNING") {
+      return asFailedResult("INITIAL");
+    }
     const checkpoint = await store.getScanCheckpoint(scanId);
     let historyBoundary = checkpoint?.historyBoundary ?? null;
     let discoveryMode: ScanDiscoveryMode = checkpoint?.discoveryMode ?? "INITIAL";
@@ -429,6 +441,9 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
       workerCount,
       async () => {
         for (;;) {
+          if ((await store.getScanStatus(scanId)) !== "RUNNING") {
+            return;
+          }
           if (Date.now() - startedMs >= SCAN_WORK_BUDGET_MS) {
             return;
           }
@@ -601,6 +616,17 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
     );
     await progressWrites;
 
+    if ((await store.getScanStatus(scanId)) !== "RUNNING") {
+      emitProductEvent({
+        type: "scan.cancelled",
+        scanId,
+        connectionId,
+        errorCode: "cancelled",
+        durationMs: Date.now() - startedMs,
+      });
+      return asFailedResult(discoveryMode);
+    }
+
     const nextCursor = admitIndex;
     const chunkTallies = countersFromAnalyses(analyses);
     const counters = {
@@ -689,6 +715,10 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
 
     return { scanId, status, counters, lookbackDays, mode: discoveryMode };
   } catch (error) {
+    const stopped = await store.getScanStatus(scanId);
+    if (stopped && stopped !== "RUNNING") {
+      return asFailedResult("INITIAL");
+    }
     const reauth =
       isGmailAuthError(error) ||
       (error instanceof GmailConnectError && error.reason === "reauth_required");

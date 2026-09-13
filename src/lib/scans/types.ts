@@ -112,9 +112,12 @@ export interface RunningScanRef {
   updatedAt: string | null;
 }
 
+export type ScanRunStatus = "RUNNING" | "SUCCESS" | "PARTIAL" | "FAILED";
+
 export interface ScanStorePort {
   findRunningScan(connectionId: string): Promise<RunningScanRef | null>;
   getScanCheckpoint(scanId: string): Promise<ScanCheckpoint | null>;
+  getScanStatus(scanId: string): Promise<ScanRunStatus | null>;
   failScan(scanId: string, errorCode: string, errorMessage: string): Promise<void>;
   insertScanRun(input: {
     userId: string;

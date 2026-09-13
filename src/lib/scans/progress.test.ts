@@ -92,6 +92,21 @@ describe("scanProgressView", () => {
     });
   });
 
+  it("describes a user-cancelled scan without claiming it finished", () => {
+    expect(
+      scanProgressView({
+        threadsDiscovered: 504,
+        threadsChecked: 310,
+        status: "FAILED",
+        errorCode: "cancelled",
+      }),
+    ).toEqual({
+      percent: 62,
+      label: "Scan stopped after checking 310 of 504 conversations.",
+      indeterminate: false,
+    });
+  });
+
   it("explains quota pause on failure", () => {
     expect(
       scanProgressView({

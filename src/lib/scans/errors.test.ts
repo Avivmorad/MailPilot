@@ -56,6 +56,8 @@ describe("scanUserMessage", () => {
     expect(scanUserMessage("partial_thread_failures", "thread_failures:1:t1")).toBe(
       SCAN_USER_MESSAGES.partial_thread_failures,
     );
+    expect(scanUserMessage("cancelled")).toBe(SCAN_USER_MESSAGES.cancelled);
+    expect(scanUserMessage("not_running")).toBe(SCAN_USER_MESSAGES.not_running);
   });
 });
 

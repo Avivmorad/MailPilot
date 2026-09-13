@@ -52,6 +52,16 @@ export function scanProgressView(input: ScanProgressInput): {
   }
 
   if (status === "FAILED") {
+    if (errorCode === "cancelled") {
+      return {
+        percent: rawPercent,
+        label:
+          threadsDiscovered > 0
+            ? `Scan stopped after checking ${threadsChecked} of ${threadsDiscovered} conversations.`
+            : "Scan stopped before conversations were checked.",
+        indeterminate: false,
+      };
+    }
     if (errorCode === "gmail_quota") {
       return {
         percent: rawPercent,

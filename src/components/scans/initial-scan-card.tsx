@@ -91,7 +91,8 @@ export function InitialScanCard({
       setProgress(null);
       setWatchId(null);
       if (scan.status === "FAILED") {
-        setError(true);
+        const cancelled = scan.error_code === "cancelled";
+        setError(!cancelled);
         setErrorCode(scan.error_code ?? "scan_failed");
         setMessage(scanUserMessage(scan.error_code, scan.error_message));
         return;
@@ -109,6 +110,32 @@ export function InitialScanCard({
       clearInterval(timer);
     };
   }, [busy, watchId, router, completeHref]);
+
+  async function cancelScan() {
+    if (!watchId || watchId === "pending") {
+      return;
+    }
+    try {
+      const response = await fetch(`/api/scans/${watchId}/cancel`, { method: "POST" });
+      const payload: unknown = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const failed = payload as { error?: string; message?: string };
+        setError(true);
+        setErrorCode(failed.error ?? "scan_failed");
+        setMessage(scanUserMessage(failed.error, failed.message));
+        return;
+      }
+      setBusy(false);
+      setProgress(null);
+      setWatchId(null);
+      setError(false);
+      setErrorCode("cancelled");
+      setMessage(scanUserMessage("cancelled"));
+    } catch {
+      setError(true);
+      setMessage("Could not cancel the scan.");
+    }
+  }
 
   async function runScan() {
     setBusy(true);
@@ -206,6 +233,17 @@ export function InitialScanCard({
           >
             {busy ? "Scanning…" : incremental ? "Scan new mail" : "Scan now"}
           </Button>
+          {busy ? (
+            <Button
+              type="button"
+              size="lg"
+              variant="outline"
+              disabled={!watchId || watchId === "pending"}
+              onClick={() => void cancelScan()}
+            >
+              Cancel scan
+            </Button>
+          ) : null}
         </div>
         {message ? (
           <p

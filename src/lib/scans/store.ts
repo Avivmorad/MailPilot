@@ -134,6 +134,22 @@ export function createSupabaseScanStore(): ScanStorePort {
       };
     },
 
+    async getScanStatus(scanId) {
+      const { data, error } = await db
+        .from("scan_runs")
+        .select("status")
+        .eq("id", scanId)
+        .maybeSingle();
+      if (error) {
+        failStore("Failed to load scan status", error);
+      }
+      const status = data?.status;
+      if (status === "RUNNING" || status === "SUCCESS" || status === "PARTIAL" || status === "FAILED") {
+        return status;
+      }
+      return null;
+    },
+
     async failScan(scanId, errorCode, errorMessage) {
       const { error } = await db
         .from("scan_runs")
@@ -143,7 +159,8 @@ export function createSupabaseScanStore(): ScanStorePort {
           error_code: errorCode,
           error_message: errorMessage,
         })
-        .eq("id", scanId);
+        .eq("id", scanId)
+        .eq("status", "RUNNING");
       if (error) {
         failStore("Failed to mark stale scan as failed", error);
       }
@@ -199,7 +216,11 @@ export function createSupabaseScanStore(): ScanStorePort {
       if (patch.threadCursor !== undefined) row.thread_cursor = patch.threadCursor;
       if (patch.historyBoundary !== undefined) row.history_boundary = patch.historyBoundary;
       if (patch.failedThreadIds !== undefined) row.failed_thread_ids = patch.failedThreadIds;
-      const { error } = await db.from("scan_runs").update(row).eq("id", scanId);
+      let query = db.from("scan_runs").update(row).eq("id", scanId);
+      if (patch.status === "RUNNING") {
+        query = query.eq("status", "RUNNING");
+      }
+      const { error } = await query;
       if (error) {
         failStore("Failed to update scan run", error);
       }

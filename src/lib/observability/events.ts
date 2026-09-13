@@ -8,6 +8,7 @@ export const PRODUCT_EVENT_NAMES = [
   "scan.partial",
   "scan.failed",
   "scan.continued",
+  "scan.cancelled",
   "thread.analyzed",
   "action.upserted",
   "digest.created",

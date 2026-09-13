@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
-import { GeminiEmailTriageProvider } from "@/lib/ai/client";
+import { GeminiEmailTriageProvider, GEMINI_REQUEST_TIMEOUT_MS } from "@/lib/ai/client";
 import { TRIAGE_SYSTEM_PROMPT, UNTRUSTED_THREAD_START } from "@/lib/ai/prompts";
 import { threadAnalysisJsonSchema, type ThreadAnalysis } from "@/lib/ai/schemas";
 import type { ThreadAnalysisInput } from "@/lib/ai/types";
@@ -38,6 +38,25 @@ const validPayload: ThreadAnalysis = {
 };
 
 describe("GeminiEmailTriageProvider", () => {
+  it("aborts a hung request without retrying", async () => {
+    vi.useFakeTimers();
+    try {
+      let signal: AbortSignal | undefined;
+      const generate = vi.fn((params) => {
+        signal = params.signal;
+        return new Promise<string>(() => {});
+      });
+      const provider = new GeminiEmailTriageProvider(env, generate);
+      const assertion = expect(provider.analyzeThread(input)).rejects.toThrow(/timed out/i);
+      await vi.advanceTimersByTimeAsync(GEMINI_REQUEST_TIMEOUT_MS);
+      await assertion;
+      expect(signal?.aborted).toBe(true);
+      expect(generate).toHaveBeenCalledTimes(1);
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
   it("parses structured JSON from Gemini", async () => {
     const provider = new GeminiEmailTriageProvider(env, async (params) => {
       expect(params.apiKey).toBe("test-key");

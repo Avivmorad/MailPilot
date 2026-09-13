@@ -42,7 +42,9 @@ import {
   type StoredThreadRow,
 } from "@/lib/scans/types";
 
-const STALE_RUNNING_MS = 20 * 60 * 1000;
+const STALE_RUNNING_MS = 6 * 60 * 1000;
+// Leave time for in-flight requests and final persistence before the 300s host cap.
+export const SCAN_WORK_BUDGET_MS = 180_000;
 
 function receivedAtIso(internalDate: string | null): string {
   const millis = Number(internalDate);
@@ -358,6 +360,11 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
 
     const analysisKey = analysisPromptKey(settings);
     await mapPool(threadIds, limits.AI_MAX_CONCURRENCY, async (gmailThreadId) => {
+      if (Date.now() - startedMs >= SCAN_WORK_BUDGET_MS) {
+        threadFailures += 1;
+        failedGmailThreadIds.push(gmailThreadId);
+        return;
+      }
       try {
         const messages = await gmail.fetchThread(gmailThreadId);
         if (messages.length === 0) {

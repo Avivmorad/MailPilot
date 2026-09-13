@@ -110,7 +110,7 @@ export async function beginManualInitialScan(
     gmailEmail: connection.gmailEmail,
     lookbackDays,
     triggerType,
-    forceLookback: true,
+    forceLookback: false,
     gmail: createGmailScanPort(connection.gmail, connection.connectionId),
     store,
     provider: createEmailTriageProvider(),

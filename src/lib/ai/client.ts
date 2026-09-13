@@ -10,7 +10,8 @@ import {
 import type { ThreadAnalysisInput } from "@/lib/ai/types";
 import { getGeminiEnv, type GeminiEnv } from "@/lib/config/env";
 
-const MAX_ATTEMPTS = 3;
+const MAX_ATTEMPTS = 2;
+export const GEMINI_REQUEST_TIMEOUT_MS = 25_000;
 
 export interface GeminiGenerateParams {
   apiKey: string;
@@ -18,6 +19,7 @@ export interface GeminiGenerateParams {
   systemInstruction: string;
   userPrompt: string;
   responseJsonSchema: unknown;
+  signal: AbortSignal;
 }
 
 export type GeminiGenerateFn = (params: GeminiGenerateParams) => Promise<string>;
@@ -50,13 +52,17 @@ function retryDelayMs(error: unknown, attempt: number): number | null {
 }
 
 export async function generateWithGemini(params: GeminiGenerateParams): Promise<string> {
-  const ai = new GoogleGenAI({ apiKey: params.apiKey });
+  const ai = new GoogleGenAI({
+    apiKey: params.apiKey,
+    httpOptions: { timeout: GEMINI_REQUEST_TIMEOUT_MS, retryOptions: { attempts: 1 } },
+  });
   const response = await ai.models.generateContent({
     model: params.model,
     contents: params.userPrompt,
     config: {
       systemInstruction: params.systemInstruction,
       temperature: 0,
+      abortSignal: params.signal,
       responseMimeType: "application/json",
       responseJsonSchema: params.responseJsonSchema,
     },
@@ -96,13 +102,29 @@ export class GeminiEmailTriageProvider implements EmailTriageProvider {
   }
 
   private async completeOnce(input: ThreadAnalysisInput): Promise<ThreadAnalysis> {
-    const content = await this.generate({
-      apiKey: this.apiKey,
-      model: this.model,
-      systemInstruction: TRIAGE_SYSTEM_PROMPT,
-      userPrompt: buildTriageUserPrompt(input),
-      responseJsonSchema: threadAnalysisJsonSchema,
-    });
+    const controller = new AbortController();
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let content: string;
+    try {
+      content = await Promise.race([
+        this.generate({
+          apiKey: this.apiKey,
+          model: this.model,
+          systemInstruction: TRIAGE_SYSTEM_PROMPT,
+          userPrompt: buildTriageUserPrompt(input),
+          responseJsonSchema: threadAnalysisJsonSchema,
+          signal: controller.signal,
+        }),
+        new Promise<never>((_, reject) => {
+          timer = setTimeout(() => {
+            reject(new ThreadTriageError("provider", "Gemini triage request timed out"));
+            controller.abort();
+          }, GEMINI_REQUEST_TIMEOUT_MS);
+        }),
+      ]);
+    } finally {
+      clearTimeout(timer);
+    }
 
     if (!content) {
       throw new ThreadTriageError("schema", "Gemini returned an empty triage payload");

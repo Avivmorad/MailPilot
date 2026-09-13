@@ -11,7 +11,7 @@ import {
   GmailConnectError,
   revokeRefreshToken,
 } from "@/lib/gmail/oauth";
-import { decryptSecret, encryptSecret } from "@/lib/security/encryption";
+import { unwrapSecretWithRotation, encryptSecret } from "@/lib/security/encryption";
 import { cancelActiveJobsForConnection } from "@/lib/scans/jobs";
 import { nextDailyScanAt } from "@/lib/scans/schedule";
 import { getScanPreferences } from "@/lib/settings/preferences";
@@ -321,17 +321,24 @@ export async function disconnectGmailForUser(userId: string): Promise<void> {
     return;
   }
 
-  let key: string | null = null;
+  let currentKey: string | null = null;
+  let previousKey: string | undefined;
   try {
-    key = getGmailEnv().TOKEN_ENCRYPTION_KEY;
+    const env = getGmailEnv();
+    currentKey = env.TOKEN_ENCRYPTION_KEY;
+    previousKey = env.TOKEN_ENCRYPTION_PREVIOUS_KEY;
   } catch {
-    key = null;
+    currentKey = null;
   }
 
   for (const row of rows) {
-    if (row.encrypted_refresh_token && key) {
+    if (row.encrypted_refresh_token && currentKey) {
       try {
-        const refreshToken = decryptSecret(row.encrypted_refresh_token, key);
+        const refreshToken = unwrapSecretWithRotation(
+          row.encrypted_refresh_token,
+          currentKey,
+          previousKey,
+        ).plaintext;
         await revokeRefreshToken(refreshToken);
       } catch {
         // Still mark disconnected locally if Google revoke fails.

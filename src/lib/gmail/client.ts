@@ -1,10 +1,43 @@
 import { google, type gmail_v1 } from "googleapis";
 
-import { getGmailEnv } from "@/lib/config/env";
+import { getGmailEnv, type GmailEnv } from "@/lib/config/env";
 import { createOAuth2Client, GmailConnectError } from "@/lib/gmail/oauth";
 import { SCAN_USER_MESSAGES } from "@/lib/scans/errors";
-import { decryptSecret } from "@/lib/security/encryption";
+import { rotateSecretEnvelope } from "@/lib/security/encryption";
 import { createAdminClient } from "@/lib/supabase/admin";
+
+type AdminClient = ReturnType<typeof createAdminClient>;
+
+async function unwrapStoredRefreshToken(
+  db: AdminClient,
+  connectionId: string,
+  ciphertext: string,
+  env: GmailEnv,
+): Promise<string> {
+  let rotated: ReturnType<typeof rotateSecretEnvelope>;
+  try {
+    rotated = rotateSecretEnvelope(
+      ciphertext,
+      env.TOKEN_ENCRYPTION_KEY,
+      env.TOKEN_ENCRYPTION_PREVIOUS_KEY,
+    );
+  } catch {
+    throw new GmailConnectError("encryption_key", "Could not decrypt stored Gmail token");
+  }
+
+  if (rotated.rotatedCiphertext) {
+    try {
+      await db
+        .from("gmail_connections")
+        .update({ encrypted_refresh_token: rotated.rotatedCiphertext })
+        .eq("id", connectionId);
+    } catch {
+      // Scan/connect still proceeds; ciphertext stays on the previous key.
+    }
+  }
+
+  return rotated.plaintext;
+}
 
 export async function createGmailApi(refreshToken: string): Promise<gmail_v1.Gmail> {
   const auth = createOAuth2Client();
@@ -40,12 +73,12 @@ export async function createGmailApiForUser(userId: string): Promise<{
   }
 
   const env = getGmailEnv();
-  let refreshToken: string;
-  try {
-    refreshToken = decryptSecret(data.encrypted_refresh_token, env.TOKEN_ENCRYPTION_KEY);
-  } catch {
-    throw new GmailConnectError("encryption_key", "Could not decrypt stored Gmail token");
-  }
+  const refreshToken = await unwrapStoredRefreshToken(
+    db,
+    data.id as string,
+    data.encrypted_refresh_token as string,
+    env,
+  );
 
   try {
     const gmail = await createGmailApi(refreshToken);
@@ -76,12 +109,12 @@ export async function createGmailApiForConnection(connectionId: string): Promise
   }
 
   const env = getGmailEnv();
-  let refreshToken: string;
-  try {
-    refreshToken = decryptSecret(data.encrypted_refresh_token, env.TOKEN_ENCRYPTION_KEY);
-  } catch {
-    throw new GmailConnectError("encryption_key", "Could not decrypt stored Gmail token");
-  }
+  const refreshToken = await unwrapStoredRefreshToken(
+    db,
+    data.id as string,
+    data.encrypted_refresh_token as string,
+    env,
+  );
 
   try {
     const gmail = await createGmailApi(refreshToken);

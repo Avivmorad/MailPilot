@@ -4,6 +4,7 @@ import {
   decryptSecret,
   encryptSecret,
   parseEncryptionKey,
+  rotateSecretEnvelope,
   timingSafeStringEqual,
 } from "@/lib/security/encryption";
 
@@ -41,10 +42,29 @@ describe("encryptSecret / decryptSecret", () => {
     expect(() => decryptSecret(encrypted, "cd".repeat(32))).toThrowError();
   });
 
-  it("rejects a malformed envelope", () => {
-    expect(() => decryptSecret("not-valid", HEX_KEY)).toThrowError(/Unsupported/);
+  it("decrypts with the previous key and re-encrypts under the current key", () => {
+    const previous = "cd".repeat(32);
+    const current = HEX_KEY;
+    const encrypted = encryptSecret("1//rotate-me", previous);
+    const result = rotateSecretEnvelope(encrypted, current, previous);
+    expect(result.plaintext).toBe("1//rotate-me");
+    expect(result.rotatedCiphertext).toBeTruthy();
+    expect(result.rotatedCiphertext).not.toBe(encrypted);
+    expect(decryptSecret(result.rotatedCiphertext!, current)).toBe("1//rotate-me");
+    expect(() => decryptSecret(result.rotatedCiphertext!, previous)).toThrowError();
   });
-});
+
+  it("does not rewrite ciphertext already under the current key", () => {
+    const encrypted = encryptSecret("stay", HEX_KEY);
+    const result = rotateSecretEnvelope(encrypted, HEX_KEY, "cd".repeat(32));
+    expect(result.plaintext).toBe("stay");
+    expect(result.rotatedCiphertext).toBeNull();
+  });
+
+  it("throws when neither current nor previous key can decrypt", () => {
+    const encrypted = encryptSecret("secret", HEX_KEY);
+    expect(() => rotateSecretEnvelope(encrypted, "cd".repeat(32), "ef".repeat(32))).toThrowError();
+  });
 
 describe("timingSafeStringEqual", () => {
   it("returns true for equal strings", () => {

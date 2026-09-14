@@ -25,11 +25,7 @@ describe("cancelScanForUser", () => {
       status: "RUNNING",
       connectionId: "conn-1",
     });
-    const result = await cancelScanForUser(
-      "user-1",
-      "11111111-1111-4111-8111-111111111111",
-      port,
-    );
+    const result = await cancelScanForUser("user-1", "11111111-1111-4111-8111-111111111111", port);
     expect(result.status).toBe("FAILED");
     expect(port.failRunningScan).toHaveBeenCalledWith(
       "11111111-1111-4111-8111-111111111111",
@@ -48,7 +44,10 @@ describe("cancelScanForUser", () => {
     });
     await expect(
       cancelScanForUser("user-1", "11111111-1111-4111-8111-111111111111", port),
-    ).rejects.toMatchObject({ status: 409, code: "not_running" } satisfies Partial<ScanRequestError>);
+    ).rejects.toMatchObject({
+      status: 409,
+      code: "not_running",
+    } satisfies Partial<ScanRequestError>);
     expect(port.failRunningScan).not.toHaveBeenCalled();
   });
 

@@ -134,9 +134,7 @@ function decodeHtmlEntities(value: string): string {
     .replace(/&quot;/gi, '"')
     .replace(/&#39;/gi, "'")
     .replace(/&#(\d+);/g, (_, digits: string) => String.fromCharCode(Number(digits)))
-    .replace(/&#x([0-9a-f]+);/gi, (_, hex: string) =>
-      String.fromCharCode(Number.parseInt(hex, 16)),
-    )
+    .replace(/&#x([0-9a-f]+);/gi, (_, hex: string) => String.fromCharCode(Number.parseInt(hex, 16)))
     .replace(/&amp;/gi, "&");
 }
 

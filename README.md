@@ -51,15 +51,26 @@ npm run dev                  # http://localhost:3000
 
 The landing page runs without secrets. Features that need configuration fail fast with a clear message.
 
-### Google Cloud / Gmail
+### Google Cloud: two different OAuth uses
+
+Use the **same** OAuth 2.0 Web application client for both. They are not interchangeable callbacks.
+
+**1. Continue with Google (MailPilot account)** — Supabase Auth, no Gmail scopes.
+
+1. Keep the existing Gmail redirect URI on the Web client (do not remove it).
+2. Add authorized redirect URI `https://kssolktnbxjppyqmodck.supabase.co/auth/v1/callback`.
+3. In Supabase (Authentication → Providers → Google) enable Google and enter the Web client ID and secret. Never commit the secret.
+4. Authentication → URL Configuration: Site URL = production MailPilot URL; add `http://localhost:3000/auth/confirm` and `https://<production-domain>/auth/confirm`.
+5. Sign-in returns to `/auth/confirm?next=/onboarding` (PKCE). Gmail stays disconnected until Connect Gmail.
+
+**2. Connect Gmail (mailbox access)** — MailPilot server OAuth with `gmail.modify`.
 
 1. Enable the Gmail API and configure the OAuth consent screen (External + Testing is fine). Add your Gmail as a test user.
-2. Create **Web application** OAuth client credentials.
-3. Set the authorized redirect URI to exactly `http://localhost:3000/api/gmail/callback` (and the production URL in Vercel).
-4. Put `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI`, and `TOKEN_ENCRYPTION_KEY` (`openssl rand -hex 32`) in `.env.local`.
-5. Restart the app, sign in, and click **Connect Gmail** on `/dashboard`.
+2. Authorized redirect URI must be exactly `http://localhost:3000/api/gmail/callback` (and the production URL in Vercel).
+3. Put `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI`, and `TOKEN_ENCRYPTION_KEY` (`openssl rand -hex 32`) in `.env.local`. These env vars are **Gmail Connect only**; they are not used for Continue with Google.
+4. Restart the app, sign in, and click **Connect Gmail** on `/dashboard` or `/onboarding`.
 
-Scope requested: `https://www.googleapis.com/auth/gmail.modify` (read mail and apply labels). Labels above are created on first connect if missing.
+Scope requested for Connect Gmail: `https://www.googleapis.com/auth/gmail.modify` (read mail and apply labels). Labels above are created on first connect if missing.
 
 ### Environment variables
 

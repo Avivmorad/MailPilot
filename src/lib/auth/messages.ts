@@ -19,6 +19,10 @@ const AUTH_ERROR_MESSAGES: Array<{ match: RegExp; message: string }> = [
     message: "This link is invalid or has expired. Request a new one.",
   },
   {
+    match: /access_denied|oauth|provider|sign in with google/i,
+    message: "Google sign-in was cancelled or could not be completed. Try again.",
+  },
+  {
     match: /supabase configured|Invalid or missing public/i,
     message: "Something went wrong. Is Supabase configured in .env.local?",
   },

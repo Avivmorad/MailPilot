@@ -26,6 +26,7 @@ const QUERY_NOTICES: Record<string, string> = {
 
 const QUERY_ERRORS: Record<string, string> = {
   auth_link: "This confirmation or reset link is invalid or has expired. Request a new one.",
+  google_oauth: "Google sign-in was cancelled or could not be completed. Try again.",
 };
 
 export default function LoginPage() {

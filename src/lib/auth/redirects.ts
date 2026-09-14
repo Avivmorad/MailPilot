@@ -27,32 +27,77 @@ export function parseAuthOtpType(value: string | null): AuthOtpType | null {
   return parsed.success ? parsed.data : null;
 }
 
-export function defaultAuthNext(type: AuthOtpType | null): SafeAuthNextPath {
-  return type === "recovery" ? "/login/update-password" : "/login";
+export function defaultAuthNext(type: AuthOtpType | null, oauthCode = false): SafeAuthNextPath {
+  if (type === "recovery") {
+    return "/login/update-password";
+  }
+  if (oauthCode) {
+    return "/onboarding";
+  }
+  return "/login";
 }
 
 /** Only allow same-origin relative app paths. Reject protocol-relative and unknown routes. */
 export function safeAuthNext(
   raw: string | null | undefined,
   type: AuthOtpType | null,
+  oauthCode = false,
 ): SafeAuthNextPath {
   if (!raw) {
-    return defaultAuthNext(type);
+    return defaultAuthNext(type, oauthCode);
   }
   const path = raw.split("?")[0] ?? raw;
   if (!path.startsWith("/") || path.startsWith("//") || path.includes("\\")) {
-    return defaultAuthNext(type);
+    return defaultAuthNext(type, oauthCode);
   }
   return (SAFE_AUTH_NEXT_PATHS as readonly string[]).includes(path)
     ? (path as SafeAuthNextPath)
-    : defaultAuthNext(type);
+    : defaultAuthNext(type, oauthCode);
 }
 
 export function passwordResetRedirectTo(origin: string): string {
-  return `${origin.replace(/\/+$/, "")}/auth/confirm?next=/login/update-password`;
+  return `${origin.replace(/\/+$/, "")}/auth/confirm`;
 }
 
-/** PKCE return path for Supabase Auth Google sign-in (no Gmail scopes). */
+/**
+ * PKCE return path for Supabase Auth Google sign-in (no Gmail scopes).
+ * No `?next=` query: Site URL fallback (production) is used when redirectTo is
+ * not an exact allow-list match.
+ */
 export function googleSignInRedirectTo(origin: string): string {
-  return `${origin.replace(/\/+$/, "")}/auth/confirm?next=/onboarding`;
+  return `${origin.replace(/\/+$/, "")}/auth/confirm`;
+}
+
+/**
+ * Supabase falls back to Site URL (`/?code=` or `/login?code=`) when `redirectTo`
+ * is missing from the allow list. Forward that PKCE code to the confirm route.
+ * Never intercept `/api/*` (Gmail OAuth uses a different `code` on `/api/gmail/callback`).
+ */
+export function oauthCodeConfirmUrl(url: URL): URL | null {
+  if (url.pathname === "/auth/confirm" || url.pathname.startsWith("/api/")) {
+    return null;
+  }
+  const code = url.searchParams.get("code");
+  if (code) {
+    const next = new URL(url.href);
+    next.pathname = "/auth/confirm";
+    if (!next.searchParams.get("next")) {
+      next.searchParams.set("next", "/onboarding");
+    }
+    return next;
+  }
+  const error = url.searchParams.get("error");
+  if (error && (url.pathname === "/" || url.pathname === "/login")) {
+    const login = new URL("/login", url.origin);
+    login.searchParams.set("error", oauthErrorQuery(error));
+    return login;
+  }
+  return null;
+}
+
+export function oauthErrorQuery(error: string | null | undefined): "google_oauth" | "auth_link" {
+  if (error && /access_denied|oauth|provider|cancelled/i.test(error)) {
+    return "google_oauth";
+  }
+  return "auth_link";
 }

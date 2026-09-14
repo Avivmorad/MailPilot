@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 
-import { parseAuthOtpType, safeAuthNext } from "@/lib/auth/redirects";
+import { oauthErrorQuery, parseAuthOtpType, safeAuthNext } from "@/lib/auth/redirects";
 import { createClient } from "@/lib/supabase/server";
 
 const confirmQuerySchema = z.object({
@@ -30,7 +30,17 @@ export async function GET(request: NextRequest) {
   }
 
   const otpType = parseAuthOtpType(parsed.data.type ?? null);
-  destination.pathname = safeAuthNext(parsed.data.next, otpType);
+  const isOAuthCode = Boolean(parsed.data.code);
+  destination.pathname = safeAuthNext(parsed.data.next, otpType, isOAuthCode);
+
+  if (!parsed.data.token_hash && !parsed.data.code) {
+    destination.pathname = "/login";
+    destination.searchParams.set(
+      "error",
+      oauthErrorQuery(request.nextUrl.searchParams.get("error")),
+    );
+    return NextResponse.redirect(destination);
+  }
 
   try {
     const supabase = await createClient();
@@ -47,10 +57,6 @@ export async function GET(request: NextRequest) {
       if (error) {
         throw error;
       }
-    } else {
-      destination.pathname = "/login";
-      destination.searchParams.set("error", "auth_link");
-      return NextResponse.redirect(destination);
     }
   } catch {
     destination.pathname = "/login";

@@ -65,7 +65,7 @@ describe("LoginPage", () => {
       expect(resetPasswordForEmail).toHaveBeenCalledWith(
         "ada@example.com",
         expect.objectContaining({
-          redirectTo: expect.stringContaining("/auth/confirm?next=/login/update-password"),
+          redirectTo: expect.stringContaining("/auth/confirm"),
         }),
       );
     });
@@ -105,7 +105,7 @@ describe("LoginPage", () => {
     expect(signInWithOAuth).toHaveBeenCalledWith({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth/confirm?next=/onboarding`,
+        redirectTo: `${window.location.origin}/auth/confirm`,
       },
     });
     const oauthCall = signInWithOAuth.mock.calls[0][0];

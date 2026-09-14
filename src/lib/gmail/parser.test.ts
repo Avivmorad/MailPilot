@@ -35,6 +35,23 @@ describe("htmlToText", () => {
     expect(text).not.toContain("tracker");
     expect(text).not.toContain("<p>");
   });
+
+  it("ignores script blocks with malformed closing tags that browsers still accept", () => {
+    const html = '<div>Keep me</div><script>alert(1)</script foo="bar"><p>After</p>';
+    expect(htmlToText(html)).toBe("Keep me\nAfter");
+  });
+
+  it("does not double-unescape encoded entities", () => {
+    expect(htmlToText("&amp;lt;b&amp;gt;safe&amp;lt;/b&amp;gt;")).toBe("&lt;b&gt;safe&lt;/b&gt;");
+  });
+
+  it("keeps list items separated when closing tags are omitted", () => {
+    expect(htmlToText("<ul><li>one<li>two</ul>")).toBe("one\ntwo");
+  });
+
+  it("keeps headings separated when closing tags are omitted", () => {
+    expect(htmlToText("<h1>Title<h2>Body</h2>")).toBe("Title\nBody");
+  });
 });
 
 describe("parseGmailMessage", () => {

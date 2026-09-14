@@ -60,7 +60,7 @@ Use the **same** OAuth 2.0 Web application client for both. They are not interch
 1. Keep the existing Gmail redirect URI on the Web client (do not remove it).
 2. Add authorized redirect URI `https://kssolktnbxjppyqmodck.supabase.co/auth/v1/callback`.
 3. In Supabase (Authentication → Providers → Google) enable Google and enter the Web client ID and secret. Never commit the secret.
-4. Authentication → URL Configuration: Site URL = production MailPilot URL; add `http://localhost:3000/auth/confirm` and `https://<production-domain>/auth/confirm`.
+4. Authentication → URL Configuration: Site URL = `https://gmailpilot.vercel.app` (not the `*-avivmoradteam.vercel.app` alias). Add Redirect URLs `http://localhost:3000/auth/confirm`, `https://gmailpilot.vercel.app/auth/confirm`, and `https://gmailpilot-avivmoradteam.vercel.app/auth/confirm`.
 5. Sign-in returns to `/auth/confirm?next=/onboarding` (PKCE). Gmail stays disconnected until Connect Gmail.
 
 **2. Connect Gmail (mailbox access)** — MailPilot server OAuth with `gmail.modify`.

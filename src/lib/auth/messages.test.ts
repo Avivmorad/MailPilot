@@ -12,6 +12,9 @@ describe("authUserMessage", () => {
     );
     expect(authUserMessage(new Error("User already registered"))).toContain("already exists");
     expect(authUserMessage(new Error("otp_expired"))).toContain("expired");
+    expect(authUserMessage(new Error("access_denied from oauth provider"))).toContain(
+      "Google sign-in",
+    );
   });
 
   it("does not echo unknown or sensitive provider text", () => {

@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+import { oauthCodeConfirmUrl } from "@/lib/auth/redirects";
 import { getClientEnv } from "@/lib/config/env";
 
 const PROTECTED_PREFIXES = [
@@ -21,6 +22,11 @@ const PROTECTED_PREFIXES = [
  */
 export async function updateSession(request: NextRequest): Promise<NextResponse> {
   let supabaseResponse = NextResponse.next({ request });
+
+  const oauthConfirm = oauthCodeConfirmUrl(request.nextUrl);
+  if (oauthConfirm) {
+    return NextResponse.redirect(oauthConfirm);
+  }
 
   let env: ReturnType<typeof getClientEnv>;
   try {

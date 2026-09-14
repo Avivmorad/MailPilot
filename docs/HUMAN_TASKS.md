@@ -11,6 +11,25 @@ These are console / legal / live-environment steps. Code for Phases 0–9 plus s
 - [ ] **Confirm Vercel env** matches `.env.example`: `GOOGLE_REDIRECT_URI` and `NEXT_PUBLIC_APP_URL` use the live domain, `CRON_SECRET` matches the cron header, `TOKEN_ENCRYPTION_KEY` is a 32-byte hex key.
 - [ ] **Google Cloud OAuth:** authorized redirect URI is exactly `https://<your-domain>/api/gmail/callback`. Gmail API enabled. Your Gmail is a test user while the app is in Testing.
 
+## Google sign-in (MailPilot account, not Gmail)
+
+Two Google callbacks are required and different:
+
+1. **Supabase Auth** — `https://kssolktnbxjppyqmodck.supabase.co/auth/v1/callback` (Continue with Google).
+2. **MailPilot Gmail** — `https://gmailpilot.vercel.app/api/gmail/callback` (Connect Gmail). Do not remove it.
+
+- [ ] Keep both Gmail redirect URIs (`http://localhost:3000/api/gmail/callback` and production `/api/gmail/callback`).
+- [ ] Add the Supabase Auth redirect URI above on the **same** OAuth Web client.
+- [ ] Supabase **mailpilot-dev** → Authentication → Providers → Google: enable; paste client ID and secret (never commit the secret).
+- [ ] Authentication → URL Configuration:
+  - **Site URL:** `https://gmailpilot.vercel.app` (not the `*-avivmoradteam.vercel.app` alias).
+  - **Redirect URLs** (add all):
+    - `http://localhost:3000/auth/confirm`
+    - `https://gmailpilot.vercel.app/auth/confirm`
+    - `https://gmailpilot-avivmoradteam.vercel.app/auth/confirm`
+- [ ] Live test: sign out on `https://gmailpilot.vercel.app` → Continue with Google → `/onboarding` on **that same host** → Gmail still disconnected until Connect Gmail.
+- [ ] Same verified email as an existing password user: confirm this does **not** duplicate application data (one `auth.users` id / one `profiles` row). Report linking truthfully from what Supabase actually does (automatic identity linking vs a second user). Do not assume linking without checking Authentication → Users.
+
 ## Staging walkthrough (T12)
 
 On [the live app](https://gmailpilot.vercel.app):
@@ -28,23 +47,6 @@ On [the live app](https://gmailpilot.vercel.app):
 - [ ] Google OAuth verification / restricted-scope review.
 - [ ] Terms of service if you will have users beyond testers.
 - [ ] Optional: custom SMTP so signup mail is from MailPilot, not “Supabase Auth” (`docs/PRODUCT_DECISIONS.md`).
-
-## Google sign-in (MailPilot account, not Gmail)
-
-This is **app authentication** via Supabase Auth. It must not request Gmail scopes. **Connect Gmail** stays a separate step (`gmail.modify` → MailPilot `/api/gmail/callback`).
-
-Both redirect URIs below are required and **different**:
-
-1. **Supabase Auth callback** — Google sends the sign-in code to Supabase (`/auth/v1/callback`). MailPilot then receives a PKCE `code` at `/auth/confirm`.
-2. **MailPilot Gmail callback** — Google sends mailbox authorization to this app (`/api/gmail/callback`). Do not replace or remove that URI when adding sign-in.
-
-- [ ] Open the **existing** Google Cloud Console OAuth 2.0 **Web application** client (same client used for Gmail).
-- [ ] **Preserve** the existing MailPilot Gmail authorized redirect URI (`http://localhost:3000/api/gmail/callback` and the production `https://<production-domain>/api/gmail/callback`).
-- [ ] **Add** authorized redirect URI: `https://kssolktnbxjppyqmodck.supabase.co/auth/v1/callback`
-- [ ] In Supabase **mailpilot-dev** → Authentication → Providers → Google: enable the provider and paste that Web client **ID** and **secret**. Never commit the Google client secret (dashboard only; not in git, not in `NEXT_PUBLIC_*`).
-- [ ] Authentication → URL Configuration: **Site URL** = the production MailPilot URL. Add Redirect URLs: `http://localhost:3000/auth/confirm` and `https://<production-domain>/auth/confirm`.
-- [ ] Live test: sign out → **Continue with Google** → arrive at `/onboarding` signed into MailPilot → Gmail still disconnected until **Connect Gmail** → connect Gmail separately (expect `gmail.modify` consent).
-- [ ] Same verified email as an existing password user: confirm this does **not** duplicate application data (one `auth.users` id / one `profiles` row). Report linking truthfully from what Supabase actually does (automatic identity linking vs a second user). Do not assume linking without checking Authentication → Users.
 
 ## Not owner work
 

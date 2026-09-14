@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   defaultAuthNext,
   googleSignInRedirectTo,
+  oauthCodeConfirmUrl,
   passwordResetRedirectTo,
   parseAuthOtpType,
   safeAuthNext,
@@ -35,5 +36,27 @@ describe("auth redirects", () => {
     expect(googleSignInRedirectTo("https://mailpilot.example/")).toBe(
       "https://mailpilot.example/auth/confirm?next=/onboarding",
     );
+  });
+
+  it("forwards a Site URL PKCE code to /auth/confirm", () => {
+    const forwarded = oauthCodeConfirmUrl(
+      new URL("https://gmailpilot-avivmoradteam.vercel.app/?code=abc-123"),
+    );
+    expect(forwarded?.pathname).toBe("/auth/confirm");
+    expect(forwarded?.searchParams.get("code")).toBe("abc-123");
+    expect(forwarded?.searchParams.get("next")).toBe("/onboarding");
+  });
+
+  it("does not intercept Gmail OAuth or the confirm route", () => {
+    expect(
+      oauthCodeConfirmUrl(
+        new URL("https://gmailpilot.vercel.app/api/gmail/callback?code=gmail-code"),
+      ),
+    ).toBeNull();
+    expect(
+      oauthCodeConfirmUrl(
+        new URL("https://gmailpilot.vercel.app/auth/confirm?code=abc&next=/onboarding"),
+      ),
+    ).toBeNull();
   });
 });

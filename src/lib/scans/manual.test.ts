@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import { progressAgeMs } from "@/lib/scans/checkpoint";
+import { SCAN_HEARTBEAT_BUSY_MS } from "@/lib/scans/dispatch-budget";
 import {
   isManualScanRateLimited,
   MANUAL_SCAN_RATE_LIMIT_MS,
@@ -22,5 +24,11 @@ describe("manual scan rate limit", () => {
   it("lets Scan now run immediately after a user cancel", () => {
     expect(skipsManualScanRateLimit("cancelled")).toBe(true);
     expect(skipsManualScanRateLimit("stale_lease")).toBe(false);
+  });
+
+  it("treats a fresh continuation slice as still busy", () => {
+    const updatedAt = "2026-09-14T12:00:00.000Z";
+    const age = progressAgeMs({ updatedAt, startedAt: updatedAt }, Date.parse(updatedAt) + 60_000);
+    expect(age).toBeLessThan(SCAN_HEARTBEAT_BUSY_MS);
   });
 });

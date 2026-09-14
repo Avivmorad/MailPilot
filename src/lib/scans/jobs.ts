@@ -1,6 +1,15 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import type { ScanRunResult } from "@/lib/scans/types";
 
 export type ScanJobStatus = "QUEUED" | "RUNNING" | "SUCCESS" | "FAILED";
+
+export const SCAN_SLICE_IN_PROGRESS = "scan_slice_in_progress";
+
+export interface ActiveScanJob {
+  id: string;
+  scanRunId: string | null;
+  status: ScanJobStatus;
+}
 
 export interface ScanJobRecord {
   id: string;
@@ -71,6 +80,91 @@ export async function createScanJob(input: {
     throw new Error("Failed to create scan job");
   }
   return { id: data.id as string, attempt: data.attempt as number };
+}
+
+export async function findActiveScanJob(connectionId: string): Promise<ActiveScanJob | null> {
+  const db = createAdminClient();
+  const { data, error } = await db
+    .from("scan_jobs")
+    .select("id, scan_run_id, status")
+    .eq("gmail_connection_id", connectionId)
+    .in("status", ["QUEUED", "RUNNING"])
+    .maybeSingle();
+  if (error) {
+    throw new Error("Failed to load active scan job");
+  }
+  if (!data) {
+    return null;
+  }
+  return {
+    id: data.id as string,
+    scanRunId: (data.scan_run_id as string | null) ?? null,
+    status: data.status as ScanJobStatus,
+  };
+}
+
+export async function extendScanJobLease(
+  jobId: string,
+  workerId: string,
+  leaseExpiresAt: string,
+): Promise<void> {
+  const db = createAdminClient();
+  const { error } = await db
+    .from("scan_jobs")
+    .update({
+      locked_at: new Date().toISOString(),
+      locked_by: workerId,
+      lease_expires_at: leaseExpiresAt,
+    })
+    .eq("id", jobId);
+  if (error) {
+    throw new Error("Failed to extend scan job lease");
+  }
+}
+
+/**
+ * Ensures only one scan slice runs per Gmail connection. Continuation slices
+ * adopt the existing RUNNING job for the same scan_run_id.
+ */
+export async function admitScanSlice(input: {
+  connectionId: string;
+  scanId: string;
+  workerId: string;
+  leaseExpiresAt: string;
+}): Promise<string> {
+  await failStaleActiveJobs(input.connectionId);
+  const active = await findActiveScanJob(input.connectionId);
+  if (active) {
+    if (active.scanRunId === input.scanId && active.status === "RUNNING") {
+      await extendScanJobLease(active.id, input.workerId, input.leaseExpiresAt);
+      return active.id;
+    }
+    throw new Error(SCAN_SLICE_IN_PROGRESS);
+  }
+  const job = await createScanJob({
+    connectionId: input.connectionId,
+    workerId: input.workerId,
+    leaseExpiresAt: input.leaseExpiresAt,
+  });
+  await markScanJobRunning(job.id, input.scanId);
+  return job.id;
+}
+
+export async function resolveScanSliceJob(
+  jobId: string,
+  result: Pick<ScanRunResult, "status">,
+  workerId: string,
+  leaseExpiresAt: string,
+): Promise<void> {
+  if (result.status === "CONTINUED") {
+    await extendScanJobLease(jobId, workerId, leaseExpiresAt);
+    return;
+  }
+  if (result.status === "FAILED") {
+    await finishScanJob(jobId, "FAILED", null);
+    return;
+  }
+  await finishScanJob(jobId, "SUCCESS", null);
 }
 
 export async function markScanJobRunning(jobId: string, scanRunId: string): Promise<void> {

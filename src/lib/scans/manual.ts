@@ -18,7 +18,17 @@ import {
   scanUserMessage,
 } from "@/lib/scans/errors";
 import { progressAgeMs, scanHasRemainingWork } from "@/lib/scans/checkpoint";
-import { SCAN_STALE_PROGRESS_MS } from "@/lib/scans/dispatch-budget";
+import {
+  DISPATCH_LEASE_SECONDS,
+  SCAN_HEARTBEAT_BUSY_MS,
+  SCAN_STALE_PROGRESS_MS,
+} from "@/lib/scans/dispatch-budget";
+import {
+  admitScanSlice,
+  finishScanJob,
+  resolveScanSliceJob,
+  SCAN_SLICE_IN_PROGRESS,
+} from "@/lib/scans/jobs";
 import { openGmailScan, executeGmailScan, resumeGmailScan } from "@/lib/scans/process-scan";
 import { createSupabaseScanStore } from "@/lib/scans/store";
 import { persistDigestAfterScan } from "@/lib/digest/build-digest";
@@ -105,6 +115,9 @@ export async function beginManualInitialScan(
   const checkpoint = running ? await store.getScanCheckpoint(running.id) : null;
   if (checkpoint && scanHasRemainingWork(checkpoint)) {
     const age = progressAgeMs(checkpoint, Date.now());
+    if (age < SCAN_HEARTBEAT_BUSY_MS) {
+      throw new ScanRequestError(409, "scan_in_progress", scanUserMessage("scan_in_progress"));
+    }
     if (age < SCAN_STALE_PROGRESS_MS) {
       const prepared = await resumeGmailScan({
         scanId: checkpoint.scanId,
@@ -117,17 +130,14 @@ export async function beginManualInitialScan(
       return {
         scanId: prepared.scanId,
         triggerType: checkpoint.triggerType === "INITIAL" ? "INITIAL" : "MANUAL",
-        execute: async () => {
-          const result = await executeGmailScan(prepared);
-          if (result.status === "SUCCESS" || result.status === "PARTIAL") {
-            try {
-              await persistDigestAfterScan({ userId, scanId: prepared.scanId });
-            } catch {
-              emitProductEvent({ type: "digest.created", scanId: prepared.scanId, persisted: 0 });
-            }
-          }
-          return result;
-        },
+        execute: async () =>
+          runAdmittedScanSlice({
+            connectionId: connection.connectionId,
+            scanId: prepared.scanId,
+            workerPrefix: "manual",
+            userId,
+            prepared,
+          }),
       };
     }
   }
@@ -163,18 +173,60 @@ export async function beginManualInitialScan(
   return {
     scanId: prepared.scanId,
     triggerType,
-    execute: async () => {
-      const result = await executeGmailScan(prepared);
-      if (result.status === "SUCCESS" || result.status === "PARTIAL") {
-        try {
-          await persistDigestAfterScan({ userId, scanId: prepared.scanId });
-        } catch {
-          emitProductEvent({ type: "digest.created", scanId: prepared.scanId, persisted: 0 });
-        }
-      }
-      return result;
-    },
+    execute: async () =>
+      runAdmittedScanSlice({
+        connectionId: connection.connectionId,
+        scanId: prepared.scanId,
+        workerPrefix: "manual",
+        userId,
+        prepared,
+      }),
   };
+}
+
+async function runAdmittedScanSlice(input: {
+  connectionId: string;
+  scanId: string;
+  workerPrefix: string;
+  userId: string;
+  prepared: Awaited<ReturnType<typeof openGmailScan>>;
+}): Promise<ScanRunResult> {
+  const workerId = `${input.workerPrefix}:${input.scanId}:${crypto.randomUUID()}`;
+  const leaseExpiresAt = new Date(Date.now() + DISPATCH_LEASE_SECONDS * 1000).toISOString();
+  let jobId: string;
+  try {
+    jobId = await admitScanSlice({
+      connectionId: input.connectionId,
+      scanId: input.scanId,
+      workerId,
+      leaseExpiresAt,
+    });
+  } catch (error) {
+    if (error instanceof Error && error.message === SCAN_SLICE_IN_PROGRESS) {
+      throw new ScanRequestError(409, "scan_in_progress", scanUserMessage("scan_in_progress"));
+    }
+    throw error;
+  }
+
+  try {
+    const result = await executeGmailScan(input.prepared);
+    await resolveScanSliceJob(jobId, result, workerId, leaseExpiresAt);
+    if (result.status === "SUCCESS" || result.status === "PARTIAL") {
+      try {
+        await persistDigestAfterScan({ userId: input.userId, scanId: input.scanId });
+      } catch {
+        emitProductEvent({ type: "digest.created", scanId: input.scanId, persisted: 0 });
+      }
+    }
+    return result;
+  } catch (error) {
+    await finishScanJob(
+      jobId,
+      "FAILED",
+      error instanceof Error ? error.message : "scan_failed",
+    ).catch(() => undefined);
+    throw error;
+  }
 }
 
 export async function startManualInitialScan(

@@ -214,6 +214,10 @@ MailPilot. Default From is “Supabase Auth” (`noreply@mail.app.supabase.io`) 
 English templates. Clicking the link still confirms the **MailPilot app account**. Do not
 confuse this with **Connect Gmail** (Google OAuth to scan the mailbox).
 
+**Continue with Google** is also app authentication (Supabase Auth `signInWithOAuth`, no
+Gmail scopes). Mailbox access remains the separate Connect Gmail step. Owner console
+steps: [`HUMAN_TASKS.md`](HUMAN_TASKS.md).
+
 - **Subject/body:** Authentication → Email → Templates (Confirm signup, Magic Link, Reset
   password). Keep `{{ .ConfirmationURL }}`.
 - **From / sender (“source”):** **Set up custom SMTP to edit the source.** Without a

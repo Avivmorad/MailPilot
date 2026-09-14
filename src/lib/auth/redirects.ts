@@ -51,3 +51,8 @@ export function safeAuthNext(
 export function passwordResetRedirectTo(origin: string): string {
   return `${origin.replace(/\/+$/, "")}/auth/confirm?next=/login/update-password`;
 }
+
+/** PKCE return path for Supabase Auth Google sign-in (no Gmail scopes). */
+export function googleSignInRedirectTo(origin: string): string {
+  return `${origin.replace(/\/+$/, "")}/auth/confirm?next=/onboarding`;
+}

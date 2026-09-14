@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   defaultAuthNext,
+  googleSignInRedirectTo,
   passwordResetRedirectTo,
   parseAuthOtpType,
   safeAuthNext,
@@ -27,6 +28,12 @@ describe("auth redirects", () => {
   it("builds a same-origin reset callback", () => {
     expect(passwordResetRedirectTo("https://mailpilot.example/")).toBe(
       "https://mailpilot.example/auth/confirm?next=/login/update-password",
+    );
+  });
+
+  it("builds a same-origin Google sign-in callback to onboarding", () => {
+    expect(googleSignInRedirectTo("https://mailpilot.example/")).toBe(
+      "https://mailpilot.example/auth/confirm?next=/onboarding",
     );
   });
 });

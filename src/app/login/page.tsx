@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useState, type FormEvent, type ReactNode } from "react";
+import { Suspense, useRef, useState, type FormEvent, type ReactNode } from "react";
 
 import { Logo } from "@/components/brand/logo";
 import { SkipToContent } from "@/components/layout/skip-to-content";
@@ -10,7 +10,7 @@ import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { authUserMessage } from "@/lib/auth/messages";
-import { passwordResetRedirectTo } from "@/lib/auth/redirects";
+import { googleSignInRedirectTo, passwordResetRedirectTo } from "@/lib/auth/redirects";
 import { createClient } from "@/lib/supabase/client";
 
 type Mode = "signin" | "signup" | "forgot";
@@ -88,12 +88,17 @@ function LoginForm() {
   const [notice, setNotice] = useState<string | null>(
     QUERY_NOTICES[searchParams.get("notice") ?? ""] ?? null,
   );
+  const googleSignInStarted = useRef(false);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
     setNotice(null);
     setFieldError(null);
+
+    if (loading || googleSignInStarted.current) {
+      return;
+    }
 
     if (!email.includes("@") || email.trim().length < 3) {
       setFieldError("Enter a valid email address.");
@@ -140,6 +145,35 @@ function LoginForm() {
     }
   }
 
+  async function onGoogleSignIn() {
+    if (loading || googleSignInStarted.current) {
+      return;
+    }
+
+    googleSignInStarted.current = true;
+    setError(null);
+    setNotice(null);
+    setFieldError(null);
+    setLoading(true);
+
+    try {
+      const supabase = createClient();
+      const { error: oauthError } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: googleSignInRedirectTo(window.location.origin),
+        },
+      });
+      if (oauthError) {
+        throw oauthError;
+      }
+    } catch (err) {
+      googleSignInStarted.current = false;
+      setError(authUserMessage(err));
+      setLoading(false);
+    }
+  }
+
   return (
     <LoginShell>
       <Card className="w-full shadow-sm">
@@ -162,6 +196,29 @@ function LoginForm() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {mode !== "forgot" ? (
+            <div className="mb-4 space-y-4">
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                disabled={loading}
+                aria-busy={loading}
+                onClick={() => {
+                  void onGoogleSignIn();
+                }}
+              >
+                <GoogleMark />
+                Continue with Google
+              </Button>
+              <p className="text-muted-foreground flex items-center gap-3 text-xs">
+                <span className="bg-border h-px flex-1" aria-hidden="true" />
+                or
+                <span className="bg-border h-px flex-1" aria-hidden="true" />
+              </p>
+            </div>
+          ) : null}
+
           <form onSubmit={onSubmit} className="space-y-4" noValidate>
             <div className="space-y-1.5">
               <label htmlFor="email" className="text-sm font-medium">
@@ -288,5 +345,28 @@ function LoginForm() {
         </CardContent>
       </Card>
     </LoginShell>
+  );
+}
+
+function GoogleMark() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" className="size-4">
+      <path
+        fill="#4285F4"
+        d="M23.52 12.27c0-.86-.08-1.69-.23-2.49H12v4.72h6.46a5.52 5.52 0 0 1-2.4 3.62v3h3.88c2.27-2.09 3.58-5.17 3.58-8.85"
+      />
+      <path
+        fill="#34A853"
+        d="M12 24c3.24 0 5.96-1.07 7.95-2.88l-3.88-3c-1.08.72-2.46 1.15-4.07 1.15-3.13 0-5.78-2.11-6.73-4.96H1.26v3.09A12 12 0 0 0 12 24"
+      />
+      <path
+        fill="#FBBC05"
+        d="M5.27 14.31A7.2 7.2 0 0 1 4.89 12c0-.8.14-1.58.38-2.31V6.6H1.26A12 12 0 0 0 0 12c0 1.94.46 3.77 1.26 5.4z"
+      />
+      <path
+        fill="#EA4335"
+        d="M12 4.75c1.76 0 3.34.61 4.58 1.8l3.44-3.44C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.69 1.26 6.6l4.01 3.09C6.22 6.86 8.87 4.75 12 4.75"
+      />
+    </svg>
   );
 }

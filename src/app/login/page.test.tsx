@@ -8,14 +8,28 @@ vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(),
 }));
 
+type GoogleOAuthCall = {
+  provider: string;
+  options: Record<string, unknown>;
+};
+const oauthSuccess = {
+  error: null as Error | null,
+  data: { provider: "google" as const, url: null },
+};
 const resetPasswordForEmail = vi.fn(async () => ({ error: null }));
+const signInWithOAuth = vi.fn<(args: GoogleOAuthCall) => Promise<typeof oauthSuccess>>(
+  async () => oauthSuccess,
+);
+const signInWithPassword = vi.fn(async () => ({ error: null }));
+const signUp = vi.fn(async () => ({ error: null }));
 
 vi.mock("@/lib/supabase/client", () => ({
   createClient: () => ({
     auth: {
-      signInWithPassword: vi.fn(),
-      signUp: vi.fn(),
+      signInWithPassword,
+      signUp,
       resetPasswordForEmail,
+      signInWithOAuth,
     },
   }),
 }));
@@ -25,6 +39,10 @@ import LoginPage from "@/app/login/page";
 afterEach(() => {
   cleanup();
   resetPasswordForEmail.mockClear();
+  signInWithOAuth.mockClear();
+  signInWithPassword.mockClear();
+  signUp.mockClear();
+  signInWithOAuth.mockResolvedValue(oauthSuccess);
 });
 
 describe("LoginPage", () => {
@@ -58,5 +76,83 @@ describe("LoginPage", () => {
     render(<LoginPage />);
     fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
     expect(screen.getByRole("alert")).toHaveTextContent("Enter a valid email address.");
+  });
+
+  it("shows Continue with Google on sign-in and signup, not password reset", () => {
+    render(<LoginPage />);
+
+    expect(screen.getByRole("button", { name: "Continue with Google" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Sign up" }));
+    expect(
+      screen.getByRole("heading", { level: 1, name: "Create your account" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Continue with Google" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
+    fireEvent.click(screen.getByRole("button", { name: "Forgot password?" }));
+    expect(screen.queryByRole("button", { name: "Continue with Google" })).not.toBeInTheDocument();
+  });
+
+  it("starts Google OAuth with the confirm redirect and no extra scopes", async () => {
+    render(<LoginPage />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Continue with Google" }));
+
+    await waitFor(() => {
+      expect(signInWithOAuth).toHaveBeenCalledTimes(1);
+    });
+    expect(signInWithOAuth).toHaveBeenCalledWith({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/auth/confirm?next=/onboarding`,
+      },
+    });
+    const oauthCall = signInWithOAuth.mock.calls[0][0];
+    expect(oauthCall).not.toHaveProperty("scopes");
+    expect(oauthCall.options).not.toHaveProperty("scopes");
+    expect(oauthCall.options).not.toHaveProperty("queryParams");
+  });
+
+  it("prevents duplicate Google OAuth requests while loading", async () => {
+    let finishOAuth: (() => void) | undefined;
+    signInWithOAuth.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          finishOAuth = () => resolve(oauthSuccess);
+        }),
+    );
+
+    render(<LoginPage />);
+    const googleButton = screen.getByRole("button", { name: "Continue with Google" });
+    fireEvent.click(googleButton);
+    fireEvent.click(googleButton);
+
+    await waitFor(() => {
+      expect(googleButton).toBeDisabled();
+    });
+    expect(signInWithOAuth).toHaveBeenCalledTimes(1);
+
+    finishOAuth?.();
+    await waitFor(() => {
+      expect(signInWithOAuth).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it("shows a safe message when Google OAuth fails", async () => {
+    signInWithOAuth.mockResolvedValueOnce({
+      error: new Error("access_denied provider_token=ya29.secret"),
+      data: { provider: "google", url: null },
+    });
+
+    render(<LoginPage />);
+    fireEvent.click(screen.getByRole("button", { name: "Continue with Google" }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("alert")).toHaveTextContent(
+        "Google sign-in was cancelled or could not be completed. Try again.",
+      );
+    });
+    expect(screen.getByRole("alert").textContent).not.toMatch(/ya29|provider_token/i);
   });
 });

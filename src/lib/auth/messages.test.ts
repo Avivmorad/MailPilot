@@ -18,5 +18,11 @@ describe("authUserMessage", () => {
     expect(authUserMessage(new Error("JWT kid=abc secret=ya29.token"))).toBe(
       "Something went wrong. Try again in a moment.",
     );
+    expect(authUserMessage(new Error("access_denied provider_token=ya29.secret"))).toBe(
+      "Google sign-in was cancelled or could not be completed. Try again.",
+    );
+    expect(authUserMessage(new Error("access_denied provider_token=ya29.secret"))).not.toContain(
+      "ya29",
+    );
   });
 });

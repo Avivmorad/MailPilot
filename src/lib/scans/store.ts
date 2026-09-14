@@ -144,7 +144,12 @@ export function createSupabaseScanStore(): ScanStorePort {
         failStore("Failed to load scan status", error);
       }
       const status = data?.status;
-      if (status === "RUNNING" || status === "SUCCESS" || status === "PARTIAL" || status === "FAILED") {
+      if (
+        status === "RUNNING" ||
+        status === "SUCCESS" ||
+        status === "PARTIAL" ||
+        status === "FAILED"
+      ) {
         return status;
       }
       return null;

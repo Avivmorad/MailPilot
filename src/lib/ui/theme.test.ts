@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { parseStoredTheme, THEME_STORAGE_KEY, themeIsDark } from "@/lib/ui/theme";
+import {
+  parseStoredTheme,
+  THEME_INIT_SCRIPT,
+  THEME_STORAGE_KEY,
+  themeIsDark,
+} from "@/lib/ui/theme";
 
 describe("theme", () => {
   it("parses stored preferences and defaults to system", () => {
@@ -17,5 +22,10 @@ describe("theme", () => {
     expect(themeIsDark("light", true)).toBe(false);
     expect(themeIsDark("system", true)).toBe(true);
     expect(themeIsDark("system", false)).toBe(false);
+  });
+
+  it("derives the inline theme bootstrap storage key from the shared constant", () => {
+    expect(THEME_INIT_SCRIPT).toContain(`var k=${JSON.stringify(THEME_STORAGE_KEY)}`);
+    expect(THEME_INIT_SCRIPT).not.toContain("${");
   });
 });

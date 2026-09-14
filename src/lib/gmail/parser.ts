@@ -28,6 +28,8 @@ export interface ParsedGmailMessage {
 
 const TEXT_MIME = /^text\/plain/i;
 const HTML_MIME = /^text\/html/i;
+const BLOCK_TAGS = new Set(["p", "div", "tr", "li", "blockquote"]);
+const RAW_TEXT_TAGS = new Set(["script", "style", "noscript"]);
 
 export function decodeBase64Url(data: string): string {
   return Buffer.from(data, "base64url").toString("utf8");
@@ -43,22 +45,90 @@ export function normalizeWhitespace(value: string): string {
 }
 
 export function htmlToText(html: string): string {
-  let text = html;
-  text = text.replace(/<script[\s\S]*?<\/script>/gi, " ");
-  text = text.replace(/<style[\s\S]*?<\/style>/gi, " ");
-  text = text.replace(/<noscript[\s\S]*?<\/noscript>/gi, " ");
-  text = text.replace(/<img[^>]*>/gi, " ");
-  text = text.replace(/<br\s*\/?>/gi, "\n");
-  text = text.replace(/<\/(p|div|h[1-6]|tr|li|blockquote)>/gi, "\n");
-  text = text.replace(/<[^>]+>/g, " ");
-  text = decodeHtmlEntities(text);
-  return normalizeWhitespace(text);
+  const text: string[] = [];
+  let ignoredTag: string | null = null;
+  let index = 0;
+  let atLineStart = true;
+
+  const pushText = (value: string) => {
+    text.push(value);
+    if (value.trim()) {
+      atLineStart = false;
+    }
+  };
+
+  const pushNewline = () => {
+    if (text[text.length - 1] !== "\n") {
+      text.push("\n");
+    }
+    atLineStart = true;
+  };
+
+  while (index < html.length) {
+    if (ignoredTag) {
+      if (html[index] !== "<") {
+        index += 1;
+        continue;
+      }
+
+      const tagEnd = findTagEnd(html, index);
+      if (tagEnd === -1) {
+        break;
+      }
+
+      const tag = readTag(html.slice(index + 1, tagEnd));
+      if (tag?.closing && tag.name === ignoredTag) {
+        ignoredTag = null;
+      }
+      index = tagEnd + 1;
+      continue;
+    }
+
+    if (html.startsWith("<!--", index)) {
+      const commentEnd = findCommentEnd(html, index + 4);
+      index = commentEnd === -1 ? html.length : commentEnd;
+      continue;
+    }
+
+    if (html[index] === "<") {
+      const tagEnd = findTagEnd(html, index);
+      if (tagEnd === -1) {
+        pushText(html.slice(index));
+        break;
+      }
+
+      const tag = readTag(html.slice(index + 1, tagEnd));
+      if (tag) {
+        if (!tag.closing && RAW_TEXT_TAGS.has(tag.name)) {
+          ignoredTag = tag.name;
+        } else if (tag.name === "br") {
+          pushNewline();
+        } else if (!tag.closing && isHeadingTag(tag.name)) {
+          if (!atLineStart) {
+            pushNewline();
+          }
+        } else if (!tag.closing && tag.name === "li") {
+          if (!atLineStart) {
+            pushNewline();
+          }
+        } else if (tag.closing && (BLOCK_TAGS.has(tag.name) || isHeadingTag(tag.name))) {
+          pushNewline();
+        }
+      }
+      index = tagEnd + 1;
+      continue;
+    }
+
+    pushText(html[index]);
+    index += 1;
+  }
+
+  return normalizeWhitespace(decodeHtmlEntities(text.join("")));
 }
 
 function decodeHtmlEntities(value: string): string {
   return value
     .replace(/&nbsp;/gi, " ")
-    .replace(/&amp;/gi, "&")
     .replace(/&lt;/gi, "<")
     .replace(/&gt;/gi, ">")
     .replace(/&quot;/gi, '"')
@@ -66,7 +136,66 @@ function decodeHtmlEntities(value: string): string {
     .replace(/&#(\d+);/g, (_, digits: string) => String.fromCharCode(Number(digits)))
     .replace(/&#x([0-9a-f]+);/gi, (_, hex: string) =>
       String.fromCharCode(Number.parseInt(hex, 16)),
-    );
+    )
+    .replace(/&amp;/gi, "&");
+}
+
+function findCommentEnd(html: string, start: number): number {
+  for (let index = start; index < html.length; index += 1) {
+    if (html.startsWith("-->", index)) {
+      return index + 3;
+    }
+    if (html.startsWith("--!>", index)) {
+      return index + 4;
+    }
+  }
+  return -1;
+}
+
+function findTagEnd(html: string, start: number): number {
+  let quote: '"' | "'" | null = null;
+
+  for (let index = start + 1; index < html.length; index += 1) {
+    const char = html[index];
+
+    if (quote) {
+      if (char === quote) {
+        quote = null;
+      }
+      continue;
+    }
+
+    if (char === '"' || char === "'") {
+      quote = char;
+      continue;
+    }
+
+    if (char === ">") {
+      return index;
+    }
+  }
+
+  return -1;
+}
+
+function readTag(raw: string): { closing: boolean; name: string } | null {
+  const tag = raw.trim();
+  if (!tag || tag.startsWith("!") || tag.startsWith("?")) {
+    return null;
+  }
+
+  const closing = tag.startsWith("/");
+  const content = closing ? tag.slice(1).trimStart() : tag;
+  const match = /^[a-z0-9-]+/i.exec(content);
+  if (!match) {
+    return null;
+  }
+
+  return { closing, name: match[0].toLowerCase() };
+}
+
+function isHeadingTag(name: string): boolean {
+  return /^h[1-6]$/i.test(name);
 }
 
 function headerValue(

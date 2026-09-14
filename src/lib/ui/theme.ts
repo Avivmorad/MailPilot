@@ -19,7 +19,8 @@ export function themeIsDark(preference: ThemePreference, systemDark: boolean): b
   return systemDark;
 }
 
-export const THEME_INIT_SCRIPT = `(function(){try{var k=${JSON.stringify(THEME_STORAGE_KEY)};var t=localStorage.getItem(k);var dark=t==="dark"||((t==="system"||!t)&&window.matchMedia("(prefers-color-scheme: dark)").matches);document.documentElement.classList.toggle("dark",dark);document.documentElement.style.colorScheme=dark?"dark":"light";}catch(e){}})();`;
+export const THEME_INIT_SCRIPT =
+  '(function(){try{var k="mailpilot.theme";var t=localStorage.getItem(k);var dark=t==="dark"||((t==="system"||!t)&&window.matchMedia("(prefers-color-scheme: dark)").matches);document.documentElement.classList.toggle("dark",dark);document.documentElement.style.colorScheme=dark?"dark":"light";}catch(e){}})();';
 
 export function applyTheme(preference: ThemePreference): boolean {
   window.localStorage.setItem(THEME_STORAGE_KEY, preference);

@@ -67,6 +67,7 @@ structured observability, and skip-to-content / labeled nav.
 Run and fix all failures:
 
 ```bash
+npm run format:check
 npm run lint
 npm run typecheck
 npm test
@@ -75,10 +76,14 @@ npm run eval:scorecard
 npm run build
 ```
 
+GitHub Actions (`.github/workflows/ci.yml`) runs this same sequence, starting with
+`npm run format:check` (`prettier --check .`). If it fails, run `npm run format` and commit
+the Prettier rewrite — CI will keep failing until the whole tree matches Prettier, including
+files you did not mean to edit.
+
 `npm test` already includes unit tests next to source. `npm run eval:scorecard` is the durable
-classification quality gate (schema validity, action recall, deadline hallucination). There is
-no GitHub Actions workflow in this repo; keep those scripts in `package.json` and run them
-locally or in whatever CI you add later.
+classification quality gate (schema validity, action recall, deadline hallucination). Keep
+these scripts in `package.json` and run them locally; CI runs them on every pull request.
 
 <!-- BEGIN:nextjs-agent-rules -->
 

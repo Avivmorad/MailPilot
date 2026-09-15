@@ -140,9 +140,9 @@ export default function Home() {
             Know what needs your attention. Ignore what doesn&apos;t.
           </h1>
           <p className="text-muted-foreground mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-pretty">
-            MailPilot reads your inbox, identifies what needs action, tracks what you&apos;re waiting
-            on, and summarizes everything else — so you can focus on the emails that actually
-            matter.
+            MailPilot reads your inbox, identifies what needs action, tracks what you&apos;re
+            waiting on, and summarizes everything else — so you can focus on the emails that
+            actually matter.
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <a href="/login" className={buttonVariants({ size: "lg" })}>

@@ -36,6 +36,28 @@ describe("GET /auth/confirm", () => {
     expect(response.headers.get("location")).toBe("http://localhost:3000/onboarding");
   });
 
+  it("exchanges a PKCE code without next and redirects to onboarding", async () => {
+    const request = new NextRequest("http://localhost:3000/auth/confirm?code=pkce-code");
+
+    const response = await GET(request);
+
+    expect(exchangeCodeForSession).toHaveBeenCalledWith("pkce-code");
+    expect(response.headers.get("location")).toBe("http://localhost:3000/onboarding");
+  });
+
+  it("maps cancelled Google OAuth to a Google error instead of an expired link", async () => {
+    const request = new NextRequest(
+      "http://localhost:3000/auth/confirm?error=access_denied&next=/onboarding",
+    );
+
+    const response = await GET(request);
+    const location = new URL(response.headers.get("location") ?? "");
+
+    expect(exchangeCodeForSession).not.toHaveBeenCalled();
+    expect(location.pathname).toBe("/login");
+    expect(location.searchParams.get("error")).toBe("google_oauth");
+  });
+
   it("sends failed OAuth exchanges to login without leaking provider errors", async () => {
     exchangeCodeForSession.mockResolvedValue({
       error: new Error("Unable to exchange code provider_token=secret"),

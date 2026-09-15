@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+import { oauthCodeConfirmUrl } from "@/lib/auth/redirects";
 import { getClientEnv } from "@/lib/config/env";
 
 const PROTECTED_PREFIXES = [
@@ -20,6 +21,11 @@ const PROTECTED_PREFIXES = [
  * working. Protected pages additionally re-check auth on the server.
  */
 export async function updateSession(request: NextRequest): Promise<NextResponse> {
+  const oauthHandoff = oauthCodeConfirmUrl(request.nextUrl);
+  if (oauthHandoff) {
+    return NextResponse.redirect(oauthHandoff);
+  }
+
   let supabaseResponse = NextResponse.next({ request });
 
   let env: ReturnType<typeof getClientEnv>;

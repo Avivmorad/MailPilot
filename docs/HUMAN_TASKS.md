@@ -42,7 +42,7 @@ Both redirect URIs below are required and **different**:
 - [ ] **Preserve** the existing MailPilot Gmail authorized redirect URI (`http://localhost:3000/api/gmail/callback` and the production `https://<production-domain>/api/gmail/callback`).
 - [ ] **Add** authorized redirect URI: `https://kssolktnbxjppyqmodck.supabase.co/auth/v1/callback`
 - [ ] In Supabase **mailpilot-dev** → Authentication → Providers → Google: enable the provider and paste that Web client **ID** and **secret**. Never commit the Google client secret (dashboard only; not in git, not in `NEXT_PUBLIC_*`).
-- [ ] Authentication → URL Configuration: **Site URL** = the production MailPilot URL. Add Redirect URLs: `http://localhost:3000/auth/confirm` and `https://<production-domain>/auth/confirm`.
+- [ ] Authentication → URL Configuration: **Site URL** = the production MailPilot URL. Add Redirect URLs: `http://localhost:3000/auth/confirm`, `http://localhost:3000/**`, and `https://<production-domain>/auth/confirm`. Without the localhost entries, Continue with Google from `npm run dev` sends you to production.
 - [ ] Live test: sign out → **Continue with Google** → arrive at `/onboarding` signed into MailPilot → Gmail still disconnected until **Connect Gmail** → connect Gmail separately (expect `gmail.modify` consent).
 - [ ] Same verified email as an existing password user: confirm this does **not** duplicate application data (one `auth.users` id / one `profiles` row). Report linking truthfully from what Supabase actually does (automatic identity linking vs a second user). Do not assume linking without checking Authentication → Users.
 

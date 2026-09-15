@@ -5,8 +5,7 @@ import { getGeminiEnv } from "@/lib/config/env";
 import { persistDigestAfterScan } from "@/lib/digest/build-digest";
 import { emitProductEvent } from "@/lib/observability/events";
 import { createGmailApiForConnection } from "@/lib/gmail/client";
-import { SCAN_CONTINUE_RETRY_MS } from "@/lib/scans/dispatch-budget";
-import { DISPATCH_LEASE_SECONDS } from "@/lib/scans/dispatch-budget";
+import { DISPATCH_LEASE_SECONDS, SCAN_CONTINUE_RETRY_MS } from "@/lib/scans/dispatch-budget";
 import { createGmailScanPort } from "@/lib/scans/gmail-port";
 import {
   admitScanSlice,
@@ -137,7 +136,10 @@ export async function continueScanRun(scanId: string): Promise<ScanRunResult> {
     modelName: getGeminiEnv().GEMINI_MODEL,
   });
   try {
-    const result = await executeGmailScan(prepared);
+    const result = await executeGmailScan({
+      ...prepared,
+      jobLease: { jobId, workerId },
+    });
     await resolveScanSliceJob(jobId, result, workerId, leaseExpiresAt);
     if (result.status === "SUCCESS" || result.status === "PARTIAL") {
       try {
@@ -152,6 +154,7 @@ export async function continueScanRun(scanId: string): Promise<ScanRunResult> {
       jobId,
       "FAILED",
       error instanceof Error ? error.message : "scan_failed",
+      workerId,
     ).catch(() => undefined);
     throw error;
   }

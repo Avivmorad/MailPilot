@@ -10,7 +10,6 @@ import {
   DISPATCH_DEFAULT_LIMIT,
   DISPATCH_LEASE_SECONDS,
   SCAN_CONTINUE_RETRY_MS,
-  SCAN_HEARTBEAT_BUSY_MS,
   SCAN_STALE_PROGRESS_MS,
   hasDispatchBudget,
 } from "@/lib/scans/dispatch-budget";
@@ -18,8 +17,7 @@ import { progressAgeMs, scanHasRemainingWork } from "@/lib/scans/checkpoint";
 import { SCAN_IN_PROGRESS } from "@/lib/scans/errors";
 import { createGmailScanPort } from "@/lib/scans/gmail-port";
 import {
-  createScanJob,
-  failStaleActiveJobs,
+  acquireScanJob,
   finishScanJob,
   incrementScanJobAttempt,
   markScanJobRunning,
@@ -69,20 +67,6 @@ async function runClaimedConnection(
   let attempt = 0;
 
   try {
-    try {
-      await failStaleActiveJobs(claimed.id, now);
-      const job = await createScanJob({
-        connectionId: claimed.id,
-        workerId,
-        leaseExpiresAt,
-      });
-      jobId = job.id;
-      attempt = await incrementScanJobAttempt(job.id);
-    } catch {
-      await setNextScanAt(claimed.id, new Date(now.getTime() + 5 * 60_000).toISOString());
-      return { connectionId: claimed.id, status: "SKIPPED", error: "scan_job_in_progress" };
-    }
-
     if (!isGmailConfigured() || !isGeminiConfigured()) {
       throw new Error("not_configured");
     }
@@ -93,47 +77,53 @@ async function runClaimedConnection(
     const checkpoint = running ? await store.getScanCheckpoint(running.id) : null;
     const remaining = checkpoint && scanHasRemainingWork(checkpoint) ? checkpoint : null;
     const age = remaining ? progressAgeMs(remaining, now.getTime()) : Number.POSITIVE_INFINITY;
+    const resumeExisting = remaining && age < SCAN_STALE_PROGRESS_MS ? remaining : null;
 
-    if (remaining && age < SCAN_HEARTBEAT_BUSY_MS) {
-      if (jobId) {
-        await finishScanJob(jobId, "FAILED", "scan_in_progress");
-      }
-      await setNextScanAt(
-        claimed.id,
-        new Date(now.getTime() + SCAN_CONTINUE_RETRY_MS).toISOString(),
-      );
-      return { connectionId: claimed.id, status: "SKIPPED", error: "scan_chunk_in_progress" };
+    try {
+      jobId = await acquireScanJob({
+        connectionId: claimed.id,
+        workerId,
+        leaseExpiresAt,
+        scanId: resumeExisting?.scanId ?? null,
+        now,
+      });
+      attempt = await incrementScanJobAttempt(jobId);
+    } catch {
+      await setNextScanAt(claimed.id, new Date(now.getTime() + 5 * 60_000).toISOString());
+      return { connectionId: claimed.id, status: "SKIPPED", error: "scan_job_in_progress" };
     }
 
-    const prepared =
-      remaining && age < SCAN_STALE_PROGRESS_MS
-        ? await resumeGmailScan({
-            scanId: remaining.scanId,
-            gmailEmail: api.gmailEmail,
-            gmail: createGmailScanPort(api.gmail, claimed.id),
-            store,
-            provider: createEmailTriageProvider(),
-            modelName: getGeminiEnv().GEMINI_MODEL,
-            now,
-          })
-        : await openGmailScan({
-            userId: api.userId,
-            connectionId: claimed.id,
-            gmailEmail: api.gmailEmail,
-            lookbackDays: DEFAULT_LOOKBACK_DAYS,
-            triggerType: "SCHEDULED",
-            gmail: createGmailScanPort(api.gmail, claimed.id),
-            store,
-            provider: createEmailTriageProvider(),
-            modelName: getGeminiEnv().GEMINI_MODEL,
-            now,
-          });
+    const prepared = resumeExisting
+      ? await resumeGmailScan({
+          scanId: resumeExisting.scanId,
+          gmailEmail: api.gmailEmail,
+          gmail: createGmailScanPort(api.gmail, claimed.id),
+          store,
+          provider: createEmailTriageProvider(),
+          modelName: getGeminiEnv().GEMINI_MODEL,
+          now,
+        })
+      : await openGmailScan({
+          userId: api.userId,
+          connectionId: claimed.id,
+          gmailEmail: api.gmailEmail,
+          lookbackDays: DEFAULT_LOOKBACK_DAYS,
+          triggerType: "SCHEDULED",
+          gmail: createGmailScanPort(api.gmail, claimed.id),
+          store,
+          provider: createEmailTriageProvider(),
+          modelName: getGeminiEnv().GEMINI_MODEL,
+          now,
+        });
 
-    if (!jobId) {
-      throw new Error("scan_job_missing");
+    const marked = await markScanJobRunning(jobId, prepared.scanId, workerId);
+    if (!marked) {
+      throw new Error(SCAN_IN_PROGRESS);
     }
-    await markScanJobRunning(jobId, prepared.scanId);
-    const result = await executeGmailScan(prepared);
+    const result = await executeGmailScan({
+      ...prepared,
+      jobLease: { jobId, workerId },
+    });
 
     if (result.status === "SUCCESS" || result.status === "PARTIAL") {
       try {
@@ -143,6 +133,8 @@ async function runClaimedConnection(
       }
     }
 
+    await resolveScanSliceJob(jobId, result, workerId, leaseExpiresAt);
+
     if (result.status === "CONTINUED") {
       const chained = await scheduleScanContinuation(prepared.scanId);
       if (!chained) {
@@ -151,24 +143,22 @@ async function runClaimedConnection(
           new Date(now.getTime() + SCAN_CONTINUE_RETRY_MS).toISOString(),
         );
       }
-      await resolveScanSliceJob(jobId, result, workerId, leaseExpiresAt);
       return { connectionId: claimed.id, status: "CONTINUED", scanId: prepared.scanId };
     }
 
-    await resolveScanSliceJob(jobId, result, workerId, leaseExpiresAt);
     return { connectionId: claimed.id, status: result.status, scanId: prepared.scanId };
   } catch (error) {
     const message = error instanceof Error ? error.message : "scan_failed";
     if (message === SCAN_IN_PROGRESS) {
       if (jobId) {
-        await finishScanJob(jobId, "FAILED", "scan_in_progress");
+        await finishScanJob(jobId, "FAILED", "scan_in_progress", workerId);
       }
       await setNextScanAt(claimed.id, new Date(now.getTime() + 5 * 60_000).toISOString());
       return { connectionId: claimed.id, status: "SKIPPED", error: "scan_in_progress" };
     }
 
     if (jobId) {
-      await finishScanJob(jobId, "FAILED", message).catch(() => undefined);
+      await finishScanJob(jobId, "FAILED", message, workerId).catch(() => undefined);
     }
     captureSafeException(error, {
       route: "/api/cron/scan-dispatcher",

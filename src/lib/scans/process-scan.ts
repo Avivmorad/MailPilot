@@ -27,6 +27,7 @@ import {
 import { plannedDiscoveryMode } from "@/lib/scans/mode";
 import { mapPool } from "@/lib/scans/pool";
 import { SCAN_STALE_PROGRESS_MS, SCAN_WORK_BUDGET_MS } from "@/lib/scans/dispatch-budget";
+import { SCAN_SLICE_LEASE_LOST, stillHoldsScanJob, type ScanJobLease } from "@/lib/scans/jobs";
 import { nextDailyScanAt } from "@/lib/scans/schedule";
 import { formatThreadFailureMessage } from "@/lib/scans/thread-failures";
 import { emitProductEvent } from "@/lib/observability/events";
@@ -205,6 +206,7 @@ export type PreparedGmailScan = {
   store: ScanStorePort;
   forceLookback?: boolean;
   resume?: boolean;
+  jobLease?: ScanJobLease;
 };
 
 export async function openGmailScan(input: ProcessGmailScanInput): Promise<PreparedGmailScan> {
@@ -337,8 +339,18 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
     gmail,
     store,
     forceLookback,
+    jobLease,
   } = prepared;
   const startedMs = Date.now();
+  const assertJobLease = async (): Promise<void> => {
+    if (!jobLease) {
+      return;
+    }
+    const held = await stillHoldsScanJob(jobLease.jobId, jobLease.workerId);
+    if (!held) {
+      throw new Error(SCAN_SLICE_LEASE_LOST);
+    }
+  };
   emitProductEvent({
     type: "scan.started",
     scanId,
@@ -359,6 +371,7 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
     if (liveStatus && liveStatus !== "RUNNING") {
       return asFailedResult("INITIAL");
     }
+    await assertJobLease();
     const checkpoint = await store.getScanCheckpoint(scanId);
     await store.updateScanRun(scanId, { status: "RUNNING" });
     let historyBoundary = checkpoint?.historyBoundary ?? null;
@@ -396,6 +409,7 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
         ...retryThreadIds.map((threadId) => ({ threadId })),
       ]);
       cursor = 0;
+      await assertJobLease();
       await store.updateScanRun(scanId, {
         status: "RUNNING",
         lookbackDays,
@@ -420,6 +434,12 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
       const processed = messagesProcessed;
       progressWrites = progressWrites.then(async () => {
         try {
+          if (jobLease) {
+            const held = await stillHoldsScanJob(jobLease.jobId, jobLease.workerId);
+            if (!held) {
+              return;
+            }
+          }
           await store.updateScanRun(scanId, {
             status: "RUNNING",
             messagesDiscovered,
@@ -443,6 +463,9 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
       async () => {
         for (;;) {
           if ((await store.getScanStatus(scanId)) !== "RUNNING") {
+            return;
+          }
+          if (jobLease && !(await stillHoldsScanJob(jobLease.jobId, jobLease.workerId))) {
             return;
           }
           if (Date.now() - startedMs >= SCAN_WORK_BUDGET_MS) {
@@ -644,6 +667,7 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
     };
     const uniqueFailed = [...new Set(failedGmailThreadIds)];
 
+    await assertJobLease();
     if (nextCursor < threadIds.length) {
       await store.updateScanRun(scanId, {
         ...counters,
@@ -716,6 +740,9 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
 
     return { scanId, status, counters, lookbackDays, mode: discoveryMode };
   } catch (error) {
+    if (error instanceof Error && error.message === SCAN_SLICE_LEASE_LOST) {
+      return asFailedResult("INITIAL");
+    }
     const stopped = await store.getScanStatus(scanId);
     if (stopped && stopped !== "RUNNING") {
       return asFailedResult("INITIAL");

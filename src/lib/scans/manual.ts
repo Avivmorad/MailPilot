@@ -18,14 +18,12 @@ import {
   scanUserMessage,
 } from "@/lib/scans/errors";
 import { progressAgeMs, scanHasRemainingWork } from "@/lib/scans/checkpoint";
+import { DISPATCH_LEASE_SECONDS, SCAN_STALE_PROGRESS_MS } from "@/lib/scans/dispatch-budget";
 import {
-  DISPATCH_LEASE_SECONDS,
-  SCAN_HEARTBEAT_BUSY_MS,
-  SCAN_STALE_PROGRESS_MS,
-} from "@/lib/scans/dispatch-budget";
-import {
+  acquireScanJob,
   admitScanSlice,
   finishScanJob,
+  markScanJobRunning,
   resolveScanSliceJob,
   SCAN_SLICE_IN_PROGRESS,
 } from "@/lib/scans/jobs";
@@ -115,10 +113,15 @@ export async function beginManualInitialScan(
   const checkpoint = running ? await store.getScanCheckpoint(running.id) : null;
   if (checkpoint && scanHasRemainingWork(checkpoint)) {
     const age = progressAgeMs(checkpoint, Date.now());
-    if (age < SCAN_HEARTBEAT_BUSY_MS) {
-      throw new ScanRequestError(409, "scan_in_progress", scanUserMessage("scan_in_progress"));
-    }
     if (age < SCAN_STALE_PROGRESS_MS) {
+      const workerId = `manual:${checkpoint.scanId}:${crypto.randomUUID()}`;
+      const leaseExpiresAt = new Date(Date.now() + DISPATCH_LEASE_SECONDS * 1000).toISOString();
+      const jobId = await admitScanSlice({
+        connectionId: connection.connectionId,
+        scanId: checkpoint.scanId,
+        workerId,
+        leaseExpiresAt,
+      }).catch(remapJobAdmissionError);
       const prepared = await resumeGmailScan({
         scanId: checkpoint.scanId,
         gmailEmail: connection.gmailEmail,
@@ -132,9 +135,9 @@ export async function beginManualInitialScan(
         triggerType: checkpoint.triggerType === "INITIAL" ? "INITIAL" : "MANUAL",
         execute: async () =>
           runAdmittedScanSlice({
-            connectionId: connection.connectionId,
-            scanId: prepared.scanId,
-            workerPrefix: "manual",
+            jobId,
+            workerId,
+            leaseExpiresAt,
             userId,
             prepared,
           }),
@@ -156,6 +159,13 @@ export async function beginManualInitialScan(
   }
 
   const triggerType = existing?.last_successful_scan_at ? "MANUAL" : "INITIAL";
+  const workerId = `manual:${crypto.randomUUID()}`;
+  const leaseExpiresAt = new Date(Date.now() + DISPATCH_LEASE_SECONDS * 1000).toISOString();
+  const jobId = await acquireScanJob({
+    connectionId: connection.connectionId,
+    workerId,
+    leaseExpiresAt,
+  }).catch(remapJobAdmissionError);
 
   const prepared = await openGmailScan({
     userId,
@@ -168,16 +178,28 @@ export async function beginManualInitialScan(
     store,
     provider: createEmailTriageProvider(),
     modelName: getGeminiEnv().GEMINI_MODEL,
-  }).catch(remapScanStartError);
+  }).catch(async (error) => {
+    await finishScanJob(
+      jobId,
+      "FAILED",
+      error instanceof Error ? error.message : "scan_failed",
+      workerId,
+    ).catch(() => undefined);
+    remapScanStartError(error);
+  });
+  const marked = await markScanJobRunning(jobId, prepared.scanId, workerId);
+  if (!marked) {
+    throw new ScanRequestError(409, "scan_in_progress", scanUserMessage("scan_in_progress"));
+  }
 
   return {
     scanId: prepared.scanId,
     triggerType,
     execute: async () =>
       runAdmittedScanSlice({
-        connectionId: connection.connectionId,
-        scanId: prepared.scanId,
-        workerPrefix: "manual",
+        jobId,
+        workerId,
+        leaseExpiresAt,
         userId,
         prepared,
       }),
@@ -185,45 +207,32 @@ export async function beginManualInitialScan(
 }
 
 async function runAdmittedScanSlice(input: {
-  connectionId: string;
-  scanId: string;
-  workerPrefix: string;
+  jobId: string;
+  workerId: string;
+  leaseExpiresAt: string;
   userId: string;
   prepared: Awaited<ReturnType<typeof openGmailScan>>;
 }): Promise<ScanRunResult> {
-  const workerId = `${input.workerPrefix}:${input.scanId}:${crypto.randomUUID()}`;
-  const leaseExpiresAt = new Date(Date.now() + DISPATCH_LEASE_SECONDS * 1000).toISOString();
-  let jobId: string;
   try {
-    jobId = await admitScanSlice({
-      connectionId: input.connectionId,
-      scanId: input.scanId,
-      workerId,
-      leaseExpiresAt,
+    const result = await executeGmailScan({
+      ...input.prepared,
+      jobLease: { jobId: input.jobId, workerId: input.workerId },
     });
-  } catch (error) {
-    if (error instanceof Error && error.message === SCAN_SLICE_IN_PROGRESS) {
-      throw new ScanRequestError(409, "scan_in_progress", scanUserMessage("scan_in_progress"));
-    }
-    throw error;
-  }
-
-  try {
-    const result = await executeGmailScan(input.prepared);
-    await resolveScanSliceJob(jobId, result, workerId, leaseExpiresAt);
+    await resolveScanSliceJob(input.jobId, result, input.workerId, input.leaseExpiresAt);
     if (result.status === "SUCCESS" || result.status === "PARTIAL") {
       try {
-        await persistDigestAfterScan({ userId: input.userId, scanId: input.scanId });
+        await persistDigestAfterScan({ userId: input.userId, scanId: input.prepared.scanId });
       } catch {
-        emitProductEvent({ type: "digest.created", scanId: input.scanId, persisted: 0 });
+        emitProductEvent({ type: "digest.created", scanId: input.prepared.scanId, persisted: 0 });
       }
     }
     return result;
   } catch (error) {
     await finishScanJob(
-      jobId,
+      input.jobId,
       "FAILED",
       error instanceof Error ? error.message : "scan_failed",
+      input.workerId,
     ).catch(() => undefined);
     throw error;
   }
@@ -246,6 +255,13 @@ function remapScanStartError(error: unknown): never {
   }
   if (isMissingScanSchemaError(error)) {
     throw new ScanRequestError(503, "scan_schema_missing", SCAN_SCHEMA_MISSING_MESSAGE);
+  }
+  throw error;
+}
+
+function remapJobAdmissionError(error: unknown): never {
+  if (error instanceof Error && error.message === SCAN_SLICE_IN_PROGRESS) {
+    throw new ScanRequestError(409, "scan_in_progress", scanUserMessage("scan_in_progress"));
   }
   throw error;
 }

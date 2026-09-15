@@ -134,14 +134,15 @@ export default function Home() {
       <main id="main-content" tabIndex={-1} className="flex-1">
         <section className="mx-auto w-full max-w-6xl px-6 pt-16 pb-10 text-center">
           <Badge variant="secondary" className="mb-6">
-            Inbox triage for Gmail
+            AI-powered Gmail triage
           </Badge>
           <h1 className="text-foreground mx-auto max-w-3xl text-4xl font-bold tracking-tight text-balance sm:text-5xl">
-            Turn your inbox into a triage system, not a prettier list of emails.
+            Know what needs your attention. Ignore what doesn&apos;t.
           </h1>
           <p className="text-muted-foreground mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-pretty">
-            MailPilot connects to Gmail, understands each thread in context, and splits mail into
-            Open, Waiting, and Summary — three separate lists, not one mixed feed.
+            MailPilot reads your inbox, identifies what needs action, tracks what you&apos;re waiting
+            on, and summarizes everything else — so you can focus on the emails that actually
+            matter.
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <a href="/login" className={buttonVariants({ size: "lg" })}>

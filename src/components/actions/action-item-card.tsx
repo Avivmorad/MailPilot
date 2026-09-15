@@ -90,7 +90,7 @@ export function ActionItemCard({ item }: { item: ActionListItem }) {
         <LabeledField label="Why this tab" dir="auto">
           {placement}
         </LabeledField>
-        {item.waitingFor ? <LabeledField label="Waiting on">{item.waitingFor}</LabeledField> : null}
+        {item.waitingFor ? <LabeledField label="Pending on">{item.waitingFor}</LabeledField> : null}
       </div>
 
       <div className="mt-3 space-y-3 border-t pt-3">

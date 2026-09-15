@@ -178,7 +178,7 @@ export function ActionControls({
           }}
         >
           <label className="text-muted-foreground flex min-w-0 flex-1 items-center gap-1.5 text-sm sm:max-w-xs">
-            Waiting on
+            Pending on
             <input
               type="text"
               className="border-input bg-background h-7 min-w-0 flex-1 rounded-lg border px-2 text-xs"
@@ -186,12 +186,12 @@ export function ActionControls({
               value={waitingDraft}
               disabled={busy}
               placeholder="who or what"
-              aria-label="Waiting on"
+              aria-label="Pending on"
               onChange={(event) => setWaitingDraft(event.target.value)}
             />
           </label>
           <Button type="submit" size="sm" variant="outline" disabled={busy || !waitingDraft.trim()}>
-            {status === "WAITING" ? "Save" : "Waiting"}
+            {status === "WAITING" ? "Save" : "Pending"}
           </Button>
         </form>
       ) : null}

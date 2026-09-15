@@ -103,7 +103,7 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
               {threadPlacementReason({ tab: backTab, evidence: whyText })}
             </LabeledField>
             {thread.waitingFor ? (
-              <LabeledField label="Waiting on">{thread.waitingFor}</LabeledField>
+              <LabeledField label="Pending on">{thread.waitingFor}</LabeledField>
             ) : null}
           </div>
           {lowConfidence ? (

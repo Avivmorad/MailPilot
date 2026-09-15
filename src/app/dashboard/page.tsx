@@ -38,7 +38,7 @@ function dashboardDescription({
     return "Connect Gmail to start triaging your inbox.";
   }
   if (scanDone) {
-    return "Scan finished. New and overdue work is first — FYI and waiting stay in Mail.";
+    return "Scan finished. New and overdue work is first — FYI and Pending stay in Mail.";
   }
   if (latestStatus === "PARTIAL") {
     return "Last scan finished with some threads still pending. New and overdue work is listed first.";
@@ -46,7 +46,7 @@ function dashboardDescription({
   if (latestStatus === "RUNNING") {
     return "A scan is running. You can keep working while it classifies mail.";
   }
-  return "What needs you, what you are waiting for, and what happened.";
+  return "What needs you, what is pending, and what happened.";
 }
 
 function nextStep({
@@ -89,7 +89,7 @@ function nextStep({
   }
   return {
     title: "Inbox is clear",
-    body: "No open tasks. Check Mail summary for leftover FYI, or Waiting if you already acted.",
+    body: "No open tasks. Check Mail summary for leftover FYI, or Pending if you already acted.",
     href: "/mail?tab=summary",
     label: "Open Mail summary",
   };
@@ -199,7 +199,7 @@ export default async function DashboardPage({
       hero: true,
     },
     {
-      label: "Waiting",
+      label: "Pending",
       value: connected && !countsLoadError ? String(counts.waiting) : "—",
       href: "/mail?tab=waiting",
       icon: Clock3,

@@ -12,8 +12,8 @@ const LABELS: Record<(typeof FEEDBACK_KINDS)[number], string> = {
   not_important: "Not important",
   action: "Needs action",
   no_action: "No action — Summary",
-  waiting: "Waiting",
-  not_waiting: "Not waiting",
+  waiting: "Pending",
+  not_waiting: "Not pending",
 };
 
 export function ThreadFeedback({ threadId }: { threadId: string }) {
@@ -38,7 +38,7 @@ export function ThreadFeedback({ threadId }: { threadId: string }) {
       setMessage(
         payload.applied
           ? "Updated. This thread now follows your correction."
-          : "Saved for evaluation. Choose Needs action, Waiting, or No action to move the thread.",
+          : "Saved for evaluation. Choose Needs action, Pending, or No action to move the thread.",
       );
       if (payload.applied) {
         router.refresh();

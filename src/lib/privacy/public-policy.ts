@@ -4,7 +4,7 @@ export const PRIVACY_POLICY_SECTIONS = [
   {
     id: "what-mailpilot-is",
     title: "What MailPilot is",
-    body: "MailPilot is an inbox triage product. You create a MailPilot login, connect your own Gmail account, and MailPilot scans a window of mail you choose. It classifies threads, applies MailPilot/ labels in Gmail, and shows open tasks, waiting items, and an in-app digest. MailPilot does not send, delete, or archive mail for you.",
+    body: "MailPilot is an inbox triage product. You create a MailPilot login, connect your own Gmail account, and MailPilot scans a window of mail you choose. It classifies threads, applies MailPilot/ labels in Gmail, and shows open tasks, pending items, and an in-app digest. MailPilot does not send, delete, or archive mail for you.",
   },
   {
     id: "gmail-access",
@@ -24,7 +24,7 @@ export const PRIVACY_POLICY_SECTIONS = [
   {
     id: "limited-use",
     title: "Limited Use of Gmail data",
-    body: "MailPilot uses Gmail data only to provide or improve the user-facing features in the product: classification, MailPilot/ labels, open tasks, waiting items, and in-app digests. It does not sell Gmail data, use it for advertising, or transfer it to other parties except processors needed to run the product (hosting and the Gemini API for classification). Humans do not read your mail as a product feature. A public launch still requires Google OAuth verification for gmail.modify and, because MailPilot stores and transmits Gmail data on servers, Google’s restricted-scope security assessment (CASA) when Google requires it.",
+    body: "MailPilot uses Gmail data only to provide or improve the user-facing features in the product: classification, MailPilot/ labels, open tasks, pending items, and in-app digests. It does not sell Gmail data, use it for advertising, or transfer it to other parties except processors needed to run the product (hosting and the Gemini API for classification). Humans do not read your mail as a product feature. A public launch still requires Google OAuth verification for gmail.modify and, because MailPilot stores and transmits Gmail data on servers, Google’s restricted-scope security assessment (CASA) when Google requires it.",
   },
   {
     id: "google",

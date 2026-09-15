@@ -6,7 +6,14 @@ import { persistDigestAfterScan } from "@/lib/digest/build-digest";
 import { emitProductEvent } from "@/lib/observability/events";
 import { createGmailApiForConnection } from "@/lib/gmail/client";
 import { SCAN_CONTINUE_RETRY_MS } from "@/lib/scans/dispatch-budget";
+import { DISPATCH_LEASE_SECONDS } from "@/lib/scans/dispatch-budget";
 import { createGmailScanPort } from "@/lib/scans/gmail-port";
+import {
+  admitScanSlice,
+  finishScanJob,
+  resolveScanSliceJob,
+  SCAN_SLICE_IN_PROGRESS,
+} from "@/lib/scans/jobs";
 import { executeGmailScan, resumeGmailScan } from "@/lib/scans/process-scan";
 import { createSupabaseScanStore } from "@/lib/scans/store";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -97,6 +104,29 @@ export async function continueScanRun(scanId: string): Promise<ScanRunResult> {
       mode: checkpoint.discoveryMode ?? "INITIAL",
     };
   }
+  const workerId = `continue:${scanId}:${crypto.randomUUID()}`;
+  const leaseExpiresAt = new Date(Date.now() + DISPATCH_LEASE_SECONDS * 1000).toISOString();
+  let jobId: string;
+  try {
+    jobId = await admitScanSlice({
+      connectionId: checkpoint.connectionId,
+      scanId,
+      workerId,
+      leaseExpiresAt,
+    });
+  } catch (error) {
+    if (error instanceof Error && error.message === SCAN_SLICE_IN_PROGRESS) {
+      return {
+        scanId,
+        status: "FAILED",
+        counters: EMPTY_SCAN_COUNTERS,
+        lookbackDays: checkpoint.lookbackDays,
+        mode: checkpoint.discoveryMode ?? "INITIAL",
+      };
+    }
+    throw error;
+  }
+
   const api = await createGmailApiForConnection(checkpoint.connectionId);
   const prepared = await resumeGmailScan({
     scanId,
@@ -106,13 +136,23 @@ export async function continueScanRun(scanId: string): Promise<ScanRunResult> {
     provider: createEmailTriageProvider(),
     modelName: getGeminiEnv().GEMINI_MODEL,
   });
-  const result = await executeGmailScan(prepared);
-  if (result.status === "SUCCESS" || result.status === "PARTIAL") {
-    try {
-      await persistDigestAfterScan({ userId: checkpoint.userId, scanId });
-    } catch {
-      emitProductEvent({ type: "digest.created", scanId, persisted: 0 });
+  try {
+    const result = await executeGmailScan(prepared);
+    await resolveScanSliceJob(jobId, result, workerId, leaseExpiresAt);
+    if (result.status === "SUCCESS" || result.status === "PARTIAL") {
+      try {
+        await persistDigestAfterScan({ userId: checkpoint.userId, scanId });
+      } catch {
+        emitProductEvent({ type: "digest.created", scanId, persisted: 0 });
+      }
     }
+    return result;
+  } catch (error) {
+    await finishScanJob(
+      jobId,
+      "FAILED",
+      error instanceof Error ? error.message : "scan_failed",
+    ).catch(() => undefined);
+    throw error;
   }
-  return result;
 }

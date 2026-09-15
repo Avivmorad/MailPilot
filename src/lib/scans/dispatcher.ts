@@ -23,6 +23,7 @@ import {
   finishScanJob,
   incrementScanJobAttempt,
   markScanJobRunning,
+  resolveScanSliceJob,
 } from "@/lib/scans/jobs";
 import {
   claimDueConnections,
@@ -150,11 +151,11 @@ async function runClaimedConnection(
           new Date(now.getTime() + SCAN_CONTINUE_RETRY_MS).toISOString(),
         );
       }
-      await finishScanJob(jobId, "SUCCESS", null);
+      await resolveScanSliceJob(jobId, result, workerId, leaseExpiresAt);
       return { connectionId: claimed.id, status: "CONTINUED", scanId: prepared.scanId };
     }
 
-    await finishScanJob(jobId, "SUCCESS", null);
+    await resolveScanSliceJob(jobId, result, workerId, leaseExpiresAt);
     return { connectionId: claimed.id, status: result.status, scanId: prepared.scanId };
   } catch (error) {
     const message = error instanceof Error ? error.message : "scan_failed";

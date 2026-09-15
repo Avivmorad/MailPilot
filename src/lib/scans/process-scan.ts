@@ -360,6 +360,7 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
       return asFailedResult("INITIAL");
     }
     const checkpoint = await store.getScanCheckpoint(scanId);
+    await store.updateScanRun(scanId, { status: "RUNNING" });
     let historyBoundary = checkpoint?.historyBoundary ?? null;
     let discoveryMode: ScanDiscoveryMode = checkpoint?.discoveryMode ?? "INITIAL";
     let messagesDiscovered = checkpoint?.messagesDiscovered ?? 0;

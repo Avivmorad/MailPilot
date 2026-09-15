@@ -52,6 +52,17 @@ describe("htmlToText", () => {
   it("keeps headings separated when closing tags are omitted", () => {
     expect(htmlToText("<h1>Title<h2>Body</h2>")).toBe("Title\nBody");
   });
+
+  it("recovers body text when a style block is never closed", () => {
+    const html =
+      '<style type="text/css">.email-body{font-family:Arial}\n<table><tr><td>Payment due tomorrow</td></tr></table>';
+    expect(htmlToText(html)).toContain("Payment due tomorrow");
+  });
+
+  it("recovers body text when a script block is never closed", () => {
+    const html = "<div>Keep</div><script>alert(1)\n<p>After</p>";
+    expect(htmlToText(html)).toContain("After");
+  });
 });
 
 describe("parseGmailMessage", () => {

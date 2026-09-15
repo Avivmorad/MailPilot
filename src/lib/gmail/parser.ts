@@ -66,21 +66,22 @@ export function htmlToText(html: string): string {
 
   while (index < html.length) {
     if (ignoredTag) {
-      if (html[index] !== "<") {
-        index += 1;
+      const closeStart = html.toLowerCase().indexOf(`</${ignoredTag}`, index);
+      if (closeStart === -1) {
+        // Malformed newsletters sometimes omit </style> or </script>; resume parsing
+        // instead of dropping the rest of the message.
+        ignoredTag = null;
         continue;
       }
 
-      const tagEnd = findTagEnd(html, index);
-      if (tagEnd === -1) {
-        break;
+      const closeTagEnd = findTagEnd(html, closeStart);
+      if (closeTagEnd === -1) {
+        ignoredTag = null;
+        continue;
       }
 
-      const tag = readTag(html.slice(index + 1, tagEnd));
-      if (tag?.closing && tag.name === ignoredTag) {
-        ignoredTag = null;
-      }
-      index = tagEnd + 1;
+      index = closeTagEnd + 1;
+      ignoredTag = null;
       continue;
     }
 

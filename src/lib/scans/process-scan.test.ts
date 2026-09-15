@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { ActionRecord } from "@/lib/actions/reconcile-action";
 import type { EmailTriageProvider } from "@/lib/ai/analyze-thread";
@@ -24,6 +24,16 @@ import type {
   ScanStorePort,
   StoredThreadRow,
 } from "@/lib/scans/types";
+
+const { leaseHeld } = vi.hoisted(() => ({ leaseHeld: { current: true } }));
+
+vi.mock("@/lib/scans/jobs", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/scans/jobs")>();
+  return {
+    ...actual,
+    stillHoldsScanJob: vi.fn(async () => leaseHeld.current),
+  };
+});
 
 function validAnalysis(overrides: Partial<ThreadAnalysis> = {}): ThreadAnalysis {
   return threadAnalysisSchema.parse({
@@ -415,6 +425,10 @@ async function runScan(options: {
 }
 
 describe("processInitialScan", () => {
+  beforeEach(() => {
+    leaseHeld.current = true;
+  });
+
   it("stops admitting work at the budget and preserves the cursor for retry", async () => {
     const store = createMemoryStore();
     store.connection.historyId = "old-history";
@@ -565,6 +579,55 @@ describe("processInitialScan", () => {
     expect(analyze).toHaveBeenCalledTimes(1);
     expect(fetchThread).not.toHaveBeenCalled();
     expect(modifyThreadLabels).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not persist thread side effects after the scan job lease is lost", async () => {
+    const store = createMemoryStore();
+    const message = parsedMessage();
+    const upsertThread = vi.fn(store.upsertThread.bind(store));
+    const upsertAction = vi.fn(store.upsertAction.bind(store));
+    store.upsertThread = upsertThread;
+    store.upsertAction = upsertAction;
+    const modifyThreadLabels = vi.fn(async () => undefined);
+    const gmail: ScanGmailPort = {
+      listMessageRefs: async () => [
+        { id: message.gmailMessageId, threadId: message.gmailThreadId },
+      ],
+      listHistoryChanges: async () => {
+        throw new Error("history should not run on the initial scan");
+      },
+      fetchThread: async () => [message],
+      getProfileHistoryId: async () => "hist-1",
+      loadLabelMap: async () => LABEL_MAP,
+      modifyThreadLabels,
+    };
+
+    const prepared = await openGmailScan({
+      userId: "user-1",
+      connectionId: "conn-1",
+      gmailEmail: "me@example.com",
+      lookbackDays: 7,
+      now: new Date("2026-09-10T12:00:00.000Z"),
+      gmail,
+      store,
+      provider: unusedProvider(),
+      modelName: "gemini-test",
+      analyze: async () => {
+        leaseHeld.current = false;
+        return { ok: true as const, analysis: validAnalysis() };
+      },
+    });
+
+    const result = await executeGmailScan({
+      ...prepared,
+      jobLease: { jobId: "job-1", workerId: "stale-worker" },
+    });
+
+    expect(result.status).toBe("FAILED");
+    expect(upsertThread).not.toHaveBeenCalled();
+    expect(upsertAction).not.toHaveBeenCalled();
+    expect(modifyThreadLabels).not.toHaveBeenCalled();
+    expect(store.scanRuns[0]?.status).toBe("RUNNING");
   });
 
   it("does not apply Gmail labels when AI analysis fails", async () => {

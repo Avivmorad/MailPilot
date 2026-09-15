@@ -8,6 +8,24 @@ MailPilot connects a Gmail account, scans threads over a chosen window, classifi
 
 The product and technical spec is [`docs/PROJECT_SPEC.md`](docs/PROJECT_SPEC.md). Owner decisions that override it are in [`docs/PRODUCT_DECISIONS.md`](docs/PRODUCT_DECISIONS.md). (The spec still uses the working name “Inbox Triage AI”.)
 
+## Engineering highlights
+
+- **Structured AI:** Gemini JSON Schema output, Zod validation and post-processing invariants.
+- **Incremental processing:** Gmail History API sync, resumable scan checkpoints and job leases.
+- **Account boundaries:** Supabase Row Level Security and encrypted Gmail refresh tokens.
+- **Quality checks:** unit and integration tests plus a triage evaluation scorecard.
+
+Explore the [AI implementation](src/lib/ai/), [scan services](src/lib/scans/)
+and [evaluation fixtures](tests/evals/email-triage.json).
+
+## Demo access
+
+The [landing page](https://mail-pilot-avivmoradteam.vercel.app) is public.
+Using inbox features requires a MailPilot account and a separate Gmail connection.
+Google OAuth access may be limited to configured test users while the integration
+is in testing. For a code review without mailbox access, start with the architecture,
+evaluation fixtures and setup guide below.
+
 ## What it does
 
 - **Scan now** with lookback of 1–4 days, 1–3 weeks, or 1 month (default 7 days)
@@ -58,7 +76,7 @@ Use the **same** OAuth 2.0 Web application client for both. They are not interch
 **1. Continue with Google (MailPilot account)** — Supabase Auth, no Gmail scopes.
 
 1. Keep the existing Gmail redirect URI on the Web client (do not remove it).
-2. Add authorized redirect URI `https://kssolktnbxjppyqmodck.supabase.co/auth/v1/callback`.
+2. Add authorized redirect URI `https://<your-project-ref>.supabase.co/auth/v1/callback`.
 3. In Supabase (Authentication → Providers → Google) enable Google and enter the Web client ID and secret. Never commit the secret.
 4. Authentication → URL Configuration: Site URL = production MailPilot URL; add `http://localhost:3000/auth/confirm` and `https://<production-domain>/auth/confirm`.
 5. Sign-in returns to `/auth/confirm?next=/onboarding` (PKCE). Gmail stays disconnected until Connect Gmail.

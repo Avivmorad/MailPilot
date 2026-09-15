@@ -12,7 +12,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "MailPilot",
   description:
-    "Turn your inbox into a triage system that tells you what happened, what needs you, and what you're waiting for.",
+    "Turn your inbox into a triage system that tells you what happened, what needs you, and what's pending.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {

@@ -21,7 +21,7 @@ const questions = [
   },
   {
     icon: Clock3,
-    title: "What am I waiting for?",
+    title: "What's pending?",
     body: "Threads where you already acted and the next move is on someone else.",
   },
 ];
@@ -30,12 +30,12 @@ const features = [
   {
     icon: Sparkles,
     title: "Thread-aware AI triage",
-    body: "Classifies the current state of a whole thread — importance, action, reply, waiting, urgency — not just the latest message.",
+    body: "Classifies the current state of a whole thread — importance, action, reply, pending, urgency — not just the latest message.",
   },
   {
     icon: ListChecks,
     title: "One action per thread",
-    body: "Six emails about one task become a single action item that moves OPEN → WAITING → COMPLETED as the conversation evolves.",
+    body: "Six emails about one task become a single action item that moves Open → Pending → Completed as the conversation evolves.",
   },
   {
     icon: Tag,
@@ -78,13 +78,13 @@ const previewColumns = [
     ],
   },
   {
-    tab: "Waiting",
+    tab: "Pending",
     accent: "border-l-sky-500",
     hint: "You already acted",
     items: [
       {
         title: "Question sent to the hotel",
-        meta: "Booking.com · Waiting on the hotel",
+        meta: "Booking.com · Pending on the hotel",
         body: "They confirmed your smart-TV question was forwarded. Nothing for you until they reply.",
       },
     ],
@@ -141,7 +141,7 @@ export default function Home() {
           </h1>
           <p className="text-muted-foreground mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-pretty">
             MailPilot connects to Gmail, understands each thread in context, and splits mail into
-            Open, Waiting, and Summary — three separate lists, not one mixed feed.
+            Open, Pending, and Summary — three separate lists, not one mixed feed.
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <a href="/login" className={buttonVariants({ size: "lg" })}>
@@ -162,7 +162,7 @@ export default function Home() {
               </h2>
               <p className="text-muted-foreground mt-2">
                 After a scan, MailPilot does not dump 32 emails into one list. It keeps tasks,
-                waiting, and FYI apart.
+                pending, and FYI apart.
               </p>
             </div>
             <div className="grid gap-4 lg:grid-cols-3">

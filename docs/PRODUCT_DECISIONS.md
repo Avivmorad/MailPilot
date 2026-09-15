@@ -8,6 +8,9 @@ must follow these.
 ## Naming
 
 - **Product name:** MailPilot. (The spec was written under the temporary name "Inbox Triage AI".)
+- **Pending tab:** User-facing copy for the `waiting` / `WAITING` state is **Pending** (Mail tabs,
+  dashboard counts, digest, feedback). Database values, Gmail analysis `status`, and `?tab=waiting`
+  stay `waiting` / `WAITING`. The spec’s “Waiting List” is this same list.
 
 ## MVP operating defaults
 
@@ -113,7 +116,7 @@ The dashboard is an overview (scan status and counts). Mail lists live on **Mail
 and stay two separate products (they must not be the same list):
 
 1. **Inbox summary** (Summary tab) — leftover useful FYI only (`informational` / `resolved`).
-   **Never** `ignore` and never open/waiting tasks.
+   **Never** `ignore` and never open/pending tasks.
 2. **Open tasks** (Open tab) — a real next step, including security events and expired credentials.
 3. **Ignored** — OTP/verification, marketing, job alerts, receipts, and routine automated notices.
 
@@ -124,7 +127,7 @@ Placement priority:
 3. Otherwise → `informational`.
 4. Status is never empty. `requires_action` is true only for Open.
 
-Mail tabs are derived from this single `status` (plus action workflow for waiting/completed/snoozed). A thread ID cannot appear in both Summary and Ignored.
+Mail tabs are derived from this single `status` (plus action workflow for pending/completed/snoozed). A thread ID cannot appear in both Summary and Ignored.
 
 ## Open-task topics
 
@@ -155,10 +158,10 @@ the same heading; they are not merged into a single Gmail thread.
 
 ## Placement map
 
-Decide **Open** only when the user still has a durable next step; **Waiting** when they
+Decide **Open** only when the user still has a durable next step; **Pending** when they
 already did their step; **Summary** when the mail is useful FYI; **Ignore** for noise.
 Never persist full email bodies. `action_items` rows exist only for Open (`OPEN`) and
-Waiting (`WAITING`).
+Pending (`WAITING`).
 
 **Precedence:** classify by the remaining action and who owns it. An automated sender
 alone must not cause an actionable request to be ignored. OTP, magic links, and
@@ -197,8 +200,8 @@ alone must not cause an actionable request to be ignored. OTP, magic links, and
 | Interview scheduling, assessment, or request for missing application documents                      | Open    | `schedule` / `submit`        |
 | Parcel collection, address correction, or customs-information request                               | Open    | `follow_up` / `submit`       |
 | Check-in still needed                                                                               | Open    | `submit`                     |
-| User already asked/sent/signed; no reply yet                                                        | Waiting | `waiting`                    |
-| Out-of-office reply or support-ticket acknowledgment while that request is unanswered               | Waiting | `waiting` (not resolved)     |
+| User already asked/sent/signed; no reply yet                                                        | Pending | `waiting`                    |
+| Out-of-office reply or support-ticket acknowledgment while that request is unanswered               | Pending | `waiting` (not resolved)     |
 | Webinar / mass calendar invite                                                                      | Ignore  | `ignore`                     |
 | Confirmed meeting reschedule or cancellation (no new time to choose)                                | Summary | `informational`              |
 | Lab results or “document ready in the portal”                                                       | Summary | `informational`              |

@@ -5,7 +5,7 @@ import type { ActionStatus } from "@/lib/actions/reconcile-action";
 export const MAIL_TABS = [
   { id: "summary", label: "Summary" },
   { id: "open", label: "Open" },
-  { id: "waiting", label: "Waiting" },
+  { id: "waiting", label: "Pending" },
   { id: "completed", label: "Completed" },
   { id: "snoozed", label: "Snoozed" },
   { id: "ignored", label: "Ignored" },
@@ -69,7 +69,7 @@ export function mailTabEmptyCopy(tab: MailTab): { title: string; description: st
       };
     case "waiting":
       return {
-        title: "You're not waiting on any tracked email threads.",
+        title: "Nothing is pending a reply.",
         description: "After you act, threads move here until the other side replies.",
       };
     case "completed":

@@ -1,8 +1,8 @@
 # MailPilot
 
-Gmail inbox triage that answers three questions: **what happened, what do I need to do, and what am I waiting for?**
+Gmail inbox triage that answers three questions: **what happened, what do I need to do, and what's pending?**
 
-MailPilot connects a Gmail account, scans threads over a chosen window, classifies them with Gemini (structured JSON, validated with Zod), applies `MailPilot/*` labels, and shows an inbox summary, open tasks, a waiting list, and an in-app digest. It never auto-sends, deletes, or archives mail.
+MailPilot connects a Gmail account, scans threads over a chosen window, classifies them with Gemini (structured JSON, validated with Zod), applies `MailPilot/*` labels, and shows an inbox summary, open tasks, a pending list, and an in-app digest. It never auto-sends, deletes, or archives mail.
 
 **Live app:** [mail-pilot-avivmoradteam.vercel.app](https://mail-pilot-avivmoradteam.vercel.app)
 

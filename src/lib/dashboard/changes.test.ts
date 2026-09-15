@@ -92,6 +92,6 @@ describe("formatDashboardChangeLine", () => {
         staleWaiting: 2,
         overdueOpen: 4,
       }),
-    ).toBe("4 overdue open tasks, 2 stale waiting items.");
+    ).toBe("4 overdue open tasks, 2 stale pending items.");
   });
 });

@@ -221,14 +221,12 @@ export function createSupabaseScanStore(): ScanStorePort {
       if (patch.threadCursor !== undefined) row.thread_cursor = patch.threadCursor;
       if (patch.historyBoundary !== undefined) row.history_boundary = patch.historyBoundary;
       if (patch.failedThreadIds !== undefined) row.failed_thread_ids = patch.failedThreadIds;
-      let query = db.from("scan_runs").update(row).eq("id", scanId);
-      if (patch.status === "RUNNING") {
-        query = query.eq("status", "RUNNING");
-      }
-      const { error } = await query;
+      const query = db.from("scan_runs").update(row).eq("id", scanId).eq("status", "RUNNING");
+      const { data, error } = await query.select("id").maybeSingle();
       if (error) {
         failStore("Failed to update scan run", error);
       }
+      return Boolean(data);
     },
 
     async getSettings(userId) {

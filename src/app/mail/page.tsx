@@ -120,7 +120,7 @@ export default async function MailPage({
       {queryError ? (
         <EmptyState
           variant="error"
-          title={`Could not load ${tab === "open" ? "open tasks" : tab === "waiting" ? "waiting tasks" : tab === "summary" ? "summary threads" : tab === "ignored" ? "ignored mail" : "tasks"}`}
+          title={`Could not load ${tab === "open" ? "open tasks" : tab === "waiting" ? "pending tasks" : tab === "summary" ? "summary threads" : tab === "ignored" ? "ignored mail" : "tasks"}`}
           description="We had trouble reaching the database. Reload to try again. Your mailbox data is safe."
           action={
             <Link
@@ -161,7 +161,7 @@ export default async function MailPage({
           ) : null}
           {staleWaitingCount > 0 ? (
             <p className="text-muted-foreground text-sm">
-              {staleWaitingCount} waiting item{staleWaitingCount === 1 ? " has" : "s have"} been
+              {staleWaitingCount} pending item{staleWaitingCount === 1 ? " has" : "s have"} been
               quiet for a week or more.
             </p>
           ) : null}

@@ -82,7 +82,7 @@ export function formatDashboardChangeLine(summary: DashboardChangeSummary): stri
 
   const extraBits = [
     countPhrase(summary.overdueOpen, "overdue open task", "overdue open tasks"),
-    countPhrase(summary.staleWaiting, "stale waiting item", "stale waiting items"),
+    countPhrase(summary.staleWaiting, "stale pending item", "stale pending items"),
   ].filter((value): value is string => Boolean(value));
 
   if (scanBits.length === 0 && extraBits.length === 0) {

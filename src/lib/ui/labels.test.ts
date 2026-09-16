@@ -10,6 +10,8 @@ import {
 describe("humanizeToken", () => {
   it("maps known product tokens to readable copy", () => {
     expect(labelForThreadStatus("action_required")).toBe("Needs action");
+    expect(labelForThreadStatus("waiting")).toBe("Pending");
+    expect(labelForThreadStatus("WAITING")).toBe("Pending");
     expect(labelForScanStatus("RUNNING")).toBe("In progress");
     expect(labelForDirection("INBOUND")).toBe("Received");
     expect(labelForDirection("OUTBOUND")).toBe("Sent by you");

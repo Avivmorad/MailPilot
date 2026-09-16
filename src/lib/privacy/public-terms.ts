@@ -2,7 +2,7 @@ export const TERMS_SECTIONS = [
   {
     id: "the-service",
     title: "The service",
-    body: "MailPilot is an inbox triage product. After you create an account and connect Gmail, MailPilot can scan a window of mail you choose, classify threads, apply MailPilot/ labels, and show open tasks, waiting items, and an in-app digest. MailPilot does not send, delete, or archive mail for you.",
+    body: "MailPilot is an inbox triage product. After you create an account and connect Gmail, MailPilot can scan a window of mail you choose, classify threads, apply MailPilot/ labels, and show open tasks, pending items, and an in-app digest. MailPilot does not send, delete, or archive mail for you.",
   },
   {
     id: "your-account",

@@ -13,7 +13,7 @@ function DigestCounts({ digest }: { digest: DigestReport }) {
     { label: "Processed", value: digest.totalMessages },
     { label: "Important", value: digest.importantCount },
     { label: "Open", value: digest.actionCount },
-    { label: "Waiting", value: digest.waitingCount },
+    { label: "Pending", value: digest.waitingCount },
     { label: "FYI", value: digest.informationalCount },
     { label: "Ignored", value: digest.ignoredCount },
   ];

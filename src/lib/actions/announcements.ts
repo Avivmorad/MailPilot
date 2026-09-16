@@ -7,7 +7,7 @@ export function actionChangeAnnouncement(op: string | undefined): string {
     case "snooze":
       return "Task snoozed.";
     case "wait":
-      return "Waiting on updated.";
+      return "Pending on updated.";
     default:
       return "Task updated.";
   }

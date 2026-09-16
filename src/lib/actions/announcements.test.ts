@@ -7,7 +7,7 @@ describe("actionChangeAnnouncement", () => {
     expect(actionChangeAnnouncement("complete")).toBe("Task marked done.");
     expect(actionChangeAnnouncement("reopen")).toBe("Task moved back to Open.");
     expect(actionChangeAnnouncement("snooze")).toBe("Task snoozed.");
-    expect(actionChangeAnnouncement("wait")).toBe("Waiting on updated.");
+    expect(actionChangeAnnouncement("wait")).toBe("Pending on updated.");
     expect(actionChangeAnnouncement("unknown")).toBe("Task updated.");
   });
 });

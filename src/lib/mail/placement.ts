@@ -5,7 +5,7 @@ const EMAIL_RE = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi;
 
 export const PLACEMENT_RULE: Record<MailTab, string> = {
   open: "This is in Open because it still needs a next step from you.",
-  waiting: "This is in Waiting because you already acted.",
+  waiting: "This is in Pending because you already acted.",
   completed: "This is in Completed because you marked the task done.",
   snoozed: "This is in Snoozed until the reminder date.",
   summary: "This is in Summary because it is leftover FYI, not an open task.",
@@ -27,8 +27,8 @@ export const PLACEMENT_CORRECTION_LABELS: Record<FeedbackKind, string> = {
   not_important: "Not important",
   action: "Needs action",
   no_action: "No action",
-  waiting: "Waiting",
-  not_waiting: "Not waiting",
+  waiting: "Pending",
+  not_waiting: "Not pending",
 };
 
 export function sanitizePlacementEvidence(value: string | null | undefined): string | null {

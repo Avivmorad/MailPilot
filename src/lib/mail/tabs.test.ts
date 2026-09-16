@@ -31,10 +31,8 @@ describe("mail tabs", () => {
     expect(mailTabFromLegacyActionTab("summary")).toBe("summary");
   });
 
-  it("uses spec empty-state copy for Open and Waiting", () => {
+  it("uses spec empty-state copy for Open and Pending", () => {
     expect(mailTabEmptyCopy("open").title).toBe("Nothing currently needs your action.");
-    expect(mailTabEmptyCopy("waiting").title).toBe(
-      "You're not waiting on any tracked email threads.",
-    );
+    expect(mailTabEmptyCopy("waiting").title).toBe("Nothing is pending a reply.");
   });
 });

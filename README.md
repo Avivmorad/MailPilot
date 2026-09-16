@@ -78,7 +78,7 @@ Durable gates on a curated fixture set (English, Hebrew, mixed). CI runs `npm ru
 | Schema validity          | **100%**  | `EVAL_THRESHOLDS.schemaValidity`                              |
 | Action recall            | **≥ 90%** | `EVAL_THRESHOLDS.actionRecall`                                |
 | Deadline hallucination   | **0**     | `EVAL_THRESHOLDS.deadlineHallucination`                       |
-| Curated evaluation cases | **≥ 50**  | `eval-scorecard.test.ts` / `eval-fixtures.test.ts` (catalog + `tests/evals/email-triage.json`) |
+| Curated evaluation cases | **≥ 50**  | `eval-scorecard.test.ts` / `eval-fixtures.test.ts`            |
 
 Fixtures must not invent ISO deadlines. Prompt-injection cases still require a real reply. Gold analyses are schema-valid. See [`tests/fixtures/README.md`](tests/fixtures/README.md).
 

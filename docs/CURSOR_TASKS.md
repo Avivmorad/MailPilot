@@ -24,6 +24,7 @@ backlog.
 ## General rules (still apply to new work)
 
 - Inspect relevant files before editing.
+- Preserve existing uncommitted changes.
 - Complete one task at a time.
 - Add regression tests for every behavior change.
 - After each task run:

@@ -1,6 +1,27 @@
 # MailPilot Improvement Review Brief
 
+> **Archived snapshot (2026-09-12).** This brief was written before T1–T11
+> landed. It is **not** the current backlog. Do not treat the original “five
+> failing tests” or “README stops at migration 0003” findings as present state.
+>
+> **Shipped since this review (code/tests in the repo):** category/tag
+> correctness, Prettier + CI format gate, eval scorecard (≥50 cases; schema
+> 100%; action recall ≥90%; deadline hallucination 0), triage settings, scan
+> admission and job leases, chunk resume, History API incremental sync,
+> reconnect/`REAUTH_REQUIRED`, privacy deletion, onboarding, structured
+> observability, integration/idempotency tests, migrations `0007`–`0012`,
+> in-app privacy/terms pages, Continue with Google.
+>
+> **Still open (do not claim done):** live T12 walkthrough
+> ([`HUMAN_TASKS.md`](HUMAN_TASKS.md)); Google OAuth verification / CASA;
+> recruiter screenshots; email digest delivery; large eval corpus (200–500);
+> dedicated e2e/a11y automation; preview-only Gmail mutation mode.
+>
+> Original instructions and item list follow for history. Re-inspect the code
+> before acting on any item.
+
 ## Purpose
+
 
 This document is a review brief for Cursor. It contains improvement ideas based on the current MailPilot repository, its product specification, and a local verification run.
 
@@ -11,6 +32,8 @@ Cursor should **inspect, challenge, refine, and prioritize** these ideas. Do not
 3. `AGENTS.md`
 
 This is initially an **analysis task, not an implementation task**. Do not edit code until the owner selects an approved implementation phase.
+
+The 2026-09-12 evidence below is historical. Current automated gates are listed in the README and `.github/workflows/ci.yml`.
 
 ## Instructions for Cursor
 

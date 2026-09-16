@@ -1,13 +1,24 @@
-# Inbox Triage AI — Full Project Specification
+# MailPilot — Full Project Specification
 
-> מסמך זה מיועד לשמש כ־Source of Truth עבור Cursor/Codex/Developers.
-> יש לבנות לפי השלבים והחוזים במסמך, ולא "להמציא" התנהגות אחרת בלי צורך.
-> שם המוצר הוא זמני: **Inbox Triage AI**.
+> **Archived working name:** this document was originally titled “Inbox Triage AI”.
+> The product name is **MailPilot**. Do not use the working name in UI, README, or
+> new documentation.
+>
+> This file remains the historical source of truth for contracts and phases.
+> Build according to the stages and contracts here; do not invent different
+> behavior without a documented reason.
 >
 > Owner overlay: [`PRODUCT_DECISIONS.md`](PRODUCT_DECISIONS.md) wins where it
 > differs — including the product name **MailPilot**, Gemini instead of OpenAI,
 > `MailPilot/` Gmail labels, and **in-app digests only** in the MVP (email
 > digest delivery is a later extension; see overlay and spec §72).
+>
+> **Implementation status (repository):** Phases 0–9 are implemented. Phase 10
+> hardening that has landed includes rate limiting, observability, privacy
+> deletion, reconnect, integration tests, eval metrics, CI, scan admission,
+> mailbox uniqueness, check constraints, and chunk resume. Live console
+> verification is tracked in [`HUMAN_TASKS.md`](HUMAN_TASKS.md), not claimed
+> here. Email digest delivery remains a future extension (§72).
 
 ---
 
@@ -3186,7 +3197,13 @@ Acceptance:
 
 ## Phase 10 — Hardening
 
+> **Repository:** the deliverables in this phase that have landed include
+> rate limiting, observability, error states, data deletion, reconnect,
+> integration tests, eval metrics, and CI. Remaining owner work is live
+> verification ([`HUMAN_TASKS.md`](HUMAN_TASKS.md)), not missing app surface.
+
 Deliver:
+
 
 - rate limiting.
 - observability.

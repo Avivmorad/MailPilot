@@ -1,6 +1,11 @@
 # Owner tasks (cannot be done by the agent)
 
-These are console / legal / live-environment steps. Code for Phases 0–9 plus scan chunk resume is already on `main`. Check each item off in the live project.
+These are console / legal / live-environment steps. Code for Phases 0–9 plus scan
+chunk resume, privacy pages, Continue with Google, eval gates, and CI is already
+on `main`. Check each item off only after you verify it in the live project.
+
+In-app privacy and terms URLs already exist in the product (`/privacy`, `/terms`).
+That does **not** complete Google OAuth verification.
 
 ## Do first (production can break without this)
 
@@ -13,7 +18,7 @@ These are console / legal / live-environment steps. Code for Phases 0–9 plus s
 
 ## Staging walkthrough (T12)
 
-On [the live app](https://gmailpilot.vercel.app):
+On [the live app](https://mail-pilot-avivmoradteam.vercel.app):
 
 - [ ] Sign up / sign in (MailPilot account, not Gmail yet).
 - [ ] Connect Gmail and complete a Scan now (try 7 days, then a longer window if you have a large inbox).
@@ -22,11 +27,13 @@ On [the live app](https://gmailpilot.vercel.app):
 - [ ] Revoke Gmail access in Google Account settings, then use reconnect.
 - [ ] Disconnect Gmail; optional: delete analysis data / account.
 
+Automated checks (lint, typecheck, unit, integration, eval scorecard, build) run in GitHub Actions. They do not replace this live walkthrough.
+
 ## Before a public launch (not needed for you-only testing)
 
-- [ ] Privacy policy and a short Gmail data-use page (restricted `gmail.modify` scope).
-- [ ] Google OAuth verification / restricted-scope review.
-- [ ] Terms of service if you will have users beyond testers.
+- [x] In-app privacy policy and Gmail data-use page (`/privacy`) and terms (`/terms`) — shipped in the app.
+- [ ] Google OAuth verification / restricted-scope review (and CASA if Google requires it).
+- [ ] Confirm the Google Cloud OAuth consent screen links to the live `/privacy` and `/terms` URLs.
 - [ ] Optional: custom SMTP so signup mail is from MailPilot, not “Supabase Auth” (`docs/PRODUCT_DECISIONS.md`).
 
 ## Google sign-in (MailPilot account, not Gmail)
@@ -48,4 +55,8 @@ Both redirect URIs below are required and **different**:
 
 ## Not owner work
 
-Dependency bumps and app bugs stay in GitHub PRs. Open Dependabot PRs were already merged. Optional later: `next` 16.3.5, `googleapis` 180 — an agent can take those.
+Dependency bumps and app bugs stay in GitHub PRs. Open Dependabot PRs from the original checklist were merged. Optional later bumps can be taken by an agent.
+
+## Portfolio follow-ups (not product behavior)
+
+- [ ] Add anonymized screenshots / GIF under `docs/screenshots/` and link them from the README Screenshots section.

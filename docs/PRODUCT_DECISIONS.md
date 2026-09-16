@@ -7,7 +7,8 @@ must follow these.
 
 ## Naming
 
-- **Product name:** MailPilot. (The spec was written under the temporary name "Inbox Triage AI".)
+- **Product name:** MailPilot. The original specification used the working name
+  “Inbox Triage AI”; that name is archived. New docs and UI copy must say MailPilot.
 - **Pending tab:** User-facing copy for the `waiting` / `WAITING` state is **Pending** (Mail tabs,
   dashboard counts, digest, feedback). Database values, Gmail analysis `status`, and `?tab=waiting`
   stay `waiting` / `WAITING`. The spec’s “Waiting List” is this same list.

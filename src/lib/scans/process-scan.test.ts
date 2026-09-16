@@ -1,5 +1,15 @@
 import { describe, expect, it, vi } from "vitest";
 
+const leaseCheckState = vi.hoisted(() => ({ holds: true }));
+
+vi.mock("@/lib/scans/jobs", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/scans/jobs")>();
+  return {
+    ...actual,
+    stillHoldsScanJob: vi.fn(async () => leaseCheckState.holds),
+  };
+});
+
 import type { ActionRecord } from "@/lib/actions/reconcile-action";
 import type { EmailTriageProvider } from "@/lib/ai/analyze-thread";
 import { TRIAGE_PROMPT_VERSION } from "@/lib/ai/prompts";
@@ -241,10 +251,12 @@ function createMemoryStore(): ScanStorePort & {
       }
       return null;
     },
-    async failScan(scanId) {
+    async failScan(scanId, errorCode, errorMessage) {
       const run = scanRuns.find((item) => item.id === scanId);
-      if (run) {
+      if (run && run.status === "RUNNING") {
         run.status = "FAILED";
+        run.errorCode = errorCode;
+        run.errorMessage = errorMessage;
       }
     },
     async insertScanRun(input) {
@@ -268,59 +280,58 @@ function createMemoryStore(): ScanStorePort & {
     },
     async updateScanRun(scanId, patch) {
       const run = scanRuns.find((item) => item.id === scanId);
-      if (run) {
-        if (patch.status === "RUNNING" && run.status !== "RUNNING") {
-          return;
-        }
-        run.status = patch.status;
-        run.updatedAt = new Date().toISOString();
-        if (patch.threadsDiscovered !== undefined) {
-          run.threadsDiscovered = patch.threadsDiscovered;
-        }
-        if (patch.threadsChecked !== undefined) {
-          run.threadsChecked = patch.threadsChecked;
-          progressChecks.push(patch.threadsChecked);
-        }
-        if (patch.errorCode !== undefined) {
-          run.errorCode = patch.errorCode;
-        }
-        if (patch.errorMessage !== undefined) {
-          run.errorMessage = patch.errorMessage;
-        }
-        if (patch.lookbackDays !== undefined) {
-          run.lookbackDays = patch.lookbackDays;
-        }
-        if (patch.discoveryComplete !== undefined) {
-          run.discoveryComplete = patch.discoveryComplete;
-        }
-        if (patch.discoveredThreadIds !== undefined) {
-          run.discoveredThreadIds = patch.discoveredThreadIds;
-        }
-        if (patch.threadCursor !== undefined) {
-          run.threadCursor = patch.threadCursor;
-        }
-        if (patch.historyBoundary !== undefined) {
-          run.historyBoundary = patch.historyBoundary;
-        }
-        if (patch.failedThreadIds !== undefined) {
-          run.failedThreadIds = patch.failedThreadIds;
-        }
-        if (patch.messagesDiscovered !== undefined) {
-          run.messagesDiscovered = patch.messagesDiscovered;
-        }
-        if (patch.messagesProcessed !== undefined) {
-          run.messagesProcessed = patch.messagesProcessed;
-        }
-        if (patch.threadsAnalyzed !== undefined) {
-          run.threadsAnalyzed = patch.threadsAnalyzed;
-        }
-        if (patch.importantCount !== undefined) {
-          run.importantCount = patch.importantCount;
-        }
-        if (patch.discoveryMode !== undefined) {
-          run.discoveryMode = patch.discoveryMode;
-        }
+      if (!run || run.status !== "RUNNING") {
+        return false;
       }
+      run.status = patch.status;
+      run.updatedAt = new Date().toISOString();
+      if (patch.threadsDiscovered !== undefined) {
+        run.threadsDiscovered = patch.threadsDiscovered;
+      }
+      if (patch.threadsChecked !== undefined) {
+        run.threadsChecked = patch.threadsChecked;
+        progressChecks.push(patch.threadsChecked);
+      }
+      if (patch.errorCode !== undefined) {
+        run.errorCode = patch.errorCode;
+      }
+      if (patch.errorMessage !== undefined) {
+        run.errorMessage = patch.errorMessage;
+      }
+      if (patch.lookbackDays !== undefined) {
+        run.lookbackDays = patch.lookbackDays;
+      }
+      if (patch.discoveryComplete !== undefined) {
+        run.discoveryComplete = patch.discoveryComplete;
+      }
+      if (patch.discoveredThreadIds !== undefined) {
+        run.discoveredThreadIds = patch.discoveredThreadIds;
+      }
+      if (patch.threadCursor !== undefined) {
+        run.threadCursor = patch.threadCursor;
+      }
+      if (patch.historyBoundary !== undefined) {
+        run.historyBoundary = patch.historyBoundary;
+      }
+      if (patch.failedThreadIds !== undefined) {
+        run.failedThreadIds = patch.failedThreadIds;
+      }
+      if (patch.messagesDiscovered !== undefined) {
+        run.messagesDiscovered = patch.messagesDiscovered;
+      }
+      if (patch.messagesProcessed !== undefined) {
+        run.messagesProcessed = patch.messagesProcessed;
+      }
+      if (patch.threadsAnalyzed !== undefined) {
+        run.threadsAnalyzed = patch.threadsAnalyzed;
+      }
+      if (patch.importantCount !== undefined) {
+        run.importantCount = patch.importantCount;
+      }
+      if (patch.discoveryMode !== undefined) {
+        run.discoveryMode = patch.discoveryMode;
+      }
+      return true;
     },
     async getSettings() {
       return settings;
@@ -1001,6 +1012,43 @@ describe("processInitialScan", () => {
       vi.unstubAllEnvs();
     }
   });
+
+  it("does not finalize a scan that was cancelled after all threads were processed", async () => {
+    vi.stubEnv("AI_MAX_CONCURRENCY", "1");
+    const store = createMemoryStore();
+    const originalUpdate = store.updateScanRun.bind(store);
+    store.updateScanRun = async (scanId, patch) => {
+      if (patch.status === "SUCCESS" || patch.status === "PARTIAL") {
+        await store.failScan(scanId, "cancelled", "stopped");
+        return false;
+      }
+      return originalUpdate(scanId, patch);
+    };
+    try {
+      const result = await runScan({
+        store,
+        gmail: {
+          listMessageRefs: async () => [{ id: "m1", threadId: "t1" }],
+          listHistoryChanges: async () => {
+            throw new Error("history should not run on the initial scan");
+          },
+          fetchThread: async (threadId) => [
+            parsedMessage({ gmailThreadId: threadId, gmailMessageId: `m-${threadId}` }),
+          ],
+          getProfileHistoryId: async () => "hist-new",
+          loadLabelMap: async () => LABEL_MAP,
+          modifyThreadLabels: async () => undefined,
+        },
+        analyze: async () => ({ ok: true as const, analysis: validAnalysis() }),
+      });
+      expect(result.status).toBe("FAILED");
+      expect(store.scanRuns[0]?.status).toBe("FAILED");
+      expect(store.scanRuns[0]?.errorCode).toBe("cancelled");
+      expect(store.connection.historyId).toBeNull();
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
 });
 
 describe("openGmailScan user emails", () => {
@@ -1182,5 +1230,47 @@ describe("shouldReuseStoredAnalysis", () => {
         analysisPromptKey(withIgnore),
       ),
     ).toBe(false);
+  });
+});
+
+describe("executeGmailScan lease safety", () => {
+  it("skips thread writes when the slice lease expires during analyze", async () => {
+    leaseCheckState.holds = true;
+    const store = createMemoryStore();
+    const modifyThreadLabels = vi.fn(async () => undefined);
+    const prepared = await openGmailScan({
+      userId: "user-1",
+      connectionId: "conn-1",
+      gmailEmail: "me@example.com",
+      lookbackDays: 7,
+      now: new Date("2026-09-10T12:00:00.000Z"),
+      gmail: {
+        listMessageRefs: async () => [{ id: "m1", threadId: "t1" }],
+        listHistoryChanges: async () => {
+          throw new Error("history should not run on the initial scan");
+        },
+        fetchThread: async (threadId) => [
+          parsedMessage({ gmailThreadId: threadId, gmailMessageId: `m-${threadId}` }),
+        ],
+        getProfileHistoryId: async () => "hist-new",
+        loadLabelMap: async () => LABEL_MAP,
+        modifyThreadLabels,
+      },
+      store,
+      provider: unusedProvider(),
+      modelName: "gemini-test",
+    });
+
+    await executeGmailScan({
+      ...prepared,
+      jobLease: { jobId: "job-1", workerId: "worker-1" },
+      analyze: async () => {
+        leaseCheckState.holds = false;
+        return { ok: true as const, analysis: validAnalysis() };
+      },
+    });
+
+    expect(store.threads.size).toBe(0);
+    expect(modifyThreadLabels).not.toHaveBeenCalled();
   });
 });

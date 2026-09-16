@@ -192,18 +192,17 @@ function createMemoryStore(
     },
     async updateScanRun(scanId, patch) {
       const run = scanRuns.find((item) => item.id === scanId);
-      if (run) {
-        if (patch.status === "RUNNING" && run.status !== "RUNNING") {
-          return;
-        }
-        run.status = patch.status;
-        if (patch.errorCode !== undefined) {
-          run.errorCode = patch.errorCode;
-        }
-        if (patch.errorMessage !== undefined) {
-          run.errorMessage = patch.errorMessage;
-        }
+      if (!run || run.status !== "RUNNING") {
+        return false;
       }
+      run.status = patch.status;
+      if (patch.errorCode !== undefined) {
+        run.errorCode = patch.errorCode;
+      }
+      if (patch.errorMessage !== undefined) {
+        run.errorMessage = patch.errorMessage;
+      }
+      return true;
     },
     async getSettings() {
       return settings;

@@ -26,7 +26,8 @@ Phase 8 dispatcher: `GET`/`POST` `/api/cron/scan-dispatcher` claims due
 connections (`next_scan_at`), 270s job lease, one connection per Hobby run
 (`maxDuration` 300). Schema for scheduling through chunk resume lives in
 `supabase/migrations/0007`–`0012` (one RUNNING scan per connection; signup
-triggers not Data-API callable; one Gmail inbox per MailPilot user; status /
+triggers not Data-API callable; one Gmail inbox cannot be connected to two
+MailPilot users at once; status /
 confidence / counter checks; large lookbacks continue across ~240s slices).
 Phase 9: in-app digest after each successful/partial scan; email digest is a
 later extension. Also shipped: triage settings, reconnect/`REAUTH_REQUIRED`,

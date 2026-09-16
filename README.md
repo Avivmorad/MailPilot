@@ -184,7 +184,7 @@ Apply SQL in the Supabase SQL Editor, in this order:
 7. `supabase/migrations/0007_scan_scheduling.sql`
 8. `supabase/migrations/0008_scan_admission.sql` — one RUNNING scan per Gmail connection
 9. `supabase/migrations/0009_function_hardening.sql` — signup trigger not callable via the Data API
-10. `supabase/migrations/0010_gmail_mailbox_uniqueness.sql` — one active Gmail inbox per MailPilot user
+10. `supabase/migrations/0010_gmail_mailbox_uniqueness.sql` — one Gmail inbox cannot be connected to two MailPilot users at once
 11. `supabase/migrations/0011_check_constraints.sql` — status, confidence, and counter checks
 12. `supabase/migrations/0012_scan_chunk_resume.sql` — resume large scans across 5-minute function slices
 

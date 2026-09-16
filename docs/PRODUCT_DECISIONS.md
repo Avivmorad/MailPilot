@@ -38,8 +38,9 @@ These map onto the spec as follows:
   and `scan_runs.threads_checked`. A scan that cannot finish inside one Vercel Hobby
   invocation (~240s of work, 300s `maxDuration`) stays `RUNNING`, persists a thread
   cursor (`0012_scan_chunk_resume.sql`), and continues on the next slice until done.
-  History ID and the in-app digest advance only when the whole window finishes
-  (`SUCCESS` or `PARTIAL`).
+  The in-app digest is written when the window finishes with `SUCCESS` or `PARTIAL`.
+  The Gmail History API cursor advances only on `SUCCESS`, so a partial scan can
+  rediscover failed threads.
 - Gmail calls use a rolling one-minute unit budget (default 12,000 of Google's ~15,000
   units/user/minute). When the budget is full the scan pauses until the oldest units
   expire, then continues. Scan now returns immediately and keeps running in the background.

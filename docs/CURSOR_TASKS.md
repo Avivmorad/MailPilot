@@ -6,20 +6,20 @@ live-environment verification and remains owner work
 ordered plan; do not treat unchecked original wording below T1–T11 as current
 backlog.
 
-| Task | Outcome |
-| ---- | ------- |
-| T1 Category/tag refactor | Shipped; unit tests cover taxonomy and placement. |
-| T2 Format + production build | Shipped; `npm run format:check` and self-hosted fonts; CI runs format check. |
-| T3 Eval suite ≥50 cases | Shipped; gates in `EVAL_THRESHOLDS` (schema 100%, action recall ≥90%, deadline hallucination 0). |
-| T4 Triage settings | Shipped (`user_triage_settings`, Zod, scan applies settings). |
-| T5 Gmail/scan hardening | Shipped (rate limit, `REAUTH_REQUIRED`, reconnect, one RUNNING scan, retries, no labels on failed AI). |
-| T6 Privacy deletion | Shipped (delete analysis, disconnect Gmail, delete account). |
-| T7 Onboarding | Shipped (connect → lookback → daily time → optional prefs → first scan). |
-| T8 Observability | Shipped (structured events; no bodies/tokens; Sentry tag allowlist). |
-| T9 Integration/idempotency | Shipped (`npm run test:integration`). |
-| T10 Primary-screen UX | Shipped in product UI (landing, mail tabs, settings, reconnect, confirmations). Browser a11y/e2e suite is still a later enhancement. |
-| T11 Documentation sync | Shipped and maintained in README / spec overlay / this plan. Recruiter README pass: 2026-09. |
-| T12 Staging verification | **Not claimed.** Owner walkthrough in `HUMAN_TASKS.md`. Automated CI is green on PRs; that is not a substitute for the live Gmail walkthrough. |
+| Task                         | Outcome                                                                                                                                        |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| T1 Category/tag refactor     | Shipped; unit tests cover taxonomy and placement.                                                                                              |
+| T2 Format + production build | Shipped; `npm run format:check` and self-hosted fonts; CI runs format check.                                                                   |
+| T3 Eval suite ≥50 cases      | Shipped; gates in `EVAL_THRESHOLDS` (schema 100%, action recall ≥90%, deadline hallucination 0).                                               |
+| T4 Triage settings           | Shipped (`user_triage_settings`, Zod, scan applies settings).                                                                                  |
+| T5 Gmail/scan hardening      | Shipped (rate limit, `REAUTH_REQUIRED`, reconnect, one RUNNING scan, retries, no labels on failed AI).                                         |
+| T6 Privacy deletion          | Shipped (delete analysis, disconnect Gmail, delete account).                                                                                   |
+| T7 Onboarding                | Shipped (connect → lookback → daily time → optional prefs → first scan).                                                                       |
+| T8 Observability             | Shipped (structured events; no bodies/tokens; Sentry tag allowlist).                                                                           |
+| T9 Integration/idempotency   | Shipped (`npm run test:integration`).                                                                                                          |
+| T10 Primary-screen UX        | Shipped in product UI (landing, mail tabs, settings, reconnect, confirmations). Browser a11y/e2e suite is still a later enhancement.           |
+| T11 Documentation sync       | Shipped and maintained in README / spec overlay / this plan. Recruiter README pass: 2026-09.                                                   |
+| T12 Staging verification     | **Not claimed.** Owner walkthrough in `HUMAN_TASKS.md`. Automated CI is green on PRs; that is not a substitute for the live Gmail walkthrough. |
 
 ## General rules (still apply to new work)
 

@@ -22,7 +22,6 @@
 
 ## Purpose
 
-
 This document is a review brief for Cursor. It contains improvement ideas based on the current MailPilot repository, its product specification, and a local verification run.
 
 Cursor should **inspect, challenge, refine, and prioritize** these ideas. Do not assume every proposal is correct. Compare each item against the current implementation and the authoritative product documents:

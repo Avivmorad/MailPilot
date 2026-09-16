@@ -31,21 +31,21 @@ Product decisions that override the historical spec: [`docs/PRODUCT_DECISIONS.md
 
 ## Engineering Highlights
 
-| Capability                         | Evidence                                                                                          |
-| ---------------------------------- | ------------------------------------------------------------------------------------------------- |
-| Gmail API (`gmail.modify`)         | `src/lib/gmail/`, OAuth in `src/lib/gmail/oauth.ts`                                               |
-| Gemini structured JSON             | `responseJsonSchema` in `src/lib/ai/client.ts`                                                    |
-| Zod validation + invariants        | `src/lib/ai/schemas.ts`, `src/lib/ai/post-process.ts`                                             |
-| History API incremental sync       | `src/lib/gmail/history.ts`, `src/lib/gmail/history.test.ts`                                       |
-| Resumable serverless scans         | `0012_scan_chunk_resume.sql`, `src/lib/scans/process-scan.ts`                                     |
-| Scheduled scans + job leases       | `/api/cron/scan-dispatcher`, `0007`/`0008`, `src/lib/scans/dispatcher.ts`                         |
-| Supabase PostgreSQL + RLS          | `supabase/migrations/`, `src/lib/privacy/rls-isolation.test.ts`                                   |
-| Encrypted Gmail refresh tokens     | AES-256-GCM in `src/lib/security/encryption.ts`                                                   |
-| Privacy / data deletion            | Settings + `/api/privacy/*`, `src/lib/privacy/deletion.test.ts`                                   |
-| Observability (no mail/token logs) | `src/lib/observability/events.ts`, `sentry-privacy.test.ts`                                       |
-| CI                                 | `.github/workflows/ci.yml`                                                                        |
-| Unit + integration tests           | `*.test.ts` next to source; `npm run test:integration`                                            |
-| AI evaluation scorecard            | `src/lib/ai/eval-scorecard.ts`, `tests/evals/`, `npm run eval:scorecard`                          |
+| Capability                         | Evidence                                                                  |
+| ---------------------------------- | ------------------------------------------------------------------------- |
+| Gmail API (`gmail.modify`)         | `src/lib/gmail/`, OAuth in `src/lib/gmail/oauth.ts`                       |
+| Gemini structured JSON             | `responseJsonSchema` in `src/lib/ai/client.ts`                            |
+| Zod validation + invariants        | `src/lib/ai/schemas.ts`, `src/lib/ai/post-process.ts`                     |
+| History API incremental sync       | `src/lib/gmail/history.ts`, `src/lib/gmail/history.test.ts`               |
+| Resumable serverless scans         | `0012_scan_chunk_resume.sql`, `src/lib/scans/process-scan.ts`             |
+| Scheduled scans + job leases       | `/api/cron/scan-dispatcher`, `0007`/`0008`, `src/lib/scans/dispatcher.ts` |
+| Supabase PostgreSQL + RLS          | `supabase/migrations/`, `src/lib/privacy/rls-isolation.test.ts`           |
+| Encrypted Gmail refresh tokens     | AES-256-GCM in `src/lib/security/encryption.ts`                           |
+| Privacy / data deletion            | Settings + `/api/privacy/*`, `src/lib/privacy/deletion.test.ts`           |
+| Observability (no mail/token logs) | `src/lib/observability/events.ts`, `sentry-privacy.test.ts`               |
+| CI                                 | `.github/workflows/ci.yml`                                                |
+| Unit + integration tests           | `*.test.ts` next to source; `npm run test:integration`                    |
+| AI evaluation scorecard            | `src/lib/ai/eval-scorecard.ts`, `tests/evals/`, `npm run eval:scorecard`  |
 
 Explore [`src/lib/ai/`](src/lib/ai/), [`src/lib/scans/`](src/lib/scans/), and [`tests/evals/email-triage.json`](tests/evals/email-triage.json).
 
@@ -73,11 +73,11 @@ Manual Scan now and scheduled scans share the same pipeline. One connection may 
 
 Durable gates on a curated fixture set (English, Hebrew, mixed). CI runs `npm run eval:scorecard`. These are **quality gates on the eval harness** (fixtures + schema + post-processing), not live-inbox accuracy claims.
 
-| Gate                     | Threshold | Where it is enforced                                      |
-| ------------------------ | --------- | --------------------------------------------------------- |
-| Schema validity          | **100%**  | `EVAL_THRESHOLDS.schemaValidity`                          |
-| Action recall            | **≥ 90%** | `EVAL_THRESHOLDS.actionRecall`                            |
-| Deadline hallucination   | **0**     | `EVAL_THRESHOLDS.deadlineHallucination`                   |
+| Gate                     | Threshold | Where it is enforced                                          |
+| ------------------------ | --------- | ------------------------------------------------------------- |
+| Schema validity          | **100%**  | `EVAL_THRESHOLDS.schemaValidity`                              |
+| Action recall            | **≥ 90%** | `EVAL_THRESHOLDS.actionRecall`                                |
+| Deadline hallucination   | **0**     | `EVAL_THRESHOLDS.deadlineHallucination`                       |
 | Curated evaluation cases | **≥ 50**  | `loadEvalCases()` (catalog + `tests/evals/email-triage.json`) |
 
 Fixtures must not invent ISO deadlines. Prompt-injection cases still require a real reply. Gold analyses are schema-valid. See [`tests/fixtures/README.md`](tests/fixtures/README.md).

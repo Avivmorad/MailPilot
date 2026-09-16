@@ -18,9 +18,9 @@ MailPilot connects one Gmail inbox, scans threads over a chosen window, classifi
 
 - **Scan now** with lookback of 1–4 days, 1–3 weeks, or 1 month (default 7 days)
 - **Incremental sync** via the Gmail History API after the first successful scan
-- **Daily scheduled scan** (default 08:00 Asia/Jerusalem) through a global cron dispatcher
+- **Daily scheduled scan** (default user time 08:00 Asia/Jerusalem). The dispatcher claims due connections (`next_scan_at`). On Vercel Hobby, `vercel.json` runs that dispatcher once per day (`0 6 * * *` UTC). In-app retry delays therefore wait until the next daily tick.
 - **Resumable scans** across Vercel Hobby time slices so large lookbacks finish
-- **Mail tabs:** Summary vs Open (grouped by category) vs Ignored
+- **Mail tabs:** Summary, Open, Pending, Completed, Snoozed, Ignored. Open tasks are grouped by category.
 - **Gmail labels:** `MailPilot/Important`, `MailPilot/Action Required`, `MailPilot/Low Priority`, `MailPilot/Processed`
 - **In-app digest** after each successful or partial scan (email digest is not in the MVP)
 - **Privacy:** no long-term storage of full email bodies; failed AI does not apply labels; users can delete analysis data or the account
@@ -67,18 +67,18 @@ Supabase Postgres + RLS     profiles, connections, threads, actions, scans, dige
 Gemini                      structured ThreadAnalysis JSON only
 ```
 
-Manual Scan now and scheduled scans share the same pipeline. One connection may have only one `RUNNING` scan. A slice that hits the Hobby wall-clock budget stays `RUNNING` with a thread cursor and continues until the window is done. History ID and the in-app digest advance only on `SUCCESS` or `PARTIAL`.
+Manual Scan now and scheduled scans share the same pipeline. One connection may have only one `RUNNING` scan. A slice that hits the Hobby wall-clock budget stays `RUNNING` with a thread cursor and continues until the window is done. The in-app digest is written when the window finishes with `SUCCESS` or `PARTIAL`. The Gmail History API cursor (`historyId`) advances only on `SUCCESS`, so a partial scan can rediscover failed threads.
 
 ## AI Evaluation
 
 Durable gates on a curated fixture set (English, Hebrew, mixed). CI runs `npm run eval:scorecard`. These are **quality gates on the eval harness** (fixtures + schema + post-processing), not live-inbox accuracy claims.
 
-| Gate                     | Threshold | Where it is enforced                                          |
-| ------------------------ | --------- | ------------------------------------------------------------- |
-| Schema validity          | **100%**  | `EVAL_THRESHOLDS.schemaValidity`                              |
-| Action recall            | **≥ 90%** | `EVAL_THRESHOLDS.actionRecall`                                |
-| Deadline hallucination   | **0**     | `EVAL_THRESHOLDS.deadlineHallucination`                       |
-| Curated evaluation cases | **≥ 50**  | `loadEvalCases()` (catalog + `tests/evals/email-triage.json`) |
+| Gate                     | Threshold | Where it is enforced                               |
+| ------------------------ | --------- | -------------------------------------------------- |
+| Schema validity          | **100%**  | `EVAL_THRESHOLDS.schemaValidity`                   |
+| Action recall            | **≥ 90%** | `EVAL_THRESHOLDS.actionRecall`                     |
+| Deadline hallucination   | **0**     | `EVAL_THRESHOLDS.deadlineHallucination`            |
+| Curated evaluation cases | **≥ 50**  | `eval-scorecard.test.ts` / `eval-fixtures.test.ts` |
 
 Fixtures must not invent ISO deadlines. Prompt-injection cases still require a real reply. Gold analyses are schema-valid. See [`tests/fixtures/README.md`](tests/fixtures/README.md).
 
@@ -208,8 +208,10 @@ npm run format:check     # Prettier check (CI)
 
 ### Cron and Vercel
 
-`GET`/`POST` `/api/cron/scan-dispatcher` claims due Gmail connections (`next_scan_at`), holds a job lease, and runs incremental scans. Protect it with `CRON_SECRET` (`Authorization: Bearer …` or `x-cron-secret`). `vercel.json` schedules it so daily 08:00 Asia/Jerusalem (and bounded retries) are picked up.
+`GET`/`POST` `/api/cron/scan-dispatcher` claims due Gmail connections (`next_scan_at`), holds a job lease, and runs incremental scans. Protect it with `CRON_SECRET` (`Authorization: Bearer …` or `x-cron-secret`).
 
-On Vercel, set the same environment variables, and make `GOOGLE_REDIRECT_URI` and `NEXT_PUBLIC_APP_URL` match the deployed domain. Hobby plans cap function duration at 300 seconds and built-in cron at once per day.
+Each user has a daily wall-clock time (default 08:00) in their timezone (default Asia/Jerusalem). That becomes `next_scan_at` in UTC. Vercel Hobby allows built-in cron once per day; this repo uses `0 6 * * *` UTC. Connections that are already due at that tick run. Bounded retry timestamps in the scheduler can be earlier than the next daily time, but on Hobby they are not picked up until the next daily invocation. Manual Scan now and scan-continue slices do not wait for cron.
+
+Hobby plans also cap function duration at 300 seconds. On Vercel, set the same environment variables, and make `GOOGLE_REDIRECT_URI` and `NEXT_PUBLIC_APP_URL` match the deployed domain.
 
 Owner console steps that cannot be done in git: [`docs/HUMAN_TASKS.md`](docs/HUMAN_TASKS.md).

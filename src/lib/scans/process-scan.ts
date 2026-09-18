@@ -772,7 +772,6 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
       connectionId,
       historyId: null,
       lastAttemptedScanAt: new Date().toISOString(),
-      nextScanAt: null,
     });
     emitProductEvent({
       type: "scan.failed",

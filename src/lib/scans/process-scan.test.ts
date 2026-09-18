@@ -88,6 +88,7 @@ function createMemoryStore(): ScanStorePort & {
     lastSuccessfulScanAt: string | null;
     lastAttemptedScanAt: string | null;
     historyId: string | null;
+    nextScanAt: string | null;
     status: string;
   };
   scanRuns: Array<{
@@ -157,6 +158,7 @@ function createMemoryStore(): ScanStorePort & {
     lastSuccessfulScanAt: null as string | null,
     lastAttemptedScanAt: null as string | null,
     historyId: null as string | null,
+    nextScanAt: null as string | null,
     status: "CONNECTED",
   };
   const settings: ScanSettings = {
@@ -364,6 +366,9 @@ function createMemoryStore(): ScanStorePort & {
       connection.lastAttemptedScanAt = input.lastAttemptedScanAt;
       if (input.lastSuccessfulScanAt !== undefined) {
         connection.lastSuccessfulScanAt = input.lastSuccessfulScanAt;
+      }
+      if (input.nextScanAt !== undefined) {
+        connection.nextScanAt = input.nextScanAt;
       }
     },
     async listPendingFailedThreadIds(connectionId, excludeScanId) {
@@ -745,6 +750,36 @@ describe("processInitialScan", () => {
     expect(result.status).toBe("SUCCESS");
     expect(store.connection.historyId).toBe("hist-before");
     expect(profileReads).toBe(1);
+  });
+
+  it("keeps the daily scan schedule when a manual scan fails", async () => {
+    const store = createMemoryStore();
+    store.connection.nextScanAt = "2026-09-19T05:00:00.000Z";
+    const message = parsedMessage();
+    const gmail: ScanGmailPort = {
+      listMessageRefs: async () => [
+        { id: message.gmailMessageId, threadId: message.gmailThreadId },
+      ],
+      listHistoryChanges: async () => {
+        throw new Error("history should not run on the initial scan");
+      },
+      fetchThread: async () => {
+        throw { response: { status: 401 }, message: "invalid_grant" };
+      },
+      getProfileHistoryId: async () => "hist-1",
+      loadLabelMap: async () => LABEL_MAP,
+      modifyThreadLabels: async () => undefined,
+    };
+
+    await expect(
+      runScan({
+        store,
+        gmail,
+        analyze: async () => ({ ok: true as const, analysis: validAnalysis() }),
+      }),
+    ).rejects.toMatchObject({ response: { status: 401 } });
+
+    expect(store.connection.nextScanAt).toBe("2026-09-19T05:00:00.000Z");
   });
 
   it("marks REAUTH_REQUIRED when Gmail returns 401 mid-scan", async () => {

@@ -232,25 +232,45 @@ export function createSupabaseScanStore(): ScanStorePort {
     },
 
     async getSettings(userId) {
-      const { data, error } = await db
+      const selectColumns =
+        "vip_senders, ignored_senders, ignored_domains, custom_ai_instructions, timezone, daily_scan_time";
+      const existing = await db
         .from("user_triage_settings")
-        .upsert(
-          {
+        .select(selectColumns)
+        .eq("user_id", userId)
+        .maybeSingle();
+      if (existing.error) {
+        failStore("Failed to load triage settings", existing.error);
+      }
+
+      let data = existing.data;
+      if (!data) {
+        const inserted = await db
+          .from("user_triage_settings")
+          .insert({
             user_id: userId,
             initial_lookback_days: 7,
             daily_scan_time: "08:00",
             timezone: "Asia/Jerusalem",
             scan_interval_minutes: null,
-          },
-          { onConflict: "user_id" },
-        )
-        .select(
-          "vip_senders, ignored_senders, ignored_domains, custom_ai_instructions, timezone, daily_scan_time",
-        )
-        .single();
-      if (error || !data) {
-        failStore("Failed to load triage settings", error);
+          })
+          .select(selectColumns)
+          .single();
+        if (!inserted.error && inserted.data) {
+          data = inserted.data;
+        } else {
+          const retry = await db
+            .from("user_triage_settings")
+            .select(selectColumns)
+            .eq("user_id", userId)
+            .single();
+          if (retry.error || !retry.data) {
+            failStore("Failed to load triage settings", retry.error);
+          }
+          data = retry.data;
+        }
       }
+
       const settings: ScanSettings = {
         vipSenders: asStringArray(data.vip_senders),
         ignoredSenders: asStringArray(data.ignored_senders),

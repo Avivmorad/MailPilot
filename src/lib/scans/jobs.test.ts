@@ -360,4 +360,28 @@ describe("scan slice admission", () => {
       locked_by: "continue:scan-1:live",
     });
   });
+
+  it("refreshes the lease for a running job owned by the worker", async () => {
+    const { admitScanSlice, refreshScanJobLease, stillHoldsScanJob } =
+      await import("@/lib/scans/jobs");
+    const jobId = await admitScanSlice({
+      connectionId: "conn-1",
+      scanId: "scan-1",
+      workerId: "continue:scan-1:abc",
+      leaseExpiresAt: leaseLive,
+      now: t0,
+    });
+
+    const nearExpiry = new Date("2026-09-14T12:04:29.000Z");
+    expect(await stillHoldsScanJob(jobId, "continue:scan-1:abc", nearExpiry)).toBe(true);
+
+    const renewedAt = new Date("2026-09-14T12:04:29.000Z");
+    expect(await refreshScanJobLease(jobId, "continue:scan-1:abc", 270, renewedAt)).toBe(true);
+    expect(
+      await stillHoldsScanJob(jobId, "continue:scan-1:abc", new Date("2026-09-14T12:08:00.000Z")),
+    ).toBe(true);
+    expect(
+      await stillHoldsScanJob(jobId, "continue:scan-1:abc", new Date("2026-09-14T12:09:30.000Z")),
+    ).toBe(false);
+  });
 });

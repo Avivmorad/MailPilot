@@ -26,8 +26,17 @@ import {
 } from "@/lib/scans/lookback";
 import { plannedDiscoveryMode } from "@/lib/scans/mode";
 import { mapPool } from "@/lib/scans/pool";
-import { SCAN_STALE_PROGRESS_MS, SCAN_WORK_BUDGET_MS } from "@/lib/scans/dispatch-budget";
-import { SCAN_SLICE_LEASE_LOST, stillHoldsScanJob, type ScanJobLease } from "@/lib/scans/jobs";
+import {
+  DISPATCH_LEASE_SECONDS,
+  SCAN_STALE_PROGRESS_MS,
+  SCAN_WORK_BUDGET_MS,
+} from "@/lib/scans/dispatch-budget";
+import {
+  SCAN_SLICE_LEASE_LOST,
+  refreshScanJobLease,
+  stillHoldsScanJob,
+  type ScanJobLease,
+} from "@/lib/scans/jobs";
 import { nextDailyScanAt } from "@/lib/scans/schedule";
 import { formatThreadFailureMessage } from "@/lib/scans/thread-failures";
 import { emitProductEvent } from "@/lib/observability/events";
@@ -372,6 +381,16 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
       return asFailedResult("INITIAL");
     }
     await assertJobLease();
+    if (jobLease) {
+      const refreshed = await refreshScanJobLease(
+        jobLease.jobId,
+        jobLease.workerId,
+        DISPATCH_LEASE_SECONDS,
+      );
+      if (!refreshed) {
+        throw new Error(SCAN_SLICE_LEASE_LOST);
+      }
+    }
     const checkpoint = await store.getScanCheckpoint(scanId);
     await store.updateScanRun(scanId, { status: "RUNNING" });
     let historyBoundary = checkpoint?.historyBoundary ?? null;

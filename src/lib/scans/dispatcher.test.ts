@@ -8,7 +8,9 @@ import {
   DISPATCH_MAX_DURATION_SECONDS,
   hasDispatchBudget,
 } from "@/lib/scans/dispatch-budget";
+import { scanHasRemainingWork } from "@/lib/scans/checkpoint";
 import { dispatchDueScans } from "@/lib/scans/dispatcher";
+import type { ScanCheckpoint } from "@/lib/scans/types";
 
 describe("authorizeCronRequest", () => {
   it("accepts the Vercel Bearer secret", () => {
@@ -44,6 +46,36 @@ describe("dispatch budget", () => {
     const startedAt = 1_000;
     expect(hasDispatchBudget(startedAt, startedAt + DISPATCH_BUDGET_MS - 1)).toBe(true);
     expect(hasDispatchBudget(startedAt, startedAt + DISPATCH_BUDGET_MS)).toBe(false);
+  });
+});
+
+describe("dispatcher resume selection", () => {
+  it("keeps resuming checkpoints with remaining work even when progress is stale", () => {
+    const staleCheckpoint: ScanCheckpoint = {
+      scanId: "scan-1",
+      userId: "user-1",
+      connectionId: "conn-1",
+      triggerType: "MANUAL",
+      lookbackDays: 30,
+      discoveryMode: "INITIAL",
+      discoveryComplete: true,
+      discoveredThreadIds: ["t1", "t2", "t3"],
+      threadCursor: 1,
+      historyBoundary: "hist-1",
+      failedThreadIds: [],
+      messagesDiscovered: 3,
+      messagesProcessed: 1,
+      threadsAnalyzed: 1,
+      importantCount: 0,
+      actionCount: 0,
+      replyCount: 0,
+      waitingCount: 0,
+      informationalCount: 0,
+      ignoredCount: 0,
+      startedAt: "2026-09-14T10:00:00.000Z",
+      updatedAt: "2026-09-14T10:00:00.000Z",
+    };
+    expect(scanHasRemainingWork(staleCheckpoint)).toBe(true);
   });
 });
 

@@ -1,12 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { progressAgeMs } from "@/lib/scans/checkpoint";
-import { SCAN_HEARTBEAT_BUSY_MS } from "@/lib/scans/dispatch-budget";
+import { progressAgeMs, scanHasRemainingWork } from "@/lib/scans/checkpoint";
+import { SCAN_HEARTBEAT_BUSY_MS, SCAN_STALE_PROGRESS_MS } from "@/lib/scans/dispatch-budget";
 import {
   isManualScanRateLimited,
   MANUAL_SCAN_RATE_LIMIT_MS,
   skipsManualScanRateLimit,
 } from "@/lib/scans/manual";
+import type { ScanCheckpoint } from "@/lib/scans/types";
 
 describe("manual scan rate limit", () => {
   it("is two minutes per Gmail connection", () => {
@@ -30,5 +31,37 @@ describe("manual scan rate limit", () => {
     const updatedAt = "2026-09-14T12:00:00.000Z";
     const age = progressAgeMs({ updatedAt, startedAt: updatedAt }, Date.parse(updatedAt) + 60_000);
     expect(age).toBeLessThan(SCAN_HEARTBEAT_BUSY_MS);
+  });
+});
+
+describe("manual scan resume selection", () => {
+  it("resumes stale checkpoints with remaining work instead of opening a new scan", () => {
+    const staleCheckpoint: ScanCheckpoint = {
+      scanId: "scan-1",
+      userId: "user-1",
+      connectionId: "conn-1",
+      triggerType: "MANUAL",
+      lookbackDays: 30,
+      discoveryMode: "INITIAL",
+      discoveryComplete: true,
+      discoveredThreadIds: ["t1", "t2", "t3"],
+      threadCursor: 1,
+      historyBoundary: "hist-1",
+      failedThreadIds: [],
+      messagesDiscovered: 3,
+      messagesProcessed: 1,
+      threadsAnalyzed: 1,
+      importantCount: 0,
+      actionCount: 0,
+      replyCount: 0,
+      waitingCount: 0,
+      informationalCount: 0,
+      ignoredCount: 0,
+      startedAt: "2026-09-14T10:00:00.000Z",
+      updatedAt: "2026-09-14T10:00:00.000Z",
+    };
+    const nowMs = Date.parse("2026-09-14T11:00:00.000Z");
+    expect(scanHasRemainingWork(staleCheckpoint)).toBe(true);
+    expect(progressAgeMs(staleCheckpoint, nowMs)).toBeGreaterThan(SCAN_STALE_PROGRESS_MS);
   });
 });

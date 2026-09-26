@@ -13,6 +13,7 @@ function createMemoryPort(ownerId: string): AccountDeletionPort & {
   historyResetFor: string[];
   disconnected: string[];
   deletedUsers: string[];
+  abortedScansFor: Array<{ userId: string; connectionIds: string[] }>;
 } {
   const rows: Record<string, Array<{ userId: string; connectionId?: string }>> = {
     digest_reports: [{ userId: ownerId }, { userId: "other-user" }],
@@ -29,14 +30,19 @@ function createMemoryPort(ownerId: string): AccountDeletionPort & {
   const historyResetFor: string[] = [];
   const disconnected: string[] = [];
   const deletedUsers: string[] = [];
+  const abortedScansFor: Array<{ userId: string; connectionIds: string[] }> = [];
 
   return {
     rows,
     historyResetFor,
     disconnected,
     deletedUsers,
+    abortedScansFor,
     async connectionIdsForUser(userId) {
       return userId === ownerId ? ["conn-owner"] : ["conn-other"];
+    },
+    async abortActiveScansForUser(userId, connectionIds) {
+      abortedScansFor.push({ userId, connectionIds });
     },
     async deleteWhereUser(table, userId) {
       const before = rows[table] ?? [];
@@ -78,6 +84,27 @@ describe("privacy deletion confirmation", () => {
 });
 
 describe("deleteAnalysisDataForUser", () => {
+  it("stops active scans before deleting analysis rows", async () => {
+    const port = createMemoryPort("user-1");
+    const callOrder: string[] = [];
+    port.abortActiveScansForUser = async (userId, connectionIds) => {
+      callOrder.push("abort");
+      port.abortedScansFor.push({ userId, connectionIds });
+    };
+    port.deleteWhereUser = async (table, userId) => {
+      callOrder.push(`delete:${table}`);
+      return (port.rows[table] ?? []).filter((row) => row.userId === userId).length;
+    };
+
+    await deleteAnalysisDataForUser("user-1", port);
+
+    expect(callOrder[0]).toBe("abort");
+    expect(callOrder.some((step) => step.startsWith("delete:"))).toBe(true);
+    expect(callOrder.indexOf("abort")).toBeLessThan(
+      callOrder.findIndex((step) => step.startsWith("delete:")),
+    );
+  });
+
   it("removes only the authenticated user's analysis rows and keeps the other user", async () => {
     const port = createMemoryPort("user-1");
     const deleted = await deleteAnalysisDataForUser("user-1", port);
@@ -89,6 +116,7 @@ describe("deleteAnalysisDataForUser", () => {
     expect(port.rows.digest_reports).toEqual([{ userId: "other-user" }]);
     expect(port.rows.scan_jobs).toEqual([{ userId: "other-user", connectionId: "conn-other" }]);
     expect(port.historyResetFor).toEqual(["user-1"]);
+    expect(port.abortedScansFor).toEqual([{ userId: "user-1", connectionIds: ["conn-owner"] }]);
     expect(port.disconnected).toEqual([]);
     expect(port.deletedUsers).toEqual([]);
   });

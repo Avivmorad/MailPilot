@@ -5,6 +5,8 @@ import {
   DELETE_ACCOUNT_CONFIRMATION,
   DELETE_ANALYSIS_CONFIRMATION,
 } from "@/lib/privacy/confirmations";
+import { cancelActiveJobsForConnection } from "@/lib/scans/jobs";
+import { releaseConnectionLease } from "@/lib/scans/leases";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export {
@@ -30,6 +32,7 @@ export type UserScopedTable =
 
 export interface AnalysisDeletionPort {
   connectionIdsForUser(userId: string): Promise<string[]>;
+  abortActiveScansForUser(userId: string, connectionIds: string[]): Promise<void>;
   deleteWhereUser(table: UserScopedTable, userId: string): Promise<number>;
   deleteScanJobsForConnections(connectionIds: string[]): Promise<number>;
   resetConnectionScanState(userId: string): Promise<void>;
@@ -46,6 +49,7 @@ export async function deleteAnalysisDataForUser(
 ): Promise<Record<string, number>> {
   const deleted: Record<string, number> = {};
   const connectionIds = await port.connectionIdsForUser(userId);
+  await port.abortActiveScansForUser(userId, connectionIds);
   deleted.digest_reports = await port.deleteWhereUser("digest_reports", userId);
   deleted.scan_jobs = await port.deleteScanJobsForConnections(connectionIds);
   deleted.scan_runs = await port.deleteWhereUser("scan_runs", userId);
@@ -76,6 +80,26 @@ export function createSupabaseDeletionPort(): AccountDeletionPort {
         throw new Error("Failed to load Gmail connections for deletion");
       }
       return (data ?? []).map((row) => row.id as string);
+    },
+
+    async abortActiveScansForUser(userId, connectionIds) {
+      for (const connectionId of connectionIds) {
+        await cancelActiveJobsForConnection(connectionId, "analysis_deleted");
+        await releaseConnectionLease(connectionId).catch(() => undefined);
+      }
+      const { error } = await db
+        .from("scan_runs")
+        .update({
+          status: "FAILED",
+          finished_at: new Date().toISOString(),
+          error_code: "analysis_deleted",
+          error_message: "Scan stopped because analysis data was deleted.",
+        })
+        .eq("user_id", userId)
+        .eq("status", "RUNNING");
+      if (error) {
+        throw new Error("Failed to stop active scans before analysis deletion");
+      }
     },
 
     async deleteWhereUser(table, userId) {

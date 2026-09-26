@@ -383,6 +383,9 @@ function deletionPortForStores(
     async connectionIdsForUser(userId) {
       return stores.filter((store) => store.userId === userId).map((store) => store.connectionId);
     },
+    async abortActiveScansForUser() {
+      // Integration tests do not run background scan workers.
+    },
     async deleteWhereUser(table: UserScopedTable, userId) {
       let removed = 0;
       for (const store of stores) {

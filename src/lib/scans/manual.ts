@@ -218,7 +218,8 @@ async function runAdmittedScanSlice(input: {
       ...input.prepared,
       jobLease: { jobId: input.jobId, workerId: input.workerId },
     });
-    await resolveScanSliceJob(input.jobId, result, input.workerId, input.leaseExpiresAt);
+    const handoffLease = new Date(Date.now() + DISPATCH_LEASE_SECONDS * 1000).toISOString();
+    await resolveScanSliceJob(input.jobId, result, input.workerId, handoffLease);
     if (result.status === "SUCCESS" || result.status === "PARTIAL") {
       try {
         await persistDigestAfterScan({ userId: input.userId, scanId: input.prepared.scanId });

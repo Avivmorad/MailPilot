@@ -140,7 +140,8 @@ export async function continueScanRun(scanId: string): Promise<ScanRunResult> {
       ...prepared,
       jobLease: { jobId, workerId },
     });
-    await resolveScanSliceJob(jobId, result, workerId, leaseExpiresAt);
+    const handoffLease = new Date(Date.now() + DISPATCH_LEASE_SECONDS * 1000).toISOString();
+    await resolveScanSliceJob(jobId, result, workerId, handoffLease);
     if (result.status === "SUCCESS" || result.status === "PARTIAL") {
       try {
         await persistDigestAfterScan({ userId: checkpoint.userId, scanId });

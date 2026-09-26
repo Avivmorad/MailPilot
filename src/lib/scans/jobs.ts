@@ -282,6 +282,28 @@ export async function markScanJobRunning(
   return Boolean(data);
 }
 
+export async function refreshScanJobLease(
+  jobId: string,
+  workerId: string,
+  leaseSeconds: number,
+  now: Date = new Date(),
+): Promise<boolean> {
+  const db = createAdminClient();
+  const leaseExpiresAt = new Date(now.getTime() + leaseSeconds * 1000).toISOString();
+  const { data, error } = await db
+    .from("scan_jobs")
+    .update({ lease_expires_at: leaseExpiresAt })
+    .eq("id", jobId)
+    .eq("locked_by", workerId)
+    .in("status", ["QUEUED", "RUNNING"])
+    .select("id")
+    .maybeSingle();
+  if (error) {
+    throw new Error("Failed to refresh scan job lease");
+  }
+  return Boolean(data);
+}
+
 export async function stillHoldsScanJob(
   jobId: string,
   workerId: string,

@@ -18,6 +18,8 @@ import type { MailPilotLogicalLabel } from "@/lib/gmail/constants";
 import type { ParsedGmailMessage } from "@/lib/gmail/parser";
 import { asLookbackDays } from "@/lib/scans/checkpoint";
 import type { InitialLookbackDays } from "@/lib/scans/lookback";
+import { DISPATCH_LEASE_SECONDS } from "@/lib/scans/dispatch-budget";
+import * as scanJobs from "@/lib/scans/jobs";
 import {
   analysisPromptKey,
   executeGmailScan,
@@ -524,6 +526,39 @@ describe("processInitialScan", () => {
       clock.mockRestore();
       vi.unstubAllEnvs();
     }
+  });
+
+  it("refreshes the job lease before thread processing starts", async () => {
+    const refresh = vi.spyOn(scanJobs, "refreshScanJobLease").mockResolvedValue(true);
+    const stillHolds = vi.spyOn(scanJobs, "stillHoldsScanJob").mockResolvedValue(true);
+    const store = createMemoryStore();
+    const gmail: ScanGmailPort = {
+      getProfileHistoryId: async () => "hist-new",
+      listHistoryChanges: async () => {
+        throw new Error("history should not run on the initial scan");
+      },
+      listMessageRefs: async () => [],
+      fetchThread: async () => [parsedMessage()],
+      loadLabelMap: async () => LABEL_MAP,
+      modifyThreadLabels: async () => {},
+    };
+    const prepared = await openGmailScan({
+      userId: "user-1",
+      connectionId: "conn-1",
+      gmailEmail: "me@example.com",
+      gmail,
+      store,
+      provider: unusedProvider(),
+      modelName: "gemini-test",
+    });
+    await executeGmailScan({
+      ...prepared,
+      gmail,
+      jobLease: { jobId: "job-1", workerId: "worker-1" },
+    });
+    expect(refresh).toHaveBeenCalledWith("job-1", "worker-1", DISPATCH_LEASE_SECONDS);
+    refresh.mockRestore();
+    stillHolds.mockRestore();
   });
 
   it("upserts a thread once, applies labels after analysis, and keeps counters consistent", async () => {

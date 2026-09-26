@@ -10,10 +10,9 @@ import {
   DISPATCH_DEFAULT_LIMIT,
   DISPATCH_LEASE_SECONDS,
   SCAN_CONTINUE_RETRY_MS,
-  SCAN_STALE_PROGRESS_MS,
   hasDispatchBudget,
 } from "@/lib/scans/dispatch-budget";
-import { progressAgeMs, scanHasRemainingWork } from "@/lib/scans/checkpoint";
+import { scanHasRemainingWork } from "@/lib/scans/checkpoint";
 import { SCAN_IN_PROGRESS } from "@/lib/scans/errors";
 import { createGmailScanPort } from "@/lib/scans/gmail-port";
 import {
@@ -75,9 +74,7 @@ async function runClaimedConnection(
     const store = createSupabaseScanStore();
     const running = await store.findRunningScan(claimed.id);
     const checkpoint = running ? await store.getScanCheckpoint(running.id) : null;
-    const remaining = checkpoint && scanHasRemainingWork(checkpoint) ? checkpoint : null;
-    const age = remaining ? progressAgeMs(remaining, now.getTime()) : Number.POSITIVE_INFINITY;
-    const resumeExisting = remaining && age < SCAN_STALE_PROGRESS_MS ? remaining : null;
+    const resumeExisting = checkpoint && scanHasRemainingWork(checkpoint) ? checkpoint : null;
 
     try {
       jobId = await acquireScanJob({
@@ -133,7 +130,8 @@ async function runClaimedConnection(
       }
     }
 
-    await resolveScanSliceJob(jobId, result, workerId, leaseExpiresAt);
+    const handoffLease = new Date(Date.now() + DISPATCH_LEASE_SECONDS * 1000).toISOString();
+    await resolveScanSliceJob(jobId, result, workerId, handoffLease);
 
     if (result.status === "CONTINUED") {
       const chained = await scheduleScanContinuation(prepared.scanId);

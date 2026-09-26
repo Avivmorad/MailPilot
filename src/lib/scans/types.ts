@@ -144,7 +144,7 @@ export interface ScanStorePort {
       historyBoundary?: string | null;
       failedThreadIds?: string[];
     },
-  ): Promise<void>;
+  ): Promise<boolean>;
   getSettings(userId: string): Promise<ScanSettings>;
   getConnectionScanState(connectionId: string): Promise<ConnectionScanState>;
   upsertThread(input: {

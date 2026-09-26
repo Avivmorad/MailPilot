@@ -351,6 +351,12 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
       throw new Error(SCAN_SLICE_LEASE_LOST);
     }
   };
+  const holdsJobLease = async (): Promise<boolean> => {
+    if (!jobLease) {
+      return true;
+    }
+    return stillHoldsScanJob(jobLease.jobId, jobLease.workerId);
+  };
   emitProductEvent({
     type: "scan.started",
     scanId,
@@ -514,6 +520,9 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
                 }),
                 provider,
               );
+              if (!(await holdsJobLease())) {
+                return;
+              }
               if (!outcome.ok) {
                 failedGmailThreadIds.push(gmailThreadId);
                 const threadId = await store.upsertThread({
@@ -559,6 +568,10 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
                 category: analysis.category,
                 requiresAction: analysis.requires_action,
               });
+            }
+
+            if (!(await holdsJobLease())) {
+              return;
             }
 
             const threadId = await store.upsertThread({
@@ -695,7 +708,7 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
 
     const status = uniqueFailed.length > 0 ? "PARTIAL" : "SUCCESS";
     const finishedAt = new Date().toISOString();
-    await store.updateScanRun(scanId, {
+    const finalized = await store.updateScanRun(scanId, {
       ...counters,
       status,
       finishedAt,
@@ -706,6 +719,16 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
       errorCode: status === "PARTIAL" ? "partial_thread_failures" : null,
       errorMessage: status === "PARTIAL" ? formatThreadFailureMessage(uniqueFailed) : null,
     });
+    if (!finalized) {
+      emitProductEvent({
+        type: "scan.cancelled",
+        scanId,
+        connectionId,
+        errorCode: "cancelled",
+        durationMs: Date.now() - startedMs,
+      });
+      return asFailedResult(discoveryMode);
+    }
 
     // Advance the History API cursor only after a fully successful scan. A PARTIAL
     // run must keep the previous historyId so failed threads are rediscovered.
@@ -762,12 +785,15 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
     if (reauth) {
       await store.markConnectionReauthRequired(connectionId);
     }
-    await store.updateScanRun(scanId, {
+    const markedFailed = await store.updateScanRun(scanId, {
       status: "FAILED",
       finishedAt: new Date().toISOString(),
       errorCode,
       errorMessage: scanUserMessage(errorCode),
     });
+    if (!markedFailed) {
+      throw error;
+    }
     await store.updateConnectionScan({
       connectionId,
       historyId: null,

@@ -17,8 +17,8 @@ import {
   SCAN_SCHEMA_MISSING_MESSAGE,
   scanUserMessage,
 } from "@/lib/scans/errors";
-import { progressAgeMs, scanHasRemainingWork } from "@/lib/scans/checkpoint";
-import { DISPATCH_LEASE_SECONDS, SCAN_STALE_PROGRESS_MS } from "@/lib/scans/dispatch-budget";
+import { scanHasRemainingWork } from "@/lib/scans/checkpoint";
+import { DISPATCH_LEASE_SECONDS } from "@/lib/scans/dispatch-budget";
 import {
   acquireScanJob,
   admitScanSlice,
@@ -112,37 +112,34 @@ export async function beginManualInitialScan(
   const running = await store.findRunningScan(connection.connectionId);
   const checkpoint = running ? await store.getScanCheckpoint(running.id) : null;
   if (checkpoint && scanHasRemainingWork(checkpoint)) {
-    const age = progressAgeMs(checkpoint, Date.now());
-    if (age < SCAN_STALE_PROGRESS_MS) {
-      const workerId = `manual:${checkpoint.scanId}:${crypto.randomUUID()}`;
-      const leaseExpiresAt = new Date(Date.now() + DISPATCH_LEASE_SECONDS * 1000).toISOString();
-      const jobId = await admitScanSlice({
-        connectionId: connection.connectionId,
-        scanId: checkpoint.scanId,
-        workerId,
-        leaseExpiresAt,
-      }).catch(remapJobAdmissionError);
-      const prepared = await resumeGmailScan({
-        scanId: checkpoint.scanId,
-        gmailEmail: connection.gmailEmail,
-        gmail: createGmailScanPort(connection.gmail, connection.connectionId),
-        store,
-        provider: createEmailTriageProvider(),
-        modelName: getGeminiEnv().GEMINI_MODEL,
-      });
-      return {
-        scanId: prepared.scanId,
-        triggerType: checkpoint.triggerType === "INITIAL" ? "INITIAL" : "MANUAL",
-        execute: async () =>
-          runAdmittedScanSlice({
-            jobId,
-            workerId,
-            leaseExpiresAt,
-            userId,
-            prepared,
-          }),
-      };
-    }
+    const workerId = `manual:${checkpoint.scanId}:${crypto.randomUUID()}`;
+    const leaseExpiresAt = new Date(Date.now() + DISPATCH_LEASE_SECONDS * 1000).toISOString();
+    const jobId = await admitScanSlice({
+      connectionId: connection.connectionId,
+      scanId: checkpoint.scanId,
+      workerId,
+      leaseExpiresAt,
+    }).catch(remapJobAdmissionError);
+    const prepared = await resumeGmailScan({
+      scanId: checkpoint.scanId,
+      gmailEmail: connection.gmailEmail,
+      gmail: createGmailScanPort(connection.gmail, connection.connectionId),
+      store,
+      provider: createEmailTriageProvider(),
+      modelName: getGeminiEnv().GEMINI_MODEL,
+    });
+    return {
+      scanId: prepared.scanId,
+      triggerType: checkpoint.triggerType === "INITIAL" ? "INITIAL" : "MANUAL",
+      execute: async () =>
+        runAdmittedScanSlice({
+          jobId,
+          workerId,
+          leaseExpiresAt,
+          userId,
+          prepared,
+        }),
+    };
   }
 
   const latest = await getLatestScanRunForUser(userId);

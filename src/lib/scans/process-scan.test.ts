@@ -27,7 +27,7 @@ import {
   resumeGmailScan,
   shouldReuseStoredAnalysis,
 } from "@/lib/scans/process-scan";
-import { parseThreadFailureIds } from "@/lib/scans/thread-failures";
+import { mergePendingFailedThreadIds } from "@/lib/scans/thread-failures";
 import type {
   ScanGmailPort,
   ScanSettings,
@@ -383,15 +383,18 @@ function createMemoryStore(): ScanStorePort & {
       }
     },
     async listPendingFailedThreadIds(connectionId, excludeScanId) {
-      const latest = [...scanRuns]
-        .reverse()
-        .find(
-          (run) =>
-            run.id !== excludeScanId &&
-            run.status === "PARTIAL" &&
-            (run.connectionId ?? "conn-1") === connectionId,
-        );
-      return parseThreadFailureIds(latest?.errorMessage);
+      const partials = scanRuns.filter(
+        (run) =>
+          run.id !== excludeScanId &&
+          run.status === "PARTIAL" &&
+          (run.connectionId ?? "conn-1") === connectionId,
+      );
+      return mergePendingFailedThreadIds(
+        partials.map((run) => ({
+          failedThreadIds: run.failedThreadIds ?? [],
+          errorMessage: run.errorMessage,
+        })),
+      );
     },
     async markConnectionReauthRequired() {
       connection.status = "REAUTH_REQUIRED";

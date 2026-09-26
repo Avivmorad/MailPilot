@@ -5,7 +5,7 @@ import { parseAddressList, parseEmailAddress } from "@/lib/gmail/addresses";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { emitProductEvent } from "@/lib/observability/events";
 import { scanStoreFailure, isScanRunUniqueViolation, SCAN_IN_PROGRESS } from "@/lib/scans/errors";
-import { parseThreadFailureIds } from "@/lib/scans/thread-failures";
+import { mergePendingFailedThreadIds } from "@/lib/scans/thread-failures";
 import { timestampOrNull } from "@/lib/scans/timestamps";
 import { asDiscoveryMode, asLookbackDays, parseJsonStringArray } from "@/lib/scans/checkpoint";
 import type { ScanSettings, ScanStorePort, StoredThreadRow } from "@/lib/scans/types";
@@ -464,17 +464,20 @@ export function createSupabaseScanStore(): ScanStorePort {
     async listPendingFailedThreadIds(connectionId, excludeScanId) {
       const { data, error } = await db
         .from("scan_runs")
-        .select("error_message")
+        .select("failed_thread_ids, error_message")
         .eq("gmail_connection_id", connectionId)
         .eq("status", "PARTIAL")
         .neq("id", excludeScanId)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        .order("created_at", { ascending: false });
       if (error) {
-        failStore("Failed to load failed threads from the last partial scan", error);
+        failStore("Failed to load failed threads from partial scans", error);
       }
-      return parseThreadFailureIds((data?.error_message as string | null) ?? null);
+      return mergePendingFailedThreadIds(
+        (data ?? []).map((row) => ({
+          failedThreadIds: parseJsonStringArray(row.failed_thread_ids),
+          errorMessage: (row.error_message as string | null) ?? null,
+        })),
+      );
     },
 
     async markConnectionReauthRequired(connectionId) {

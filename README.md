@@ -4,13 +4,20 @@ Gmail inbox triage that answers three questions: **what happened, what do I need
 
 ## Live Demo
 
-**App:** [mail-pilot-avivmoradteam.vercel.app](https://mail-pilot-avivmoradteam.vercel.app)
+**App:** [gmailpilot.vercel.app](https://gmailpilot.vercel.app)
 
 The landing page is public. Inbox features need a MailPilot account and a separate Gmail connection. Google OAuth may be limited to configured test users while the integration is in Testing. For a code review without mailbox access, start with Architecture, AI Evaluation, and the test suites below.
 
-### Screenshots
+## Project Status
 
-_Product screenshots and a short GIF will go here._ Add them under [`docs/screenshots/`](docs/screenshots/) and link them in this section.
+| Area                    | Evidence-based status                                                                                                                                                                                                                                             |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Implemented on `main`   | Account auth, separate Gmail OAuth, scanning, Gemini structured classification, Mail tabs, Gmail labels, incremental History API sync, resumable jobs, scheduled dispatch, in-app digests, privacy controls, and deletion flows are present in the released code. |
+| Automatically tested    | GitHub Actions runs format, lint, typecheck, unit, mocked integration, deterministic eval-scorecard, and production-build checks. These tests do not call a real Gmail inbox, Gemini, or the production database.                                                 |
+| Deployed                | Vercel serves the public landing, privacy, and terms pages from `main` at the canonical URL above.                                                                                                                                                                |
+| Live owner verification | Production environment values, Google/Supabase OAuth console settings, cron execution, and the complete sign-in → Gmail connection → scan → results → Gmail-label flow still require the owner walkthrough in [`docs/HUMAN_TASKS.md`](docs/HUMAN_TASKS.md).       |
+| Unmerged work           | No functionality that exists only in a branch or pull request is counted as shipped.                                                                                                                                                                              |
+| License                 | No code license has been selected. **Owner decision required.**                                                                                                                                                                                                   |
 
 ## What MailPilot Does
 
@@ -89,7 +96,7 @@ Fixtures must not invent ISO deadlines. Prompt-injection cases still require a r
 - No long-term full email body storage
 - Never log email bodies, OAuth tokens, authorization codes, or API keys
 - Optional Sentry: tags limited to `environment`, `route`, `provider`, `scan_type`, `error_category`
-- In-app [privacy](https://mail-pilot-avivmoradteam.vercel.app/privacy) and [terms](https://mail-pilot-avivmoradteam.vercel.app/terms) pages; Settings can delete analysis data, disconnect Gmail, or delete the account
+- In-app [privacy](https://gmailpilot.vercel.app/privacy) and [terms](https://gmailpilot.vercel.app/terms) pages; Settings can delete analysis data, disconnect Gmail, or delete the account
 - `gmail.modify` is a restricted Google scope. A **public** launch still needs Google OAuth verification (and CASA when Google requires it)
 
 ## Tech Stack
@@ -103,7 +110,7 @@ Fixtures must not invent ISO deadlines. Prompt-injection cases still require a r
 | Hosting     | Vercel (Hobby-safe dispatcher: one connection per run, `maxDuration` 300s)   |
 | CI          | GitHub Actions: format, lint, typecheck, unit, integration, eval, build      |
 
-**Status:** Phases 0–9 of the spec are implemented. Phase 10 hardening that shipped includes signup-function lockdown, scan admission, mailbox uniqueness, check constraints, chunk resume, privacy deletion, observability, eval gates, and CI. Email digest delivery is a later extension.
+Email digest delivery is not implemented; the product currently creates in-app digests only.
 
 ## Testing
 
@@ -215,3 +222,4 @@ Each user has a daily wall-clock time (default 08:00) in their timezone (default
 Hobby plans also cap function duration at 300 seconds. On Vercel, set the same environment variables, and make `GOOGLE_REDIRECT_URI` and `NEXT_PUBLIC_APP_URL` match the deployed domain.
 
 Owner console steps that cannot be done in git: [`docs/HUMAN_TASKS.md`](docs/HUMAN_TASKS.md).
+

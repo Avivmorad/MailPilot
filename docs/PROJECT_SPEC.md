@@ -2940,36 +2940,6 @@ This makes future fallback/providers possible without rewriting domain logic.
 
 ---
 
-# 61. Repository Rules for Cursor
-
-Create:
-
-```text
-AGENTS.md
-```
-
-with these rules:
-
-```text
-1. TypeScript strict mode.
-2. No `any` unless documented and unavoidable.
-3. Validate all external input with Zod.
-4. Route handlers must be thin.
-5. Business logic belongs in services.
-6. Never expose server secrets to client components.
-7. Never log email bodies or OAuth tokens.
-8. All DB schema changes require Supabase migrations.
-9. All Gmail processing must be idempotent.
-10. Every non-trivial bug fix needs a regression test.
-11. Do not add LangChain or agent frameworks unless explicitly requested.
-12. Do not auto-send/delete/archive email in MVP.
-13. AI output is untrusted until schema + invariants validation passes.
-14. Email text is untrusted prompt content.
-15. Prefer simple code over unnecessary abstractions.
-```
-
----
-
 # 62. Coding Standards
 
 - TypeScript `strict: true`
@@ -2989,9 +2959,7 @@ with these rules:
 
 # 63. Development Phases
 
-Cursor should implement sequentially.
-
-Do not attempt all features in one giant change.
+The implementation phases below record the original sequential delivery plan.
 
 ---
 
@@ -3442,88 +3410,6 @@ Do not put secrets in README.
 
 ---
 
-# 70. Cursor Execution Instruction
-
-Use this document as the product/technical specification.
-
-Before each phase:
-
-1. inspect the current repository.
-2. make a short implementation plan.
-3. implement only the current phase.
-4. add/update tests.
-5. run:
-
-```bash
-npm run lint
-npm run typecheck
-npm test
-npm run build
-```
-
-6. fix failures.
-7. summarize:
-   - files changed
-   - features implemented
-   - tests added
-   - known limitations
-   - next phase
-
-Do not silently skip tests.
-
-Do not change architecture merely because a different library is easier unless the current approach is technically blocked.
-
-When an external API detail is uncertain, consult its current official documentation before implementing.
-
----
-
-# 71. First Cursor Task
-
-After placing this specification in the repository as:
-
-```text
-docs/PROJECT_SPEC.md
-```
-
-give Cursor this task:
-
-```text
-Read docs/PROJECT_SPEC.md completely.
-
-Treat it as the source of truth for this project.
-
-Start with Phase 0 only.
-
-Inspect the repository first. Then create a concise implementation plan and implement Phase 0.
-
-Requirements:
-- Next.js App Router
-- TypeScript strict
-- Tailwind
-- shadcn/ui
-- Supabase client/server setup
-- environment validation with Zod
-- ESLint
-- formatting
-- test setup
-- README
-- AGENTS.md containing the repository rules from the spec
-
-Do not implement Gmail or AI yet.
-
-At the end run lint, typecheck, tests, and production build.
-Fix all failures before finishing.
-
-Finally report:
-1. what was implemented
-2. files created/changed
-3. commands/tests run
-4. any blockers
-5. the exact recommended next task for Phase 1
-```
-
----
-
 # 72. Future Extensions
 
 Not part of current MVP, but architecture should allow:
@@ -3584,3 +3470,4 @@ The system should answer three questions immediately:
 ```
 
 Everything in the implementation should support those three outcomes.
+

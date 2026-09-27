@@ -18,7 +18,7 @@ That does **not** complete Google OAuth verification.
 
 ## Staging walkthrough (T12)
 
-On [the live app](https://mail-pilot-avivmoradteam.vercel.app):
+On [the live app](https://gmailpilot.vercel.app):
 
 - [ ] Sign up / sign in (MailPilot account, not Gmail yet).
 - [ ] Connect Gmail and complete a Scan now (try 7 days, then a longer window if you have a large inbox).
@@ -59,4 +59,4 @@ Dependency bumps and app bugs stay in GitHub PRs. Open Dependabot PRs from the o
 
 ## Portfolio follow-ups (not product behavior)
 
-- [ ] Add anonymized screenshots / GIF under `docs/screenshots/` and link them from the README Screenshots section.
+- [ ] Capture anonymized or synthetic product screenshots before adding a README Screenshots section. Do not use real Gmail data.

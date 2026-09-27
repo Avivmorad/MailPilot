@@ -6,6 +6,7 @@ vi.mock("@/lib/scans/jobs", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/scans/jobs")>();
   return {
     ...actual,
+    refreshScanJobLease: vi.fn(async () => leaseCheckState.holds),
     stillHoldsScanJob: vi.fn(async () => leaseCheckState.holds),
   };
 });

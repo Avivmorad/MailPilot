@@ -3470,4 +3470,3 @@ The system should answer three questions immediately:
 ```
 
 Everything in the implementation should support those three outcomes.
-

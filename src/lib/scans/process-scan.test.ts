@@ -1348,4 +1348,3 @@ describe("executeGmailScan lease safety", () => {
     expect(modifyThreadLabels).not.toHaveBeenCalled();
   });
 });
-

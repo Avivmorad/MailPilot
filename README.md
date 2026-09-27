@@ -222,4 +222,3 @@ Each user has a daily wall-clock time (default 08:00) in their timezone (default
 Hobby plans also cap function duration at 300 seconds. On Vercel, set the same environment variables, and make `GOOGLE_REDIRECT_URI` and `NEXT_PUBLIC_APP_URL` match the deployed domain.
 
 Owner console steps that cannot be done in git: [`docs/HUMAN_TASKS.md`](docs/HUMAN_TASKS.md).
-

@@ -60,4 +60,3 @@ Dependency bumps and app bugs stay in GitHub PRs. Open Dependabot PRs from the o
 ## Portfolio follow-ups (not product behavior)
 
 - [ ] Capture anonymized or synthetic product screenshots before adding a README Screenshots section. Do not use real Gmail data.
-

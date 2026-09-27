@@ -132,26 +132,64 @@ export default function Home() {
       </header>
 
       <main id="main-content" tabIndex={-1} className="flex-1">
-        <section className="mx-auto w-full max-w-6xl px-6 pt-16 pb-10 text-center">
-          <Badge variant="secondary" className="mb-6">
-            AI-powered Gmail triage
-          </Badge>
-          <h1 className="text-foreground mx-auto max-w-3xl text-4xl font-bold tracking-tight text-balance sm:text-5xl">
-            Know what needs your attention. Ignore what doesn&apos;t.
-          </h1>
-          <p className="text-muted-foreground mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-pretty">
-            MailPilot reads your inbox, identifies what needs action, tracks what you&apos;re
-            waiting on, and summarizes everything else — so you can focus on the emails that
-            actually matter.
-          </p>
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-            <a href="/login" className={buttonVariants({ size: "lg" })}>
-              Sign in
-              <ArrowRight className="size-4" />
-            </a>
-            <a href="#preview" className={buttonVariants({ variant: "outline", size: "lg" })}>
-              See an example
-            </a>
+        <section className="border-border/60 relative overflow-hidden border-b bg-[radial-gradient(circle_at_80%_15%,var(--accent),transparent_38%)]">
+          <div className="mx-auto grid w-full max-w-6xl items-center gap-12 px-6 py-16 lg:grid-cols-[.9fr_1.1fr] lg:py-24">
+            <div>
+              <Badge variant="secondary" className="mb-6">
+                A clearer way to handle Gmail
+              </Badge>
+              <h1 className="text-foreground max-w-xl text-5xl leading-[1.07] font-semibold tracking-[-.05em] text-balance sm:text-6xl">
+                Your inbox, <span className="text-primary">under control.</span>
+              </h1>
+              <p className="text-muted-foreground mt-6 max-w-lg text-lg leading-relaxed text-pretty">
+                MailPilot turns busy email threads into a short list of what needs you, what
+                you&apos;re waiting on, and what you only need to know.
+              </p>
+              <div className="mt-8 flex flex-wrap gap-3">
+                <a href="/login" className={buttonVariants({ size: "lg" })}>
+                  Get started with Gmail <ArrowRight className="size-4" />
+                </a>
+                <a href="#preview" className={buttonVariants({ variant: "outline", size: "lg" })}>
+                  See an example
+                </a>
+              </div>
+              <p className="text-muted-foreground mt-5 text-xs">
+                No automatic sending or deleting emails.
+              </p>
+            </div>
+            <div className="border-border bg-card shadow-primary/10 overflow-hidden rounded-2xl border shadow-2xl">
+              <div className="border-border flex items-center justify-between border-b px-5 py-4">
+                <span className="text-sm font-semibold">Your daily overview</span>
+                <span className="text-muted-foreground text-xs">Example inbox</span>
+              </div>
+              <div className="border-border bg-muted/40 grid grid-cols-3 border-b">
+                {[
+                  ["02", "Needs you"],
+                  ["01", "Waiting"],
+                  ["01", "FYI"],
+                ].map(([count, label]) => (
+                  <div key={label} className="border-border border-r px-4 py-4 last:border-0">
+                    <p className="text-2xl font-semibold tabular-nums">{count}</p>
+                    <p className="text-muted-foreground text-xs">{label}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="space-y-3 p-4">
+                {previewColumns.map((column) => (
+                  <div
+                    key={column.tab}
+                    className={`border-border rounded-xl border border-l-4 ${column.accent} bg-background p-4`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <h2 className="text-sm font-semibold">{column.items[0].title}</h2>
+                      <span className="text-muted-foreground shrink-0 text-xs">{column.tab}</span>
+                    </div>
+                    <p className="text-muted-foreground mt-1 text-xs">{column.items[0].meta}</p>
+                    <p className="text-muted-foreground mt-2 text-sm">{column.items[0].body}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </section>
 

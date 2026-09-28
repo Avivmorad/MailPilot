@@ -17,6 +17,7 @@ import {
 } from "@/lib/mail/filters";
 import { actionStatusForMailTab, MAIL_TABS, mailTabEmptyCopy, parseMailTab } from "@/lib/mail/tabs";
 import { getSessionUser } from "@/lib/supabase/auth";
+import { requireOnboardingComplete } from "@/lib/onboarding/guard";
 import { listIgnoredThreadsForUser, listRecentThreadsForUser } from "@/lib/threads/queries";
 import { cn } from "@/lib/utils";
 
@@ -48,6 +49,7 @@ export default async function MailPage({
   if (!user) {
     redirect("/login");
   }
+  await requireOnboardingComplete(user.id);
   const params = await searchParams;
   const tab = parseMailTab(params.tab);
   const uncertainOnly = parseUncertainFilter(params.uncertain);
@@ -88,7 +90,7 @@ export default async function MailPage({
     tab === "waiting" ? actionItems.filter((item) => isStaleWaiting(item.updatedAt)).length : 0;
   const needsGmailRecovery = shouldShowGmailRecoveryCard(gmailStatus);
   const emptyAction = needsGmailRecovery ? (
-    <a href="/api/gmail/connect" className={buttonVariants({ size: "sm" })}>
+    <a href="/api/gmail/connect?returnTo=/mail" className={buttonVariants({ size: "sm" })}>
       {gmailRecoveryActionLabel(gmailStatus)}
     </a>
   ) : (

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { safeAppReturnPath } from "@/lib/auth/redirects";
 import { disconnectGmailForUser } from "@/lib/gmail/connections";
 import { getSessionUser } from "@/lib/supabase/auth";
 
@@ -10,16 +11,29 @@ export async function POST(request: Request) {
     return NextResponse.redirect(new URL("/login", origin), { status: 303 });
   }
 
+  let returnTo = "/settings";
+  const contentType = request.headers.get("content-type") ?? "";
+  if (contentType.includes("application/x-www-form-urlencoded")) {
+    const form = await request.formData().catch(() => null);
+    returnTo = safeAppReturnPath(
+      typeof form?.get("returnTo") === "string" ? String(form.get("returnTo")) : null,
+      "/settings",
+    );
+  } else {
+    const url = new URL(request.url);
+    returnTo = safeAppReturnPath(url.searchParams.get("returnTo"), "/settings");
+  }
+
   try {
     await disconnectGmailForUser(user.id);
   } catch {
-    const url = new URL("/dashboard", origin);
+    const url = new URL(returnTo, origin);
     url.searchParams.set("gmail", "error");
     url.searchParams.set("reason", "disconnect_failed");
     return NextResponse.redirect(url, { status: 303 });
   }
 
-  const url = new URL("/dashboard", origin);
+  const url = new URL(returnTo, origin);
   url.searchParams.set("gmail", "disconnected");
   return NextResponse.redirect(url, { status: 303 });
 }

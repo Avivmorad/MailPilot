@@ -31,6 +31,7 @@ import { openGmailScan, executeGmailScan, resumeGmailScan } from "@/lib/scans/pr
 import { createSupabaseScanStore } from "@/lib/scans/store";
 import { persistDigestAfterScan } from "@/lib/digest/build-digest";
 import { emitProductEvent } from "@/lib/observability/events";
+import { captureSafeException } from "@/lib/observability/sentry-report";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { ScanRunResult } from "@/lib/scans/types";
 
@@ -45,7 +46,7 @@ export const manualScanRequestSchema = z.object({
 });
 
 const SCAN_RUN_SELECT =
-  "id, status, trigger_type, window_start, window_end, started_at, finished_at, messages_discovered, messages_processed, threads_analyzed, threads_discovered, threads_checked, important_count, action_count, reply_count, waiting_count, informational_count, ignored_count, error_code, error_message";
+  "id, status, trigger_type, window_start, window_end, started_at, finished_at, updated_at, messages_discovered, messages_processed, threads_analyzed, threads_discovered, threads_checked, important_count, action_count, reply_count, waiting_count, informational_count, ignored_count, error_code, error_message";
 
 export const MANUAL_SCAN_RATE_LIMIT_MS = 2 * 60_000;
 
@@ -170,7 +171,9 @@ export async function beginManualInitialScan(
     gmailEmail: connection.gmailEmail,
     lookbackDays,
     triggerType,
-    forceLookback: false,
+    // Manual Scan now always honors the chosen lookback window (content-hash
+    // still skips unchanged threads). Scheduled scans stay incremental.
+    forceLookback: true,
     gmail: createGmailScanPort(connection.gmail, connection.connectionId),
     store,
     provider: createEmailTriageProvider(),
@@ -220,8 +223,12 @@ async function runAdmittedScanSlice(input: {
     if (result.status === "SUCCESS" || result.status === "PARTIAL") {
       try {
         await persistDigestAfterScan({ userId: input.userId, scanId: input.prepared.scanId });
-      } catch {
+      } catch (error) {
         emitProductEvent({ type: "digest.created", scanId: input.prepared.scanId, persisted: 0 });
+        captureSafeException(error, {
+          route: "/api/scans",
+          scan_type: "manual",
+        });
       }
     }
     return result;

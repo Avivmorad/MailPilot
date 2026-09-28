@@ -4,6 +4,7 @@ import { createEmailTriageProvider } from "@/lib/ai/client";
 import { getTriageModelName } from "@/lib/config/env";
 import { persistDigestAfterScan } from "@/lib/digest/build-digest";
 import { emitProductEvent } from "@/lib/observability/events";
+import { captureSafeException } from "@/lib/observability/sentry-report";
 import { createGmailApiForConnection } from "@/lib/gmail/client";
 import { DISPATCH_LEASE_SECONDS, SCAN_CONTINUE_RETRY_MS } from "@/lib/scans/dispatch-budget";
 import { createGmailScanPort } from "@/lib/scans/gmail-port";
@@ -145,8 +146,12 @@ export async function continueScanRun(scanId: string): Promise<ScanRunResult> {
     if (result.status === "SUCCESS" || result.status === "PARTIAL") {
       try {
         await persistDigestAfterScan({ userId: checkpoint.userId, scanId });
-      } catch {
+      } catch (error) {
         emitProductEvent({ type: "digest.created", scanId, persisted: 0 });
+        captureSafeException(error, {
+          route: "/api/scans/continue",
+          scan_type: "manual",
+        });
       }
     }
     return result;

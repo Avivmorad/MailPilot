@@ -20,10 +20,12 @@ export function ThreadFeedback({ threadId }: { threadId: string }) {
   const router = useRouter();
   const [busy, setBusy] = useState<(typeof FEEDBACK_KINDS)[number] | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState(false);
 
   async function send(kind: (typeof FEEDBACK_KINDS)[number]) {
     setBusy(kind);
     setMessage(null);
+    setError(false);
     try {
       const response = await fetch(`/api/threads/${threadId}/feedback`, {
         method: "POST",
@@ -32,6 +34,7 @@ export function ThreadFeedback({ threadId }: { threadId: string }) {
       });
       const payload = (await response.json().catch(() => ({}))) as { applied?: boolean };
       if (!response.ok) {
+        setError(true);
         setMessage("Could not save feedback.");
         return;
       }
@@ -44,6 +47,7 @@ export function ThreadFeedback({ threadId }: { threadId: string }) {
         router.refresh();
       }
     } catch {
+      setError(true);
       setMessage("Could not save feedback.");
     } finally {
       setBusy(null);
@@ -76,7 +80,10 @@ export function ThreadFeedback({ threadId }: { threadId: string }) {
         ))}
       </div>
       {message ? (
-        <p className="text-muted-foreground text-xs" role="status">
+        <p
+          className={error ? "text-destructive text-xs" : "text-muted-foreground text-xs"}
+          role={error ? "alert" : "status"}
+        >
           {message}
         </p>
       ) : null}

@@ -374,7 +374,7 @@ function createMemoryStore(): ScanStorePort & {
       actions.set(threadId, action);
     },
     async updateConnectionScan(input) {
-      if (input.historyId) {
+      if (input.historyId !== undefined) {
         connection.historyId = input.historyId;
       }
       connection.lastAttemptedScanAt = input.lastAttemptedScanAt;
@@ -1255,6 +1255,30 @@ describe("openGmailScan admission", () => {
     expect(prepared.scanId).not.toBe("stale");
     expect(store.scanRuns.find((run) => run.id === "stale")?.status).toBe("FAILED");
     expect(store.scanRuns.filter((run) => run.status === "RUNNING")).toHaveLength(1);
+  });
+
+  it("clears gmail historyId when a running scan fails hard", async () => {
+    const store = createMemoryStore();
+    store.connection.historyId = "hist-prior";
+    store.connection.lastSuccessfulScanAt = "2026-09-10T08:00:00.000Z";
+    await expect(
+      runScan({
+        store,
+        gmail: {
+          getProfileHistoryId: async () => {
+            throw new Error("gmail boom");
+          },
+          listHistoryChanges: async () => ({ ok: true as const, refs: [], latestHistoryId: "x" }),
+          listMessageRefs: async () => [],
+          fetchThread: async () => {
+            throw new Error("unused");
+          },
+          loadLabelMap: async () => LABEL_MAP,
+          modifyThreadLabels: async () => {},
+        },
+      }),
+    ).rejects.toThrow(/gmail boom/);
+    expect(store.connection.historyId).toBeNull();
   });
 
   it("does not leave a RUNNING scan if settings fail to load", async () => {

@@ -239,7 +239,7 @@ function createMemoryStore(
       actions.set(threadId, action);
     },
     async updateConnectionScan(input) {
-      if (input.historyId) {
+      if (input.historyId !== undefined) {
         connection.historyId = input.historyId;
       }
       connection.lastAttemptedScanAt = input.lastAttemptedScanAt;

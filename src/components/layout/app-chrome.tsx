@@ -27,6 +27,8 @@ export async function AppChrome({
     scanStatus: latestScan ? String(latestScan.status) : null,
     errorCode: latestScan ? ((latestScan.error_code as string | null) ?? null) : null,
     suppressRunning: current === "dashboard",
+    returnTo:
+      current === "thread" ? "/mail" : current === "onboarding" ? "/onboarding" : `/${current}`,
   });
 
   return (

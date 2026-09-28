@@ -22,9 +22,9 @@ export async function POST(request: Request) {
   }
 
   try {
+    await deleteAccountForUser(user.id, createSupabaseDeletionPort());
     const supabase = await createClient();
     await supabase.auth.signOut();
-    await deleteAccountForUser(user.id, createSupabaseDeletionPort());
     return NextResponse.json({ ok: true, redirectTo: `${origin}/` });
   } catch {
     return NextResponse.json({ error: "delete_failed" }, { status: 500 });

@@ -13,23 +13,33 @@ export function ThreadPlacementCorrection({ threadId, tab }: { threadId: string;
   const kinds = PLACEMENT_CORRECTIONS[tab];
   const [busy, setBusy] = useState<FeedbackKind | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState(false);
 
   async function send(kind: FeedbackKind) {
     setBusy(kind);
     setMessage(null);
+    setError(false);
     try {
       const response = await fetch(`/api/threads/${threadId}/feedback`, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ kind }),
       });
+      const payload = (await response.json().catch(() => ({}))) as { applied?: boolean };
       if (!response.ok) {
+        setError(true);
+        setMessage("Could not apply the correction.");
+        return;
+      }
+      if (!payload.applied) {
+        setError(true);
         setMessage("Could not apply the correction.");
         return;
       }
       setMessage("Updated. This thread now follows your correction.");
       router.refresh();
     } catch {
+      setError(true);
       setMessage("Could not apply the correction.");
     } finally {
       setBusy(null);
@@ -54,7 +64,10 @@ export function ThreadPlacementCorrection({ threadId, tab }: { threadId: string;
         ))}
       </div>
       {message ? (
-        <p className="text-muted-foreground text-xs" role="status">
+        <p
+          className={error ? "text-destructive text-xs" : "text-muted-foreground text-xs"}
+          role={error ? "alert" : "status"}
+        >
           {message}
         </p>
       ) : null}

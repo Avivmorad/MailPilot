@@ -446,7 +446,7 @@ export function createSupabaseScanStore(): ScanStorePort {
       if (input.nextScanAt !== undefined) {
         patch.next_scan_at = input.nextScanAt;
       }
-      if (input.historyId) {
+      if (input.historyId !== undefined) {
         patch.gmail_history_id = input.historyId;
       }
       if (input.lastSuccessfulScanAt !== undefined) {

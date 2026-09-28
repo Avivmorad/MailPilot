@@ -7,6 +7,7 @@ import {
   oauthErrorQuery,
   passwordResetRedirectTo,
   parseAuthOtpType,
+  safeAppReturnPath,
   safeAuthNext,
 } from "@/lib/auth/redirects";
 
@@ -25,6 +26,15 @@ describe("auth redirects", () => {
     expect(safeAuthNext("/api/privacy/delete-account", "email")).toBe("/login");
     expect(safeAuthNext("/login/update-password", "recovery")).toBe("/login/update-password");
     expect(safeAuthNext("/dashboard", null)).toBe("/dashboard");
+    expect(safeAuthNext("/mail", null)).toBe("/mail");
+    expect(safeAuthNext("/settings", null)).toBe("/settings");
+    expect(safeAuthNext("/thread/abc-123", null)).toBe("/thread/abc-123");
+  });
+
+  it("safeAppReturnPath falls back for unsafe paths", () => {
+    expect(safeAppReturnPath(null, "/onboarding")).toBe("/onboarding");
+    expect(safeAppReturnPath("/settings", "/onboarding")).toBe("/settings");
+    expect(safeAppReturnPath("https://evil.example", "/dashboard")).toBe("/dashboard");
   });
 
   it("builds a same-origin reset callback", () => {

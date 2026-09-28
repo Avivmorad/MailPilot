@@ -11,6 +11,7 @@ import { getGmailStatusForUser } from "@/lib/gmail/connections";
 import { getScanRunsForUser } from "@/lib/scans/manual";
 import { getScanPreferences } from "@/lib/settings/preferences";
 import { getSessionUser } from "@/lib/supabase/auth";
+import { requireOnboardingComplete } from "@/lib/onboarding/guard";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +24,7 @@ export default async function SettingsPage({
   if (!user) {
     redirect("/login");
   }
+  await requireOnboardingComplete(user.id);
 
   const params = await searchParams;
   const [gmailStatus, preferences, scans] = await Promise.all([

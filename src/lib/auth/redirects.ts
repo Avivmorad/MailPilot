@@ -16,11 +16,16 @@ export const SAFE_AUTH_NEXT_PATHS = [
   "/login/update-password",
   "/onboarding",
   "/dashboard",
+  "/mail",
+  "/digests",
+  "/settings",
+  "/actions",
 ] as const;
 
 export type SafeAuthNextPath = (typeof SAFE_AUTH_NEXT_PATHS)[number];
 
 const authOtpTypeSchema = z.enum(AUTH_OTP_TYPES);
+const THREAD_PATH = /^\/thread\/[A-Za-z0-9_-]+$/;
 
 export function parseAuthOtpType(value: string | null): AuthOtpType | null {
   const parsed = authOtpTypeSchema.safeParse(value);
@@ -37,22 +42,44 @@ export function defaultAuthNext(type: AuthOtpType | null, oauthCode = false): Sa
   return "/login";
 }
 
+function isSafeRelativeAppPath(path: string): boolean {
+  if (!path.startsWith("/") || path.startsWith("//") || path.includes("\\")) {
+    return false;
+  }
+  if ((SAFE_AUTH_NEXT_PATHS as readonly string[]).includes(path)) {
+    return true;
+  }
+  return THREAD_PATH.test(path);
+}
+
+/**
+ * Same-origin app path for post-login / Gmail OAuth return. Rejects open redirects.
+ */
+export function safeAppReturnPath(
+  raw: string | null | undefined,
+  fallback: string = "/dashboard",
+): string {
+  if (!raw) {
+    return fallback;
+  }
+  const path = raw.split("?")[0] ?? raw;
+  return isSafeRelativeAppPath(path) ? path : fallback;
+}
+
 /** Only allow same-origin relative app paths. Reject protocol-relative and unknown routes. */
 export function safeAuthNext(
   raw: string | null | undefined,
   type: AuthOtpType | null,
   oauthCode = false,
-): SafeAuthNextPath {
+): string {
   if (!raw) {
     return defaultAuthNext(type, oauthCode);
   }
   const path = raw.split("?")[0] ?? raw;
-  if (!path.startsWith("/") || path.startsWith("//") || path.includes("\\")) {
+  if (!isSafeRelativeAppPath(path)) {
     return defaultAuthNext(type, oauthCode);
   }
-  return (SAFE_AUTH_NEXT_PATHS as readonly string[]).includes(path)
-    ? (path as SafeAuthNextPath)
-    : defaultAuthNext(type, oauthCode);
+  return path;
 }
 
 export function passwordResetRedirectTo(origin: string): string {

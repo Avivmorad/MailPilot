@@ -8,18 +8,24 @@ export interface AppBanner {
   actionLabel?: string;
 }
 
+function connectHref(returnTo: string): string {
+  return `/api/gmail/connect?returnTo=${encodeURIComponent(returnTo)}`;
+}
+
 export function appStatusBanner(input: {
   connectionStatus: string | null;
   scanStatus: string | null;
   errorCode?: string | null;
   suppressRunning?: boolean;
+  returnTo?: string;
 }): AppBanner | null {
+  const reconnect = connectHref(input.returnTo ?? "/dashboard");
   if (input.connectionStatus === "REAUTH_REQUIRED") {
     return {
       kind: "warning",
       title: "Your Gmail connection needs to be refreshed.",
       body: "Reconnect Gmail to continue scanning. Your existing summaries were kept.",
-      href: "/api/gmail/connect",
+      href: reconnect,
       actionLabel: "Reconnect Gmail",
     };
   }
@@ -28,7 +34,7 @@ export function appStatusBanner(input: {
       kind: "error",
       title: "Gmail connection error",
       body: "Reconnect to repair the connection. Your existing summaries were not deleted.",
-      href: "/api/gmail/connect",
+      href: reconnect,
       actionLabel: "Reconnect Gmail",
     };
   }
@@ -38,7 +44,7 @@ export function appStatusBanner(input: {
         kind: "warning",
         title: "Your Gmail connection needs to be refreshed.",
         body: "Reconnect Gmail to continue scanning. Your existing summaries were kept.",
-        href: "/api/gmail/connect",
+        href: reconnect,
         actionLabel: "Reconnect Gmail",
       };
     }

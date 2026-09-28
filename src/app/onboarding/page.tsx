@@ -75,7 +75,12 @@ export default async function OnboardingPage({
           2. Schedule and first scan
         </li>
       </ol>
-      <GmailConnectionCard status={gmailStatus} gmailFlash={params.gmail} reason={params.reason} />
+      <GmailConnectionCard
+        status={gmailStatus}
+        gmailFlash={params.gmail}
+        reason={params.reason}
+        returnTo="/onboarding"
+      />
       {step === "configure_and_scan" ? (
         <>
           <ScanPreferencesForm

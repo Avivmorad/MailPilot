@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { ScanProgressBar } from "@/components/scans/scan-progress-bar";
 import { Button } from "@/components/ui/button";
@@ -25,15 +25,44 @@ import {
   startScanResponseSchema,
   type ScanRunSnapshot,
 } from "@/lib/scans/progress";
+import { DISPATCH_LEASE_SECONDS } from "@/lib/scans/dispatch-budget";
 import { scanUserMessage } from "@/lib/scans/errors";
 import { formatDateTime } from "@/lib/ui/format";
 import { labelForScanStatus } from "@/lib/ui/labels";
 
-async function fetchLatestScan(): Promise<ScanRunSnapshot | null> {
-  const response = await fetch("/api/scans", { cache: "no-store" });
-  const payload: unknown = await response.json();
-  const parsed = latestScanResponseSchema.safeParse(payload);
-  return parsed.success ? parsed.data.scan : null;
+const POLL_NULL_LIMIT = 3;
+/** Resume a stalled RUNNING scan after the serverless lease window plus a buffer. */
+const STALE_RESUME_MS = (DISPATCH_LEASE_SECONDS + 60) * 1000;
+
+async function fetchLatestScan(): Promise<
+  { ok: true; scan: ScanRunSnapshot | null } | { ok: false; status: number }
+> {
+  try {
+    const response = await fetch("/api/scans", { cache: "no-store" });
+    if (!response.ok) {
+      return { ok: false, status: response.status };
+    }
+    const payload: unknown = await response.json();
+    const parsed = latestScanResponseSchema.safeParse(payload);
+    return { ok: true, scan: parsed.success ? parsed.data.scan : null };
+  } catch {
+    return { ok: false, status: 0 };
+  }
+}
+
+function isStaleRunning(scan: ScanRunSnapshot, nowMs: number): boolean {
+  if (scan.status !== "RUNNING") {
+    return false;
+  }
+  const stamp = scan.updated_at ?? null;
+  if (!stamp) {
+    return false;
+  }
+  const parsed = Date.parse(stamp);
+  if (!Number.isFinite(parsed)) {
+    return false;
+  }
+  return nowMs - parsed >= STALE_RESUME_MS;
 }
 
 export function InitialScanCard({
@@ -66,6 +95,13 @@ export function InitialScanCard({
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState(false);
   const [errorCode, setErrorCode] = useState<string | null>(null);
+  const nullPolls = useRef(0);
+  const resumeInFlight = useRef(false);
+  const progressRef = useRef(progress);
+
+  useEffect(() => {
+    progressRef.current = progress;
+  }, [progress]);
 
   useEffect(() => {
     if (!busy || !watchId) {
@@ -73,14 +109,99 @@ export function InitialScanCard({
     }
     let cancelled = false;
 
+    async function resumeStalled(scanId: string) {
+      if (resumeInFlight.current) {
+        return;
+      }
+      resumeInFlight.current = true;
+      try {
+        const response = await fetch("/api/scans", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ lookbackDays }),
+        });
+        const payload: unknown = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          const failed = payload as { error?: string; message?: string };
+          if (failed.error === "scan_in_progress") {
+            return;
+          }
+          setError(true);
+          setErrorCode(failed.error ?? "scan_failed");
+          setMessage(scanUserMessage(failed.error, failed.message));
+          setBusy(false);
+          setProgress(null);
+          setWatchId(null);
+          return;
+        }
+        const started = startScanResponseSchema.safeParse(payload);
+        const prev = progressRef.current;
+        if (started.success) {
+          setWatchId(started.data.scanId);
+          setProgress({
+            id: started.data.scanId,
+            status: "RUNNING",
+            threads_discovered: prev?.threads_discovered ?? 0,
+            threads_checked: prev?.threads_checked ?? 0,
+            updated_at: new Date().toISOString(),
+          });
+        } else if (scanId) {
+          setProgress((current) =>
+            current ? { ...current, updated_at: new Date().toISOString() } : current,
+          );
+        }
+      } catch {
+        setError(true);
+        setMessage("Scan stalled. Please try again.");
+        setBusy(false);
+        setProgress(null);
+        setWatchId(null);
+      } finally {
+        resumeInFlight.current = false;
+      }
+    }
+
     async function tick() {
-      const scan = await fetchLatestScan();
-      if (cancelled || !scan) {
+      const result = await fetchLatestScan();
+      if (cancelled) {
+        return;
+      }
+      if (!result.ok) {
+        nullPolls.current += 1;
+        if (nullPolls.current >= POLL_NULL_LIMIT) {
+          setError(true);
+          setErrorCode(result.status === 401 ? "not_signed_in" : "scan_failed");
+          setMessage(
+            result.status === 401
+              ? "Sign in again to follow scan progress."
+              : "Could not load scan progress. Please try again.",
+          );
+          setBusy(false);
+          setProgress(null);
+          setWatchId(null);
+        }
+        return;
+      }
+      nullPolls.current = 0;
+      const scan = result.scan;
+      if (!scan) {
+        nullPolls.current += 1;
+        if (nullPolls.current >= POLL_NULL_LIMIT) {
+          setError(true);
+          setMessage("Could not load scan progress. Please try again.");
+          setBusy(false);
+          setProgress(null);
+          setWatchId(null);
+        }
         return;
       }
       if (scan.status === "RUNNING") {
-        if (scan.id === watchId) {
+        if (scan.id === watchId || watchId === "pending") {
+          setWatchId(scan.id);
           setProgress(scan);
+          if (isStaleRunning(scan, Date.now())) {
+            void resumeStalled(scan.id);
+          }
         }
         return;
       }
@@ -91,8 +212,8 @@ export function InitialScanCard({
       setProgress(null);
       setWatchId(null);
       if (scan.status === "FAILED") {
-        const cancelled = scan.error_code === "cancelled";
-        setError(!cancelled);
+        const cancelledScan = scan.error_code === "cancelled";
+        setError(!cancelledScan);
         setErrorCode(scan.error_code ?? "scan_failed");
         setMessage(scanUserMessage(scan.error_code, scan.error_message));
         return;
@@ -109,7 +230,7 @@ export function InitialScanCard({
       cancelled = true;
       clearInterval(timer);
     };
-  }, [busy, watchId, router, completeHref]);
+  }, [busy, watchId, router, completeHref, lookbackDays]);
 
   async function cancelScan() {
     if (!watchId || watchId === "pending") {
@@ -142,7 +263,14 @@ export function InitialScanCard({
     setMessage(null);
     setError(false);
     setErrorCode(null);
-    setProgress({ id: "pending", status: "RUNNING", threads_discovered: 0, threads_checked: 0 });
+    nullPolls.current = 0;
+    setProgress({
+      id: "pending",
+      status: "RUNNING",
+      threads_discovered: 0,
+      threads_checked: 0,
+      updated_at: new Date().toISOString(),
+    });
     try {
       const response = await fetch("/api/scans", {
         method: "POST",
@@ -173,6 +301,7 @@ export function InitialScanCard({
         status: "RUNNING",
         threads_discovered: 0,
         threads_checked: 0,
+        updated_at: new Date().toISOString(),
       });
     } catch {
       setError(true);
@@ -254,7 +383,7 @@ export function InitialScanCard({
             {error && errorCode === "reauth_required" ? (
               <>
                 {" "}
-                <a className="underline" href="/api/gmail/connect">
+                <a className="underline" href="/api/gmail/connect?returnTo=/dashboard">
                   Reconnect Gmail
                 </a>
               </>

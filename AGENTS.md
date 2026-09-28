@@ -98,6 +98,11 @@ files you did not mean to edit.
 classification quality gate (schema validity, action recall, deadline hallucination). Keep
 these scripts in `package.json` and run them locally; CI runs them on every pull request.
 
+## Cursor Cloud specific instructions
+
+- Install dependencies with `npm ci` (Node.js 22, see `.nvmrc`). The public landing, privacy, and terms pages start with `npm run dev` at http://localhost:3000 and do not need Supabase, Gmail, or AI keys. Auth middleware is a no-op until `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` are set.
+- The checks under "Checks before finishing" do not call Gmail, NVIDIA, Gemini, or a live database. Sign-in, Connect Gmail, and scans need the secrets listed in `.env.example`; do not invent or commit those values.
+
 <!-- BEGIN:nextjs-agent-rules -->
 
 # This is NOT the Next.js you know

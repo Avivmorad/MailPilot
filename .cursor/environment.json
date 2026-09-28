@@ -1,0 +1,17 @@
+{
+  "name": "MailPilot",
+  "install": "npm ci",
+  "terminals": [
+    {
+      "name": "Next.js dev",
+      "command": "npm run dev",
+      "description": "MailPilot development server at http://localhost:3000. The landing page works without secrets."
+    }
+  ],
+  "ports": [
+    {
+      "name": "web",
+      "port": 3000
+    }
+  ]
+}

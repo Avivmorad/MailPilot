@@ -106,7 +106,7 @@ Fixtures must not invent ISO deadlines. Prompt-injection cases still require a r
 | App         | Next.js (App Router), React, TypeScript, Tailwind CSS, shadcn/ui             |
 | Data / auth | Supabase Postgres + RLS; Supabase Auth for the app account                   |
 | Gmail       | Separate Google OAuth (`gmail.modify`); refresh tokens encrypted AES-256-GCM |
-| AI          | Google Gemini with JSON Schema output, Zod validation                        |
+| AI          | NVIDIA Build when `NVIDIA_API_KEY` is set; otherwise Google Gemini           |
 | Hosting     | Vercel (Hobby-safe dispatcher: one connection per run, `maxDuration` 300s)   |
 | CI          | GitHub Actions: format, lint, typecheck, unit, integration, eval, build      |
 
@@ -134,7 +134,7 @@ cp .env.example .env.local   # fill in real values; never commit .env.local
 npm run dev                  # http://localhost:3000
 ```
 
-Prerequisites: Node.js 22+, a [Supabase](https://supabase.com) project, a Google Cloud project with the **Gmail API** enabled and OAuth **Web application** credentials, and a Gemini API key (`GEMINI_API_KEY` / `GEMINI_MODEL`).
+Prerequisites: Node.js 22+, a [Supabase](https://supabase.com) project, a Google Cloud project with the **Gmail API** enabled and OAuth **Web application** credentials, and either an NVIDIA Build key (`NVIDIA_API_KEY`) or a Gemini API key (`GEMINI_API_KEY` / `GEMINI_MODEL`). NVIDIA is used when its key is set.
 
 The landing page runs without secrets. Features that need configuration fail fast with a clear message.
 
@@ -171,7 +171,8 @@ Copy from [`.env.example`](.env.example). Server secrets must never use a `NEXT_
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` / `GOOGLE_REDIRECT_URI`                     | Gmail OAuth                                                 |
 | `TOKEN_ENCRYPTION_KEY`                                                                  | 32-byte key for AES-256-GCM refresh-token encryption        |
 | `TOKEN_ENCRYPTION_PREVIOUS_KEY`                                                         | Optional previous key during rotation                       |
-| `GEMINI_API_KEY` / `GEMINI_MODEL`                                                       | Gemini access; model is configurable, not hard-coded        |
+| `GEMINI_API_KEY` / `GEMINI_MODEL`                                                       | Gemini access; used when `NVIDIA_API_KEY` is unset          |
+| `NVIDIA_API_KEY` / `NVIDIA_MODEL`                                                       | NVIDIA Build chat API; primary triage provider when set     |
 | `CRON_SECRET`                                                                           | Protects `/api/cron/scan-dispatcher`                        |
 | `MAX_THREAD_MESSAGES` / `MAX_MESSAGE_CHARS` / `MAX_THREAD_CHARS` / `AI_MAX_CONCURRENCY` | Context and cost controls                                   |
 | `GMAIL_QUOTA_UNITS_PER_MINUTE`                                                          | Optional local Gmail quota budget (default 12000)           |

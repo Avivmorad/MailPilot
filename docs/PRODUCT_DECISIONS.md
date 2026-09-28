@@ -99,9 +99,12 @@ in `src/lib/config/env.ts`. Some setup guides used different illustrative names;
 
 ## AI provider
 
-The project uses **Google Gemini** with JSON Schema structured output
-(`responseMimeType: application/json` + `responseJsonSchema`), then Zod +
-invariant post-processing. This overrides spec §4/§22/§60, which named OpenAI.
+When `NVIDIA_API_KEY` is set, scans use **NVIDIA Build**
+(`https://integrate.api.nvidia.com/v1/chat/completions`, JSON object output)
+as the primary triage provider. Otherwise the project uses **Google Gemini**
+with JSON Schema structured output (`responseMimeType: application/json` +
+`responseJsonSchema`). Both paths then run Zod + invariant post-processing.
+This overrides spec §4/§22/§60, which named OpenAI.
 
 Implementation:
 

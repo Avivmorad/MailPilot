@@ -1,7 +1,15 @@
 import { withSentryConfig } from "@sentry/nextjs/config";
 import type { NextConfig } from "next";
 
-import { sentryInstrumentationTurbopackRules } from "./src/lib/observability/sentry-turbopack";
+import { createRequire } from "node:module";
+
+const require = createRequire(import.meta.url);
+const { sentryInstrumentationTurbopackRules } =
+  require("./src/lib/observability/sentry-turbopack-rules.cjs") as {
+    sentryInstrumentationTurbopackRules: (
+      cwd?: string,
+    ) => NonNullable<NextConfig["turbopack"]>["rules"];
+  };
 
 const nextConfig: NextConfig = {
   // Pin the workspace root so Turbopack doesn't get confused by unrelated

@@ -1,21 +1,18 @@
-import path from "node:path";
+import { createRequire } from "node:module";
+
+const require = createRequire(import.meta.url);
+
+const rules = require("./sentry-turbopack-rules.cjs") as {
+  SENTRY_INSTRUMENTATION_CLIENT_MATCHER: string;
+  SENTRY_INSTRUMENTATION_MATCHER: string;
+  sentryTurbopackIdentityLoaderPath: (cwd?: string) => string;
+  sentryInstrumentationTurbopackRules: (cwd?: string) => {
+    [matcher: string]: { loaders: { loader: string }[] };
+  };
+};
 
 /** Matchers Sentry uses in generateValueInjectionRules (must stay exact). */
-export const SENTRY_INSTRUMENTATION_CLIENT_MATCHER = "**/instrumentation-client.*";
-export const SENTRY_INSTRUMENTATION_MATCHER = "**/instrumentation.*";
-
-export function sentryTurbopackIdentityLoaderPath(cwd = process.cwd()) {
-  return path.join(cwd, "src/lib/observability/sentry-turbopack-identity-loader.cjs");
-}
-
-export function sentryInstrumentationTurbopackRules(cwd = process.cwd()) {
-  const loader = sentryTurbopackIdentityLoaderPath(cwd);
-  return {
-    [SENTRY_INSTRUMENTATION_CLIENT_MATCHER]: {
-      loaders: [{ loader }],
-    },
-    [SENTRY_INSTRUMENTATION_MATCHER]: {
-      loaders: [{ loader }],
-    },
-  };
-}
+export const SENTRY_INSTRUMENTATION_CLIENT_MATCHER = rules.SENTRY_INSTRUMENTATION_CLIENT_MATCHER;
+export const SENTRY_INSTRUMENTATION_MATCHER = rules.SENTRY_INSTRUMENTATION_MATCHER;
+export const sentryTurbopackIdentityLoaderPath = rules.sentryTurbopackIdentityLoaderPath;
+export const sentryInstrumentationTurbopackRules = rules.sentryInstrumentationTurbopackRules;

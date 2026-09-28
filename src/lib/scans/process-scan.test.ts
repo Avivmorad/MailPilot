@@ -167,6 +167,7 @@ function createMemoryStore(): ScanStorePort & {
     userId?: string;
   }> = [];
   const progressChecks: number[] = [];
+  let liveCursorAdvances = 0;
   const connection = {
     lastSuccessfulScanAt: null as string | null,
     lastAttemptedScanAt: null as string | null,
@@ -190,6 +191,7 @@ function createMemoryStore(): ScanStorePort & {
     connection: typeof connection;
     scanRuns: typeof scanRuns;
     progressChecks: number[];
+    liveCursorAdvances: number;
   } = {
     threads,
     messages,
@@ -197,6 +199,9 @@ function createMemoryStore(): ScanStorePort & {
     connection,
     scanRuns,
     progressChecks,
+    get liveCursorAdvances() {
+      return liveCursorAdvances;
+    },
     async findRunningScan(connectionId) {
       const running = scanRuns.find(
         (run) => run.status === "RUNNING" && (run.connectionId ?? "conn-1") === connectionId,
@@ -314,6 +319,9 @@ function createMemoryStore(): ScanStorePort & {
       }
       if (patch.threadCursor !== undefined) {
         run.threadCursor = patch.threadCursor;
+        if (patch.failedThreadIds === undefined && patch.discoveryComplete === undefined) {
+          liveCursorAdvances += 1;
+        }
       }
       if (patch.historyBoundary !== undefined) {
         run.historyBoundary = patch.historyBoundary;
@@ -1048,6 +1056,7 @@ describe("processInitialScan", () => {
     expect(store.progressChecks[0]).toBe(0);
     expect(store.progressChecks).toContain(1);
     expect(store.progressChecks.at(-1)).toBe(2);
+    expect(store.liveCursorAdvances).toBe(0);
   });
 
   it("stops a cancelled scan without finishing remaining threads or advancing history", async () => {

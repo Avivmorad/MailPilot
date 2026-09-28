@@ -472,7 +472,6 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
             messagesProcessed: processed,
             threadsDiscovered: threadIds.length,
             threadsChecked: checked,
-            threadCursor: checked,
           });
         } catch {
           // Live progress is best-effort; the final write still records totals.

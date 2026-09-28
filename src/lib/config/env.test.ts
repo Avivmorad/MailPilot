@@ -134,7 +134,7 @@ describe("parseServerEnv", () => {
     expect(env.MAX_THREAD_MESSAGES).toBe(6);
     expect(env.MAX_MESSAGE_CHARS).toBe(12000);
     expect(env.MAX_THREAD_CHARS).toBe(35000);
-    expect(env.AI_MAX_CONCURRENCY).toBe(2);
+    expect(env.AI_MAX_CONCURRENCY).toBe(4);
   });
 
   it("coerces string numbers from the environment", () => {

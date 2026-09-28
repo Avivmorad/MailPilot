@@ -563,24 +563,26 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
                   promptVersion: analysis ? (existing?.promptVersion ?? null) : null,
                   modelName: analysis ? modelName : null,
                 });
-                for (const message of chronological) {
-                  const from = parseEmailAddress(message.from);
-                  await store.upsertMessage({
-                    userId,
-                    connectionId,
-                    threadId,
-                    message,
-                    direction: classifyDirection({
-                      from,
-                      to: parseAddressList(message.to),
-                      cc: parseAddressList(message.cc),
-                      userEmails,
-                    }),
-                    receivedAt: receivedAtIso(message.internalDate),
-                    contentHash: messageContentHash(message),
-                  });
-                  messagesProcessed += 1;
-                }
+                await Promise.all(
+                  chronological.map(async (message) => {
+                    const from = parseEmailAddress(message.from);
+                    await store.upsertMessage({
+                      userId,
+                      connectionId,
+                      threadId,
+                      message,
+                      direction: classifyDirection({
+                        from,
+                        to: parseAddressList(message.to),
+                        cc: parseAddressList(message.cc),
+                        userEmails,
+                      }),
+                      receivedAt: receivedAtIso(message.internalDate),
+                      contentHash: messageContentHash(message),
+                    });
+                  }),
+                );
+                messagesProcessed += chronological.length;
                 countTowardCursor = true;
                 continue;
               }
@@ -616,24 +618,26 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
               modelName: analysis ? modelName : null,
             });
 
-            for (const message of chronological) {
-              const from = parseEmailAddress(message.from);
-              await store.upsertMessage({
-                userId,
-                connectionId,
-                threadId,
-                message,
-                direction: classifyDirection({
-                  from,
-                  to: parseAddressList(message.to),
-                  cc: parseAddressList(message.cc),
-                  userEmails,
-                }),
-                receivedAt: receivedAtIso(message.internalDate),
-                contentHash: messageContentHash(message),
-              });
-              messagesProcessed += 1;
-            }
+            await Promise.all(
+              chronological.map(async (message) => {
+                const from = parseEmailAddress(message.from);
+                await store.upsertMessage({
+                  userId,
+                  connectionId,
+                  threadId,
+                  message,
+                  direction: classifyDirection({
+                    from,
+                    to: parseAddressList(message.to),
+                    cc: parseAddressList(message.cc),
+                    userEmails,
+                  }),
+                  receivedAt: receivedAtIso(message.internalDate),
+                  contentHash: messageContentHash(message),
+                });
+              }),
+            );
+            messagesProcessed += chronological.length;
 
             if (analysis) {
               analyses.push(analysis);
@@ -660,7 +664,13 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
                 .filter((id): id is string => typeof id === "string");
               const currentIds = mailpilotIdsOnMessage(latest.labelIds, labelMap);
               const diff = labelDiff(currentIds, desiredIds);
-              await gmail.modifyThreadLabels(gmailThreadId, diff.addLabelIds, diff.removeLabelIds);
+              if (diff.addLabelIds.length > 0 || diff.removeLabelIds.length > 0) {
+                await gmail.modifyThreadLabels(
+                  gmailThreadId,
+                  diff.addLabelIds,
+                  diff.removeLabelIds,
+                );
+              }
             }
             countTowardCursor = true;
           } catch (error) {

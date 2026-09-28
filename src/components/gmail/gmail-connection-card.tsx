@@ -137,10 +137,7 @@ export function GmailConnectionCard({
           ) : null}
 
           {canConnect && isActive ? (
-            <a
-              href={connectHref}
-              className={buttonVariants({ variant: "outline" })}
-            >
+            <a href={connectHref} className={buttonVariants({ variant: "outline" })}>
               Reconnect
             </a>
           ) : null}

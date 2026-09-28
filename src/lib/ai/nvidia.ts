@@ -1,6 +1,10 @@
 import { ThreadTriageError, type EmailTriageProvider } from "@/lib/ai/analyze-thread";
 import { buildTriageUserPrompt, TRIAGE_SYSTEM_PROMPT } from "@/lib/ai/prompts";
-import { threadAnalysisJsonSchema, threadAnalysisSchema, type ThreadAnalysis } from "@/lib/ai/schemas";
+import {
+  threadAnalysisJsonSchema,
+  threadAnalysisSchema,
+  type ThreadAnalysis,
+} from "@/lib/ai/schemas";
 import type { ThreadAnalysisInput } from "@/lib/ai/types";
 import { getNvidiaEnv, type NvidiaEnv } from "@/lib/config/env";
 
@@ -24,12 +28,7 @@ function sleep(ms: number): Promise<void> {
 }
 
 function httpStatus(error: unknown): number | undefined {
-  if (
-    error &&
-    typeof error === "object" &&
-    "status" in error &&
-    typeof error.status === "number"
-  ) {
+  if (error && typeof error === "object" && "status" in error && typeof error.status === "number") {
     return error.status;
   }
   return undefined;
@@ -41,9 +40,7 @@ function extractJsonText(content: string): string {
   return fenced?.[1]?.trim() || trimmed;
 }
 
-export async function generateWithNvidia(
-  params: Parameters<NvidiaGenerateFn>[0],
-): Promise<string> {
+export async function generateWithNvidia(params: Parameters<NvidiaGenerateFn>[0]): Promise<string> {
   const response = await fetch(`${params.baseUrl.replace(/\/$/, "")}/chat/completions`, {
     method: "POST",
     headers: {

@@ -1,5 +1,24 @@
 import { z } from "zod";
 
+/**
+ * Advance the saved scan cursor only through a finished prefix.
+ * A later thread finishing first must not move the cursor, or the next
+ * slice restarts earlier and the progress number falls.
+ */
+export function advanceContiguousCursor(
+  cursor: number,
+  finished: Set<number>,
+  index: number,
+): number {
+  finished.add(index);
+  let next = cursor;
+  while (finished.has(next)) {
+    finished.delete(next);
+    next += 1;
+  }
+  return next;
+}
+
 export function scanProgressPercent(checked: number, total: number): number {
   if (total <= 0) {
     return 0;

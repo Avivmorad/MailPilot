@@ -1,7 +1,7 @@
 import { withSentryConfig } from "@sentry/nextjs/config";
 import type { NextConfig } from "next";
 
-import { sentryInstrumentationTurbopackRules } from "./src/lib/observability/sentry-turbopack";
+import { sentryInstrumentationTurbopackRules } from "./src/lib/observability/sentry-turbopack-rules.mjs";
 
 const nextConfig: NextConfig = {
   // Pin the workspace root so Turbopack doesn't get confused by unrelated

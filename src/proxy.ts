@@ -20,5 +20,7 @@ export const config = {
     "/onboarding",
     "/onboarding/:path*",
     "/thread/:path*",
+    "/studio",
+    "/studio/:path*",
   ],
 };

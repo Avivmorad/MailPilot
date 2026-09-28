@@ -24,7 +24,7 @@ export const PRIVACY_POLICY_SECTIONS = [
   {
     id: "limited-use",
     title: "Limited Use of Gmail data",
-    body: "MailPilot uses Gmail data only to provide or improve the user-facing features in the product: classification, MailPilot/ labels, open tasks, pending items, and in-app digests. It does not sell Gmail data, use it for advertising, or transfer it to other parties except processors needed to run the product (hosting and the Gemini API for classification). Humans do not read your mail as a product feature. A public launch still requires Google OAuth verification for gmail.modify and, because MailPilot stores and transmits Gmail data on servers, Google’s restricted-scope security assessment (CASA) when Google requires it.",
+    body: "MailPilot uses Gmail data only to provide or improve the user-facing features in the product: classification, MailPilot/ labels, open tasks, pending items, and in-app digests. It does not sell Gmail data, use it for advertising, or transfer it to other parties except processors needed to run the product (hosting, and either NVIDIA Build or the Gemini API for classification, depending on which key is configured). Humans do not read your mail as a product feature. A public launch still requires Google OAuth verification for gmail.modify and, because MailPilot stores and transmits Gmail data on servers, Google’s restricted-scope security assessment (CASA) when Google requires it.",
   },
   {
     id: "google",

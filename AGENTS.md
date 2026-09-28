@@ -15,7 +15,7 @@ overlay wins. Treat both as the source of truth. Implement phase-by-phase (see s
 invent different behavior without a documented reason.
 
 **Current status:** Phases 0–9 MVP features are implemented in this repository.
-Login, Connect Gmail, MIME/thread parser, Gemini triage, dashboard Scan now
+Login, Connect Gmail, MIME/thread parser, NVIDIA Build triage when configured (otherwise Gemini), dashboard Scan now
 (lookback 1–4 days, 1–3 weeks, or 1 month, default 7 days), Mail tabs, History
 API incremental sync, daily scheduled scans (default 08:00 Asia/Jerusalem), and
 in-app digests. Failed AI does not apply Gmail labels. Open tasks are grouped by
@@ -58,7 +58,7 @@ Owner console / live-environment steps remain in [`docs/HUMAN_TASKS.md`](docs/HU
 ## Conventions
 
 - Env access goes through `src/lib/config/env.ts`. Server code calls `getServerEnv()`;
-  Gmail OAuth uses `getGmailEnv()`; Gemini uses `getGeminiEnv()`; client/public code
+  Gmail OAuth uses `getGmailEnv()`; NVIDIA triage uses `getNvidiaEnv()`; Gemini uses `getGeminiEnv()`; client/public code
   calls `getClientEnv()`. Secrets must never reach the browser bundle.
 - Supabase clients: `@/lib/supabase/server` (RLS, per-request), `@/lib/supabase/client`
   (browser), `@/lib/supabase/admin` (service role, trusted server contexts only).

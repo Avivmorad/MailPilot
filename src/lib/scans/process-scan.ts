@@ -26,6 +26,7 @@ import {
 } from "@/lib/scans/lookback";
 import { plannedDiscoveryMode } from "@/lib/scans/mode";
 import { mapPool } from "@/lib/scans/pool";
+import { advanceContiguousCursor } from "@/lib/scans/progress";
 import {
   DISPATCH_LEASE_SECONDS,
   SCAN_STALE_PROGRESS_MS,
@@ -452,6 +453,7 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
       threadIds.length > 0 ? await gmail.loadLabelMap() : new Map<MailPilotLogicalLabel, string>();
     let progressWrites = Promise.resolve();
     let threadsChecked = cursor;
+    const finishedIndexes = new Set<number>();
 
     const persistProgress = () => {
       const checked = threadsChecked;
@@ -470,6 +472,7 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
             messagesProcessed: processed,
             threadsDiscovered: threadIds.length,
             threadsChecked: checked,
+            threadCursor: checked,
           });
         } catch {
           // Live progress is best-effort; the final write still records totals.
@@ -502,11 +505,15 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
           admitIndex += 1;
           const gmailThreadId = threadIds[index];
           if (!gmailThreadId) {
+            threadsChecked = advanceContiguousCursor(threadsChecked, finishedIndexes, index);
+            persistProgress();
             continue;
           }
+          let countTowardCursor = false;
           try {
             const messages = await gmail.fetchThread(gmailThreadId);
             if (messages.length === 0) {
+              countTowardCursor = true;
               continue;
             }
             const chronological = [...messages].sort(
@@ -514,6 +521,7 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
             );
             const latest = chronological[chronological.length - 1];
             if (!latest) {
+              countTowardCursor = true;
               continue;
             }
             const existing = await store.getThread(connectionId, gmailThreadId);
@@ -574,6 +582,7 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
                   });
                   messagesProcessed += 1;
                 }
+                countTowardCursor = true;
                 continue;
               }
               analysis = outcome.analysis;
@@ -654,6 +663,7 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
               const diff = labelDiff(currentIds, desiredIds);
               await gmail.modifyThreadLabels(gmailThreadId, diff.addLabelIds, diff.removeLabelIds);
             }
+            countTowardCursor = true;
           } catch (error) {
             if (
               isGmailAuthError(error) ||
@@ -662,9 +672,12 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
               throw error;
             }
             failedGmailThreadIds.push(gmailThreadId);
+            countTowardCursor = true;
           } finally {
-            threadsChecked = Math.max(threadsChecked, index + 1);
-            persistProgress();
+            if (countTowardCursor) {
+              threadsChecked = advanceContiguousCursor(threadsChecked, finishedIndexes, index);
+              persistProgress();
+            }
           }
         }
       },
@@ -682,7 +695,7 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
       return asFailedResult(discoveryMode);
     }
 
-    const nextCursor = admitIndex;
+    const nextCursor = threadsChecked;
     const chunkTallies = countersFromAnalyses(analyses);
     const counters = {
       ...EMPTY_SCAN_COUNTERS,

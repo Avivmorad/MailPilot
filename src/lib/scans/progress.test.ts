@@ -1,11 +1,20 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  advanceContiguousCursor,
   scanProgressPercent,
   scanProgressView,
   latestScanResponseSchema,
   snapshotProgress,
 } from "@/lib/scans/progress";
+
+describe("advanceContiguousCursor", () => {
+  it("stays on the first unfinished thread when a later thread finishes first", () => {
+    const finished = new Set<number>();
+    expect(advanceContiguousCursor(0, finished, 1)).toBe(0);
+    expect(advanceContiguousCursor(0, finished, 0)).toBe(2);
+  });
+});
 
 describe("scanProgressPercent", () => {
   it("is 0 when nothing has been discovered yet", () => {

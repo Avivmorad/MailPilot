@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { isCronConfigured, isGeminiConfigured, isGmailConfigured } from "@/lib/config/env";
+import { isCronConfigured, isGmailConfigured, isTriageConfigured } from "@/lib/config/env";
 import { authorizeCronRequest } from "@/lib/scans/cron-auth";
 import { dispatchDueScans } from "@/lib/scans/dispatcher";
 
@@ -16,7 +16,7 @@ async function handle(request: Request) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  if (!isGmailConfigured() || !isGeminiConfigured()) {
+  if (!isGmailConfigured() || !isTriageConfigured()) {
     return NextResponse.json({ error: "not_configured" }, { status: 503 });
   }
 

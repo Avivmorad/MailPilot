@@ -1,5 +1,5 @@
 import { createEmailTriageProvider } from "@/lib/ai/client";
-import { getGeminiEnv, isGeminiConfigured, isGmailConfigured } from "@/lib/config/env";
+import { getTriageModelName, isGmailConfigured, isTriageConfigured } from "@/lib/config/env";
 import { persistDigestAfterScan } from "@/lib/digest/build-digest";
 import { emitProductEvent } from "@/lib/observability/events";
 import { captureSafeException } from "@/lib/observability/sentry-report";
@@ -82,7 +82,7 @@ async function runClaimedConnection(
       return { connectionId: claimed.id, status: "SKIPPED", error: "scan_job_in_progress" };
     }
 
-    if (!isGmailConfigured() || !isGeminiConfigured()) {
+    if (!isGmailConfigured() || !isTriageConfigured()) {
       throw new Error("not_configured");
     }
 
@@ -112,7 +112,7 @@ async function runClaimedConnection(
             gmail: createGmailScanPort(api.gmail, claimed.id),
             store,
             provider: createEmailTriageProvider(),
-            modelName: getGeminiEnv().GEMINI_MODEL,
+            modelName: getTriageModelName(),
             now,
           })
         : await openGmailScan({
@@ -124,7 +124,7 @@ async function runClaimedConnection(
             gmail: createGmailScanPort(api.gmail, claimed.id),
             store,
             provider: createEmailTriageProvider(),
-            modelName: getGeminiEnv().GEMINI_MODEL,
+            modelName: getTriageModelName(),
             now,
           });
 

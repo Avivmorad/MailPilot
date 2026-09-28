@@ -52,17 +52,38 @@ const geminiEnvSchema = z.object({
   GEMINI_MODEL: z.string().min(1),
 });
 
+export const DEFAULT_NVIDIA_MODEL = "meta/llama-3.3-70b-instruct";
+export const DEFAULT_NVIDIA_BASE_URL = "https://integrate.api.nvidia.com/v1";
+
+const nvidiaEnvSchema = z.object({
+  NVIDIA_API_KEY: z.string().min(1),
+  NVIDIA_MODEL: z.preprocess(
+    (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+    z.string().min(1).default(DEFAULT_NVIDIA_MODEL),
+  ),
+  NVIDIA_BASE_URL: z.preprocess(
+    (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+    z.string().url().default(DEFAULT_NVIDIA_BASE_URL),
+  ),
+});
+
 const serverEnvSchema = gmailEnvSchema
   .extend({
     CRON_SECRET: z.string().min(1),
   })
   .merge(geminiEnvSchema)
-  .merge(contextLimitsSchema);
+  .merge(contextLimitsSchema)
+  .extend({
+    NVIDIA_API_KEY: optionalSecret,
+    NVIDIA_MODEL: optionalSecret,
+    NVIDIA_BASE_URL: optionalSecret,
+  });
 
 export type ClientEnv = z.infer<typeof supabasePublicSchema>;
 export type SupabaseAdminEnv = z.infer<typeof supabaseAdminSchema>;
 export type GmailEnv = z.infer<typeof gmailEnvSchema>;
 export type GeminiEnv = z.infer<typeof geminiEnvSchema>;
+export type NvidiaEnv = z.infer<typeof nvidiaEnvSchema>;
 export type ServerEnv = z.infer<typeof serverEnvSchema>;
 
 function formatIssues(error: z.ZodError): string {
@@ -111,8 +132,30 @@ export function isGmailConfigured(source: Record<string, unknown> = process.env)
   return gmailEnvSchema.safeParse(source).success;
 }
 
+export function parseNvidiaEnv(source: Record<string, unknown> = process.env): NvidiaEnv {
+  const parsed = nvidiaEnvSchema.safeParse(source);
+  if (!parsed.success) throwInvalid("NVIDIA", parsed.error);
+  return parsed.data;
+}
+
 export function isGeminiConfigured(source: Record<string, unknown> = process.env): boolean {
   return geminiEnvSchema.safeParse(source).success;
+}
+
+export function isNvidiaConfigured(source: Record<string, unknown> = process.env): boolean {
+  return typeof source.NVIDIA_API_KEY === "string" && source.NVIDIA_API_KEY.trim().length > 0;
+}
+
+/** NVIDIA Build is the primary triage provider when its API key is set. */
+export function isTriageConfigured(source: Record<string, unknown> = process.env): boolean {
+  return isNvidiaConfigured(source) || isGeminiConfigured(source);
+}
+
+export function getTriageModelName(source: Record<string, unknown> = process.env): string {
+  if (isNvidiaConfigured(source)) {
+    return parseNvidiaEnv(source).NVIDIA_MODEL;
+  }
+  return parseGeminiEnv(source).GEMINI_MODEL;
 }
 
 export function isCronConfigured(source: Record<string, unknown> = process.env): boolean {
@@ -131,6 +174,7 @@ export function getClientEnv(): ClientEnv {
 let cachedAdminEnv: SupabaseAdminEnv | null = null;
 let cachedGmailEnv: GmailEnv | null = null;
 let cachedGeminiEnv: GeminiEnv | null = null;
+let cachedNvidiaEnv: NvidiaEnv | null = null;
 let cachedServerEnv: ServerEnv | null = null;
 
 export function getSupabaseAdminEnv(): SupabaseAdminEnv {
@@ -152,6 +196,13 @@ export function getGeminiEnv(): GeminiEnv {
     cachedGeminiEnv = parseGeminiEnv();
   }
   return cachedGeminiEnv;
+}
+
+export function getNvidiaEnv(): NvidiaEnv {
+  if (cachedNvidiaEnv === null) {
+    cachedNvidiaEnv = parseNvidiaEnv();
+  }
+  return cachedNvidiaEnv;
 }
 
 export function getContextLimits(source: Record<string, unknown> = process.env): ContextLimits {

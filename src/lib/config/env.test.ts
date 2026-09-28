@@ -5,6 +5,9 @@ import {
   isCronConfigured,
   isGmailConfigured,
   isGeminiConfigured,
+  isNvidiaConfigured,
+  isTriageConfigured,
+  getTriageModelName,
   parseClientEnv,
   parseGeminiEnv,
   parseGmailEnv,
@@ -86,6 +89,28 @@ describe("isCronConfigured", () => {
 describe("isGeminiConfigured", () => {
   it("is false when Gemini keys are empty", () => {
     expect(isGeminiConfigured({})).toBe(false);
+  });
+});
+
+describe("NVIDIA triage selection", () => {
+  it("prefers the NVIDIA model when the API key is set", () => {
+    const source = {
+      NVIDIA_API_KEY: "nvapi-test",
+      GEMINI_API_KEY: "gemini-test-key",
+      GEMINI_MODEL: "gemini-3.1-flash-lite",
+    };
+    expect(isNvidiaConfigured(source)).toBe(true);
+    expect(isTriageConfigured(source)).toBe(true);
+    expect(getTriageModelName(source)).toBe("meta/llama-3.3-70b-instruct");
+    expect(getTriageModelName({ ...source, NVIDIA_MODEL: "nvidia/custom" })).toBe("nvidia/custom");
+  });
+
+  it("falls back to Gemini when NVIDIA is unset", () => {
+    expect(isNvidiaConfigured({})).toBe(false);
+    expect(isTriageConfigured({ GEMINI_API_KEY: "k", GEMINI_MODEL: "gemini-test" })).toBe(true);
+    expect(getTriageModelName({ GEMINI_API_KEY: "k", GEMINI_MODEL: "gemini-test" })).toBe(
+      "gemini-test",
+    );
   });
 });
 

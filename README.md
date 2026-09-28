@@ -39,7 +39,7 @@ Phases 0–9 of the spec are implemented (auth, Gmail OAuth, MIME/thread parser,
 - Node.js 22+ and npm
 - A [Supabase](https://supabase.com) project
 - A Google Cloud project with the **Gmail API** enabled and OAuth **Web application** credentials
-- A Gemini API key (`GEMINI_API_KEY`) and model (`GEMINI_MODEL`)
+- A Gemini API key (`GEMINI_API_KEY`) and model (`GEMINI_MODEL`), or an NVIDIA Build key (`NVIDIA_API_KEY`) which is used first when set
 
 ## Local setup
 
@@ -84,7 +84,8 @@ Copy from [`.env.example`](.env.example). Server secrets must never use a `NEXT_
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` / `GOOGLE_REDIRECT_URI`                     | Gmail OAuth                                                 |
 | `TOKEN_ENCRYPTION_KEY`                                                                  | 32-byte key for AES-256-GCM refresh-token encryption        |
 | `TOKEN_ENCRYPTION_PREVIOUS_KEY`                                                         | Optional previous key during rotation                       |
-| `GEMINI_API_KEY` / `GEMINI_MODEL`                                                       | Gemini access; model is configurable, not hard-coded        |
+| `GEMINI_API_KEY` / `GEMINI_MODEL`                                                       | Gemini access; used when `NVIDIA_API_KEY` is unset          |
+| `NVIDIA_API_KEY` / `NVIDIA_MODEL`                                                       | NVIDIA Build chat API; primary triage provider when set     |
 | `CRON_SECRET`                                                                           | Protects `/api/cron/scan-dispatcher`                        |
 | `MAX_THREAD_MESSAGES` / `MAX_MESSAGE_CHARS` / `MAX_THREAD_CHARS` / `AI_MAX_CONCURRENCY` | Context and cost controls                                   |
 | `GMAIL_QUOTA_UNITS_PER_MINUTE`                                                          | Optional local Gmail quota budget (default 12000)           |

@@ -1,7 +1,7 @@
 import { after } from "next/server";
 import { NextResponse } from "next/server";
 
-import { isCronConfigured, isGeminiConfigured, isGmailConfigured } from "@/lib/config/env";
+import { isCronConfigured, isGmailConfigured, isTriageConfigured } from "@/lib/config/env";
 import { authorizeCronRequest } from "@/lib/scans/cron-auth";
 import { continueScanRequestSchema, continueScanRun } from "@/lib/scans/continue";
 import { runScanInBackground } from "@/lib/scans/runtime";
@@ -16,7 +16,7 @@ export async function POST(request: Request) {
   if (!authorizeCronRequest(request.headers, secret)) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
-  if (!isGmailConfigured() || !isGeminiConfigured()) {
+  if (!isGmailConfigured() || !isTriageConfigured()) {
     return NextResponse.json({ error: "not_configured" }, { status: 503 });
   }
 

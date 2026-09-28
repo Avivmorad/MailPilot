@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { createEmailTriageProvider } from "@/lib/ai/client";
-import { getGeminiEnv } from "@/lib/config/env";
+import { getTriageModelName } from "@/lib/config/env";
 import { persistDigestAfterScan } from "@/lib/digest/build-digest";
 import { emitProductEvent } from "@/lib/observability/events";
 import { createGmailApiForConnection } from "@/lib/gmail/client";
@@ -104,7 +104,7 @@ export async function continueScanRun(scanId: string): Promise<ScanRunResult> {
     gmail: createGmailScanPort(api.gmail, checkpoint.connectionId),
     store,
     provider: createEmailTriageProvider(),
-    modelName: getGeminiEnv().GEMINI_MODEL,
+    modelName: getTriageModelName(),
   });
   const result = await executeGmailScan(prepared);
   if (result.status === "SUCCESS" || result.status === "PARTIAL") {

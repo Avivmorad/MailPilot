@@ -1,6 +1,7 @@
 import { GoogleGenAI } from "@google/genai";
 
 import { ThreadTriageError, type EmailTriageProvider } from "@/lib/ai/analyze-thread";
+import { NvidiaEmailTriageProvider } from "@/lib/ai/nvidia";
 import { buildTriageUserPrompt, TRIAGE_SYSTEM_PROMPT } from "@/lib/ai/prompts";
 import {
   threadAnalysisJsonSchema,
@@ -8,7 +9,7 @@ import {
   type ThreadAnalysis,
 } from "@/lib/ai/schemas";
 import type { ThreadAnalysisInput } from "@/lib/ai/types";
-import { getGeminiEnv, type GeminiEnv } from "@/lib/config/env";
+import { getGeminiEnv, isNvidiaConfigured, type GeminiEnv } from "@/lib/config/env";
 
 const MAX_ATTEMPTS = 2;
 export const GEMINI_REQUEST_TIMEOUT_MS = 25_000;
@@ -146,5 +147,8 @@ export class GeminiEmailTriageProvider implements EmailTriageProvider {
 }
 
 export function createEmailTriageProvider(env?: GeminiEnv): EmailTriageProvider {
+  if (isNvidiaConfigured()) {
+    return new NvidiaEmailTriageProvider();
+  }
   return new GeminiEmailTriageProvider(env);
 }

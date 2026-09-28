@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { createEmailTriageProvider } from "@/lib/ai/client";
-import { getGeminiEnv, isGeminiConfigured, isGmailConfigured } from "@/lib/config/env";
+import { getTriageModelName, isGmailConfigured, isTriageConfigured } from "@/lib/config/env";
 import { createGmailApiForUser } from "@/lib/gmail/client";
 import { GmailConnectError } from "@/lib/gmail/oauth";
 import { isGmailQuotaError } from "@/lib/gmail/retry";
@@ -75,8 +75,8 @@ export async function beginManualInitialScan(
   if (!isGmailConfigured()) {
     throw new ScanRequestError(503, "gmail_not_configured", "Gmail OAuth is not configured.");
   }
-  if (!isGeminiConfigured()) {
-    throw new ScanRequestError(503, "gemini_not_configured", "Gemini is not configured.");
+  if (!isTriageConfigured()) {
+    throw new ScanRequestError(503, "gemini_not_configured", "Email analysis is not configured.");
   }
 
   const store = createSupabaseScanStore();
@@ -112,7 +112,7 @@ export async function beginManualInitialScan(
         gmail: createGmailScanPort(connection.gmail, connection.connectionId),
         store,
         provider: createEmailTriageProvider(),
-        modelName: getGeminiEnv().GEMINI_MODEL,
+        modelName: getTriageModelName(),
       });
       return {
         scanId: prepared.scanId,
@@ -157,7 +157,7 @@ export async function beginManualInitialScan(
     gmail: createGmailScanPort(connection.gmail, connection.connectionId),
     store,
     provider: createEmailTriageProvider(),
-    modelName: getGeminiEnv().GEMINI_MODEL,
+    modelName: getTriageModelName(),
   }).catch(remapScanStartError);
 
   return {

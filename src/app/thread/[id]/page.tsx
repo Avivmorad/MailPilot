@@ -10,6 +10,7 @@ import { ThreadTags } from "@/components/ui/thread-tags";
 import { mailBucketForThread } from "@/lib/mail/buckets";
 import { isUncertainClassification } from "@/lib/mail/filters";
 import { threadPlacementReason } from "@/lib/mail/placement";
+import { requireOnboardingComplete } from "@/lib/onboarding/guard";
 import { getSessionUser } from "@/lib/supabase/auth";
 import { getThreadDetailForUser } from "@/lib/threads/queries";
 import { classForDeadline, formatDate, formatDateTime } from "@/lib/ui/format";
@@ -22,6 +23,7 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
   if (!user) {
     redirect("/login");
   }
+  await requireOnboardingComplete(user.id);
   const { id } = await params;
   const thread = await getThreadDetailForUser(user.id, id);
   if (!thread) {

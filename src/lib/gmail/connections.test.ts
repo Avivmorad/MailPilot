@@ -119,9 +119,9 @@ describe("isGmailMailboxUniqueViolation", () => {
 });
 
 describe("gmailCallbackErrorRedirect", () => {
-  it("returns the user to onboarding without leaking tokens", () => {
-    const url = gmailCallbackErrorRedirect("https://mailpilot.example", "denied");
-    expect(url.pathname).toBe("/onboarding");
+  it("returns the user to the requested page without leaking tokens", () => {
+    const url = gmailCallbackErrorRedirect("https://mailpilot.example", "denied", "/settings");
+    expect(url.pathname).toBe("/settings");
     expect(url.searchParams.get("gmail")).toBe("error");
     expect(url.searchParams.get("reason")).toBe("denied");
     expect(url.toString()).not.toMatch(/token|code=/i);

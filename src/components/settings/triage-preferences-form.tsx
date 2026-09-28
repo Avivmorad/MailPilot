@@ -146,7 +146,12 @@ export function TriagePreferencesForm({
           {busy ? "Saving…" : "Save triage settings"}
         </Button>
         {message ? (
-          <p className={error ? "text-destructive text-sm" : "text-sm"}>{message}</p>
+          <p
+            className={error ? "text-destructive text-sm" : "text-sm"}
+            role={error ? "alert" : "status"}
+          >
+            {message}
+          </p>
         ) : null}
       </CardContent>
     </Card>

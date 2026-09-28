@@ -63,12 +63,18 @@ export async function createGmailApiForUser(userId: string): Promise<{
     .from("gmail_connections")
     .select("id, gmail_email, encrypted_refresh_token, status")
     .eq("user_id", userId)
-    .eq("status", "CONNECTED")
+    .in("status", ["CONNECTED", "REAUTH_REQUIRED"])
     .order("updated_at", { ascending: false })
     .limit(1)
     .maybeSingle();
 
-  if (error || !data?.encrypted_refresh_token) {
+  if (error || !data) {
+    throw new GmailConnectError("not_connected", "No connected Gmail account");
+  }
+  if (data.status === "REAUTH_REQUIRED") {
+    throw new GmailConnectError("reauth_required", SCAN_USER_MESSAGES.reauth_required);
+  }
+  if (!data.encrypted_refresh_token) {
     throw new GmailConnectError("not_connected", "No connected Gmail account");
   }
 

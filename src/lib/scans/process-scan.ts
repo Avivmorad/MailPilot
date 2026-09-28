@@ -265,7 +265,6 @@ export async function openGmailScan(input: ProcessGmailScanInput): Promise<Prepa
   });
   await input.store.updateConnectionScan({
     connectionId: input.connectionId,
-    historyId: null,
     lastAttemptedScanAt: now.toISOString(),
   });
 

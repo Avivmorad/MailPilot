@@ -4,7 +4,7 @@ import { type FormEvent } from "react";
 
 import { Button } from "@/components/ui/button";
 
-export function DisconnectGmailButton() {
+export function DisconnectGmailButton({ returnTo = "/settings" }: { returnTo?: string }) {
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     if (
       !window.confirm(
@@ -17,6 +17,7 @@ export function DisconnectGmailButton() {
 
   return (
     <form action="/api/gmail/disconnect" method="post" onSubmit={onSubmit}>
+      <input type="hidden" name="returnTo" value={returnTo} />
       <Button type="submit" variant="destructive" aria-label="Disconnect Gmail from MailPilot">
         Disconnect Gmail
       </Button>

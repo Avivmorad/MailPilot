@@ -10,7 +10,11 @@ import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { authUserMessage } from "@/lib/auth/messages";
-import { googleSignInRedirectTo, passwordResetRedirectTo } from "@/lib/auth/redirects";
+import {
+  googleSignInRedirectTo,
+  passwordResetRedirectTo,
+  safeAppReturnPath,
+} from "@/lib/auth/redirects";
 import { createClient } from "@/lib/supabase/client";
 
 type Mode = "signin" | "signup" | "forgot";
@@ -127,7 +131,8 @@ function LoginForm() {
           password,
         });
         if (signInError) throw signInError;
-        router.push("/onboarding");
+        const next = safeAppReturnPath(searchParams.get("redirectedFrom"), "/onboarding");
+        router.push(next);
         router.refresh();
         return;
       }

@@ -1,6 +1,7 @@
 export const GMAIL_MODIFY_SCOPE = "https://www.googleapis.com/auth/gmail.modify";
 
 export const GMAIL_OAUTH_STATE_COOKIE = "gmail_oauth_state";
+export const GMAIL_OAUTH_RETURN_COOKIE = "gmail_oauth_return";
 
 export const GMAIL_CONNECTION_STATUSES = [
   "CONNECTED",

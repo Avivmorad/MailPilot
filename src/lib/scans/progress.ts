@@ -135,6 +135,7 @@ export const scanRunSnapshotSchema = z.object({
   threads_checked: z.coerce.number().int().nonnegative().nullable().optional(),
   error_code: z.string().nullable().optional(),
   error_message: z.string().nullable().optional(),
+  updated_at: z.string().nullable().optional(),
 });
 
 export const startScanResponseSchema = z.object({

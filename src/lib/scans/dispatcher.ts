@@ -125,8 +125,12 @@ async function runClaimedConnection(
     if (result.status === "SUCCESS" || result.status === "PARTIAL") {
       try {
         await persistDigestAfterScan({ userId: api.userId, scanId: prepared.scanId });
-      } catch {
+      } catch (error) {
         emitProductEvent({ type: "digest.created", scanId: prepared.scanId, persisted: 0 });
+        captureSafeException(error, {
+          route: "/api/cron/scan-dispatcher",
+          scan_type: "scheduled",
+        });
       }
     }
 

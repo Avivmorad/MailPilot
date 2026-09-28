@@ -230,6 +230,7 @@ export default async function DashboardPage({
           status={gmailStatus}
           gmailFlash={params.gmail}
           reason={params.reason}
+          returnTo="/dashboard"
         />
       ) : null}
 
@@ -331,7 +332,7 @@ export default async function DashboardPage({
                   Scan now
                 </Link>
               ) : (
-                <a href="/api/gmail/connect" className={buttonVariants({ size: "sm" })}>
+                <a href="/api/gmail/connect?returnTo=/dashboard" className={buttonVariants({ size: "sm" })}>
                   Connect Gmail
                 </a>
               )

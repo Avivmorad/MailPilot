@@ -366,8 +366,12 @@ export async function disconnectGmailForUser(userId: string): Promise<void> {
   emitProductEvent({ type: "gmail.disconnected" });
 }
 
-export function gmailCallbackErrorRedirect(origin: string, reason: string): URL {
-  const url = new URL("/onboarding", origin);
+export function gmailCallbackErrorRedirect(
+  origin: string,
+  reason: string,
+  returnTo = "/onboarding",
+): URL {
+  const url = new URL(returnTo, origin);
   url.searchParams.set("gmail", "error");
   url.searchParams.set("reason", reason);
   return url;

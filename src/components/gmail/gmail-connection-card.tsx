@@ -97,11 +97,14 @@ export function GmailConnectionCard({
   status,
   gmailFlash,
   reason,
+  returnTo = "/settings",
 }: {
   status: GmailStatusPayload;
   gmailFlash?: string;
   reason?: string;
+  returnTo?: string;
 }) {
+  const connectHref = `/api/gmail/connect?returnTo=${encodeURIComponent(returnTo)}`;
   const copy = statusCopy(status);
   const flash = flashMessage(gmailFlash, reason);
   const connection = status.connection;
@@ -128,18 +131,21 @@ export function GmailConnectionCard({
 
         <div className="flex flex-wrap gap-2">
           {canConnect && !isActive ? (
-            <a href="/api/gmail/connect" className={buttonVariants()}>
+            <a href={connectHref} className={buttonVariants()}>
               {needsReconnect ? "Reconnect Gmail" : "Connect Gmail"}
             </a>
           ) : null}
 
           {canConnect && isActive ? (
-            <a href="/api/gmail/connect" className={buttonVariants({ variant: "outline" })}>
+            <a
+              href={connectHref}
+              className={buttonVariants({ variant: "outline" })}
+            >
               Reconnect
             </a>
           ) : null}
 
-          {canConnect && canDisconnect ? <DisconnectGmailButton /> : null}
+          {canConnect && canDisconnect ? <DisconnectGmailButton returnTo={returnTo} /> : null}
 
           {!canConnect ? (
             <Button type="button" disabled>

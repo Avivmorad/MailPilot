@@ -12,6 +12,7 @@ import { getGmailStatusForUser } from "@/lib/gmail/connections";
 import { gmailRecoveryActionLabel, shouldShowGmailRecoveryCard } from "@/lib/gmail/recovery";
 import { getLatestScanRunForUser } from "@/lib/scans/manual";
 import { getSessionUser } from "@/lib/supabase/auth";
+import { requireOnboardingComplete } from "@/lib/onboarding/guard";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +21,7 @@ export default async function DigestsPage() {
   if (!user) {
     redirect("/login");
   }
+  await requireOnboardingComplete(user.id);
 
   const [latestScan, gmailStatus] = await Promise.all([
     getLatestScanRunForUser(user.id),
@@ -62,7 +64,7 @@ export default async function DigestsPage() {
           title="Connect Gmail to get digests"
           description="Digests appear after a successful or partial scan. Connect or reconnect Gmail first — existing summaries stay until you delete them."
           action={
-            <a href="/api/gmail/connect" className={buttonVariants({ size: "sm" })}>
+            <a href="/api/gmail/connect?returnTo=/digests" className={buttonVariants({ size: "sm" })}>
               {gmailRecoveryActionLabel(gmailStatus)}
             </a>
           }

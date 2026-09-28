@@ -9,7 +9,8 @@
 > behavior without a documented reason.
 >
 > Owner overlay: [`PRODUCT_DECISIONS.md`](PRODUCT_DECISIONS.md) wins where it
-> differs — including the product name **MailPilot**, Gemini instead of OpenAI,
+> differs — including the product name **MailPilot**, NVIDIA Build when
+> configured (otherwise Gemini) instead of OpenAI,
 > `MailPilot/` Gmail labels, and **in-app digests only** in the MVP (email
 > digest delivery is a later extension; see overlay and spec §72).
 >
@@ -234,7 +235,7 @@ OPEN -> WAITING -> OPEN -> COMPLETED
 
 ## AI
 
-> **Superseded by [`PRODUCT_DECISIONS.md`](PRODUCT_DECISIONS.md):** Google Gemini (`GEMINI_API_KEY`, `GEMINI_MODEL`) with JSON Schema structured output — not OpenAI. See overlay § "AI provider".
+> **Superseded by [`PRODUCT_DECISIONS.md`](PRODUCT_DECISIONS.md):** NVIDIA Build when `NVIDIA_API_KEY` is set; otherwise Google Gemini (`GEMINI_API_KEY`, `GEMINI_MODEL`) with JSON Schema structured output — not OpenAI. See overlay § "AI provider".
 
 - OpenAI API
 - Structured Outputs / strict schema
@@ -2918,7 +2919,7 @@ Needed so changes can be evaluated and rolled back.
 
 # 60. API/AI Abstraction
 
-> **Superseded by [`PRODUCT_DECISIONS.md`](PRODUCT_DECISIONS.md):** implementation is `GeminiEmailTriageProvider` (not `OpenAIEmailTriageProvider`). See overlay § "AI provider".
+> **Superseded by [`PRODUCT_DECISIONS.md`](PRODUCT_DECISIONS.md):** implementation is `NvidiaEmailTriageProvider` when configured, otherwise `GeminiEmailTriageProvider` (not `OpenAIEmailTriageProvider`). See overlay § "AI provider".
 
 Do not couple domain code directly to OpenAI SDK.
 

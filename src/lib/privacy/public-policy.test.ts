@@ -13,6 +13,8 @@ describe("public privacy policy", () => {
     expect(text).toMatch(/encrypted at rest/i);
     expect(text).toMatch(/Limited Use of Gmail data/i);
     expect(text).toMatch(/does not sell Gmail data/i);
+    expect(text).toMatch(/NVIDIA Build/);
+    expect(text).toMatch(/Gemini API/);
     expect(PRIVACY_POLICY_SECTIONS.map((section) => section.id)).toEqual([
       "what-mailpilot-is",
       "gmail-access",

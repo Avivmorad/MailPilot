@@ -4,7 +4,7 @@ import { z } from "zod";
  * Environment validation is split by phase so the app can run without every
  * later-phase secret. Public pages only need {@link getClientEnv}. Gmail OAuth
  * (Phase 2) uses {@link getGmailEnv}. Full {@link getServerEnv} is for later
- * phases that actually call Gemini / cron.
+ * phases that actually call the triage provider / cron.
  *
  * Secrets must never be imported into client components.
  */
@@ -71,12 +71,32 @@ const serverEnvSchema = gmailEnvSchema
   .extend({
     CRON_SECRET: z.string().min(1),
   })
-  .merge(geminiEnvSchema)
   .merge(contextLimitsSchema)
   .extend({
+    GEMINI_API_KEY: optionalSecret,
+    GEMINI_MODEL: optionalSecret,
     NVIDIA_API_KEY: optionalSecret,
     NVIDIA_MODEL: optionalSecret,
     NVIDIA_BASE_URL: optionalSecret,
+  })
+  .superRefine((value, ctx) => {
+    const nvidia = Boolean(value.NVIDIA_API_KEY);
+    const geminiKey = Boolean(value.GEMINI_API_KEY);
+    const geminiModel = Boolean(value.GEMINI_MODEL);
+    if (geminiKey !== geminiModel) {
+      ctx.addIssue({
+        code: "custom",
+        message: "GEMINI_API_KEY and GEMINI_MODEL must be set together",
+        path: [geminiKey ? "GEMINI_MODEL" : "GEMINI_API_KEY"],
+      });
+    }
+    if (!nvidia && !(geminiKey && geminiModel)) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Set NVIDIA_API_KEY, or both GEMINI_API_KEY and GEMINI_MODEL",
+        path: ["NVIDIA_API_KEY"],
+      });
+    }
   });
 
 export type ClientEnv = z.infer<typeof supabasePublicSchema>;

@@ -10,18 +10,18 @@ The landing page is public. Inbox features need a MailPilot account and a separa
 
 ## Project Status
 
-| Area                    | Evidence-based status                                                                                                                                                                                                                                             |
-| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Implemented on `main`   | Account auth, separate Gmail OAuth, scanning, Gemini structured classification, Mail tabs, Gmail labels, incremental History API sync, resumable jobs, scheduled dispatch, in-app digests, privacy controls, and deletion flows are present in the released code. |
-| Automatically tested    | GitHub Actions runs format, lint, typecheck, unit, mocked integration, deterministic eval-scorecard, and production-build checks. These tests do not call a real Gmail inbox, Gemini, or the production database.                                                 |
-| Deployed                | Vercel serves the public landing, privacy, and terms pages from `main` at the canonical URL above.                                                                                                                                                                |
-| Live owner verification | Production environment values, Google/Supabase OAuth console settings, cron execution, and the complete sign-in → Gmail connection → scan → results → Gmail-label flow still require the owner walkthrough in [`docs/HUMAN_TASKS.md`](docs/HUMAN_TASKS.md).       |
-| Unmerged work           | No functionality that exists only in a branch or pull request is counted as shipped.                                                                                                                                                                              |
-| License                 | No code license has been selected. **Owner decision required.**                                                                                                                                                                                                   |
+| Area                    | Evidence-based status                                                                                                                                                                                                                                                                                       |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Implemented on `main`   | Account auth, separate Gmail OAuth, scanning, structured classification (NVIDIA Build when configured, otherwise Gemini), Mail tabs, Gmail labels, incremental History API sync, resumable jobs, scheduled dispatch, in-app digests, privacy controls, and deletion flows are present in the released code. |
+| Automatically tested    | GitHub Actions runs format, lint, typecheck, unit, mocked integration, deterministic eval-scorecard, and production-build checks. These tests do not call a real Gmail inbox, NVIDIA, Gemini, or the production database.                                                                                   |
+| Deployed                | Vercel serves the public landing, privacy, and terms pages from `main` at the canonical URL above.                                                                                                                                                                                                          |
+| Live owner verification | Production environment values, Google/Supabase OAuth console settings, cron execution, and the complete sign-in → Gmail connection → scan → results → Gmail-label flow still require the owner walkthrough in [`docs/HUMAN_TASKS.md`](docs/HUMAN_TASKS.md).                                                 |
+| Unmerged work           | No functionality that exists only in a branch or pull request is counted as shipped.                                                                                                                                                                                                                        |
+| License                 | No code license has been selected. **Owner decision required.**                                                                                                                                                                                                                                             |
 
 ## What MailPilot Does
 
-MailPilot connects one Gmail inbox, scans threads over a chosen window, classifies them with Gemini (structured JSON, validated with Zod), applies `MailPilot/*` labels, and shows an inbox summary, open tasks, a pending list, and an in-app digest. It never auto-sends, deletes, or archives mail.
+MailPilot connects one Gmail inbox, scans threads over a chosen window, classifies them with structured JSON (NVIDIA Build when `NVIDIA_API_KEY` is set, otherwise Gemini), validates that JSON with Zod, applies `MailPilot/*` labels, and shows an inbox summary, open tasks, a pending list, and an in-app digest. It never auto-sends, deletes, or archives mail.
 
 - **Scan now** with lookback of 1–4 days, 1–3 weeks, or 1 month (default 7 days)
 - **Incremental sync** via the Gmail History API after the first successful scan
@@ -38,21 +38,21 @@ Product decisions that override the historical spec: [`docs/PRODUCT_DECISIONS.md
 
 ## Engineering Highlights
 
-| Capability                         | Evidence                                                                  |
-| ---------------------------------- | ------------------------------------------------------------------------- |
-| Gmail API (`gmail.modify`)         | `src/lib/gmail/`, OAuth in `src/lib/gmail/oauth.ts`                       |
-| Gemini structured JSON             | `responseJsonSchema` in `src/lib/ai/client.ts`                            |
-| Zod validation + invariants        | `src/lib/ai/schemas.ts`, `src/lib/ai/post-process.ts`                     |
-| History API incremental sync       | `src/lib/gmail/history.ts`, `src/lib/gmail/history.test.ts`               |
-| Resumable serverless scans         | `0012_scan_chunk_resume.sql`, `src/lib/scans/process-scan.ts`             |
-| Scheduled scans + job leases       | `/api/cron/scan-dispatcher`, `0007`/`0008`, `src/lib/scans/dispatcher.ts` |
-| Supabase PostgreSQL + RLS          | `supabase/migrations/`, `src/lib/privacy/rls-isolation.test.ts`           |
-| Encrypted Gmail refresh tokens     | AES-256-GCM in `src/lib/security/encryption.ts`                           |
-| Privacy / data deletion            | Settings + `/api/privacy/*`, `src/lib/privacy/deletion.test.ts`           |
-| Observability (no mail/token logs) | `src/lib/observability/events.ts`, `sentry-privacy.test.ts`               |
-| CI                                 | `.github/workflows/ci.yml`                                                |
-| Unit + integration tests           | `*.test.ts` next to source; `npm run test:integration`                    |
-| AI evaluation scorecard            | `src/lib/ai/eval-scorecard.ts`, `tests/evals/`, `npm run eval:scorecard`  |
+| Capability                         | Evidence                                                                                |
+| ---------------------------------- | --------------------------------------------------------------------------------------- |
+| Gmail API (`gmail.modify`)         | `src/lib/gmail/`, OAuth in `src/lib/gmail/oauth.ts`                                     |
+| Structured JSON triage             | NVIDIA in `src/lib/ai/nvidia.ts`; Gemini `responseJsonSchema` in `src/lib/ai/client.ts` |
+| Zod validation + invariants        | `src/lib/ai/schemas.ts`, `src/lib/ai/post-process.ts`                                   |
+| History API incremental sync       | `src/lib/gmail/history.ts`, `src/lib/gmail/history.test.ts`                             |
+| Resumable serverless scans         | `0012_scan_chunk_resume.sql`, `src/lib/scans/process-scan.ts`                           |
+| Scheduled scans + job leases       | `/api/cron/scan-dispatcher`, `0007`/`0008`, `src/lib/scans/dispatcher.ts`               |
+| Supabase PostgreSQL + RLS          | `supabase/migrations/`, `src/lib/privacy/rls-isolation.test.ts`                         |
+| Encrypted Gmail refresh tokens     | AES-256-GCM in `src/lib/security/encryption.ts`                                         |
+| Privacy / data deletion            | Settings + `/api/privacy/*`, `src/lib/privacy/deletion.test.ts`                         |
+| Observability (no mail/token logs) | `src/lib/observability/events.ts`, `sentry-privacy.test.ts`                             |
+| CI                                 | `.github/workflows/ci.yml`                                                              |
+| Unit + integration tests           | `*.test.ts` next to source; `npm run test:integration`                                  |
+| AI evaluation scorecard            | `src/lib/ai/eval-scorecard.ts`, `tests/evals/`, `npm run eval:scorecard`                |
 
 Explore [`src/lib/ai/`](src/lib/ai/), [`src/lib/scans/`](src/lib/scans/), and [`tests/evals/email-triage.json`](tests/evals/email-triage.json).
 
@@ -65,13 +65,13 @@ Browser (Next.js App Router)
 
 Server (Vercel)
   ├─ Connect Gmail          OAuth gmail.modify → encrypted refresh token
-  ├─ Scan pipeline          Gmail fetch → MIME/thread parse → Gemini JSON
+  ├─ Scan pipeline          Gmail fetch → MIME/thread parse → triage JSON
   │                         → Zod + post-process → Postgres upserts → labels
   ├─ Incremental sync       Gmail History API (stale historyId recovery)
   └─ Cron dispatcher        claims due connections, 270s lease, chunk resume
 
 Supabase Postgres + RLS     profiles, connections, threads, actions, scans, digests
-Gemini                      structured ThreadAnalysis JSON only
+NVIDIA Build or Gemini      structured ThreadAnalysis JSON only
 ```
 
 Manual Scan now and scheduled scans share the same pipeline. One connection may have only one `RUNNING` scan. A slice that hits the Hobby wall-clock budget stays `RUNNING` with a thread cursor and continues until the window is done. The in-app digest is written when the window finishes with `SUCCESS` or `PARTIAL`. The Gmail History API cursor (`historyId`) advances only on `SUCCESS`, so a partial scan can rediscover failed threads.

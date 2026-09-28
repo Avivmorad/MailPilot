@@ -108,11 +108,15 @@ This overrides spec §4/§22/§60, which named OpenAI.
 
 Implementation:
 
-- Env: `GEMINI_API_KEY`, `GEMINI_MODEL` (default in `.env.example`:
-  `gemini-3.1-flash-lite`; do not hard-code the model in source).
-- Provider class: `GeminiEmailTriageProvider` behind `EmailTriageProvider`
-  (spec §60 swap point).
-- Domain code must not import `@google/genai` outside `src/lib/ai/client.ts`.
+- Env: `NVIDIA_API_KEY`, `NVIDIA_MODEL` (default `meta/llama-3.3-70b-instruct`),
+  optional `NVIDIA_BASE_URL`. Fallback: `GEMINI_API_KEY`, `GEMINI_MODEL` (default
+  in `.env.example`: `gemini-3.1-flash-lite`). Do not hard-code either model in
+  source. Full server env accepts NVIDIA alone, Gemini alone, or both.
+- Provider classes: `NvidiaEmailTriageProvider` and `GeminiEmailTriageProvider`
+  behind `EmailTriageProvider` (`createEmailTriageProvider` in
+  `src/lib/ai/client.ts`, spec §60 swap point).
+- Domain code must not import `@google/genai` outside `src/lib/ai/client.ts`,
+  or call the NVIDIA HTTP API outside `src/lib/ai/nvidia.ts`.
 - Gmail labels are applied only after validated analysis (spec §68.8).
 
 ## Inbox summary vs open tasks

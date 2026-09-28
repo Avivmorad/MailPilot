@@ -150,6 +150,27 @@ describe("parseServerEnv", () => {
   it("rejects non-positive numeric config", () => {
     expect(() => parseServerEnv({ ...validServerEnv, AI_MAX_CONCURRENCY: "0" })).toThrowError();
   });
+
+  it("accepts NVIDIA triage without Gemini keys", () => {
+    const env = parseServerEnv({
+      ...validServerEnv,
+      GEMINI_API_KEY: undefined,
+      GEMINI_MODEL: undefined,
+      NVIDIA_API_KEY: "nvapi-test",
+    });
+    expect(env.NVIDIA_API_KEY).toBe("nvapi-test");
+    expect(env.GEMINI_API_KEY).toBeUndefined();
+  });
+
+  it("rejects a server env with neither triage provider", () => {
+    expect(() =>
+      parseServerEnv({
+        ...validServerEnv,
+        GEMINI_API_KEY: undefined,
+        GEMINI_MODEL: undefined,
+      }),
+    ).toThrowError(/NVIDIA_API_KEY|GEMINI_API_KEY/);
+  });
 });
 
 describe("parseClientEnv", () => {

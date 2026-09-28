@@ -12,6 +12,7 @@ const PROTECTED_PREFIXES = [
   "/settings",
   "/thread",
   "/onboarding",
+  "/studio",
 ];
 
 /**

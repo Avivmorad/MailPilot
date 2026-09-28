@@ -3,8 +3,15 @@
 import { useMemo, useState } from "react";
 
 import { Logo } from "@/components/brand/logo";
+import { SkipToContent } from "@/components/layout/skip-to-content";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
-import { countLane, STUDIO_ITEMS, type StudioItem, type StudioLane } from "@/lib/studio/fixtures";
+import {
+  countLane,
+  resolveVisibleSelection,
+  STUDIO_ITEMS,
+  type StudioItem,
+  type StudioLane,
+} from "@/lib/studio/fixtures";
 import { cn } from "@/lib/utils";
 
 const LANES: { id: StudioLane | "focus"; label: string; hint: string }[] = [
@@ -35,7 +42,7 @@ export function StudioWorkspace() {
     );
   }, [items, lane, query]);
 
-  const selected = items.find((item) => item.id === selectedId) ?? list[0];
+  const selected = resolveVisibleSelection(list, selectedId);
 
   function move(id: string, next: StudioLane) {
     setItems((current) => current.map((item) => (item.id === id ? { ...item, lane: next } : item)));
@@ -43,6 +50,7 @@ export function StudioWorkspace() {
 
   return (
     <div className="bg-background text-foreground flex min-h-full flex-col">
+      <SkipToContent />
       <header className="border-border/80 flex items-center gap-4 border-b px-4 py-3 sm:px-6">
         <Logo />
         <p className="text-muted-foreground hidden text-sm md:block">
@@ -72,7 +80,11 @@ export function StudioWorkspace() {
           </div>
         </div>
       ) : null}
-      <div className="grid min-h-0 flex-1 lg:grid-cols-[220px_minmax(0,1fr)_minmax(320px,400px)]">
+      <main
+        id="main-content"
+        tabIndex={-1}
+        className="grid min-h-0 flex-1 lg:grid-cols-[220px_minmax(0,1fr)_minmax(320px,400px)]"
+      >
         <nav aria-label="Inbox lanes" className="border-border/70 space-y-1 border-r p-3">
           {LANES.map((item) => {
             const count =
@@ -203,7 +215,7 @@ export function StudioWorkspace() {
             <p className="text-muted-foreground text-sm">Select a thread.</p>
           )}
         </aside>
-      </div>
+      </main>
     </div>
   );
 }

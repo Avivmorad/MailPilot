@@ -136,6 +136,13 @@ export const STUDIO_ITEMS: StudioItem[] = [
   },
 ];
 
+export function resolveVisibleSelection<T extends { id: string }>(
+  list: readonly T[],
+  selectedId: string,
+): T | undefined {
+  return list.find((item) => item.id === selectedId) ?? list[0];
+}
+
 export function countLane(items: StudioItem[], lane: StudioLane): number {
   return items.filter((item) => item.lane === lane).length;
 }

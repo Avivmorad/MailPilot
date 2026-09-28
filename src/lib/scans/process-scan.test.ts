@@ -1,7 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 
 import type { ActionRecord } from "@/lib/actions/reconcile-action";
-import type { EmailTriageProvider } from "@/lib/ai/analyze-thread";
+import { tryAnalyzeThread, type EmailTriageProvider } from "@/lib/ai/analyze-thread";
+import { GeminiEmailTriageProvider } from "@/lib/ai/client";
+import type { ThreadAnalysisInput } from "@/lib/ai/types";
+import { isAiUnavailableError } from "@/lib/scans/errors";
+import { scanAppBaseUrl } from "@/lib/scans/continue";
 import { TRIAGE_PROMPT_VERSION } from "@/lib/ai/prompts";
 import { threadAnalysisSchema, type ThreadAnalysis } from "@/lib/ai/schemas";
 import type { MailPilotLogicalLabel } from "@/lib/gmail/constants";
@@ -1182,5 +1186,102 @@ describe("shouldReuseStoredAnalysis", () => {
         analysisPromptKey(withIgnore),
       ),
     ).toBe(false);
+  });
+
+  it("debug: gemini RPD 429 finishes PARTIAL and does not freeze discovery", async () => {
+    const log = (message: string, hypothesisId: string, data: Record<string, unknown>) => {
+      // #region agent log
+      fetch("http://127.0.0.1:7558/ingest/57301ade-7a95-4b65-9c80-81831386c36b", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "080490" },
+        body: JSON.stringify({
+          sessionId: "080490",
+          runId: "sim",
+          hypothesisId,
+          location: "process-scan.test.ts",
+          message,
+          data,
+          timestamp: Date.now(),
+        }),
+      }).catch(() => {});
+      // #endregion
+    };
+
+    const rpd = Object.assign(new Error("RESOURCE_EXHAUSTED"), { status: 429 });
+    const provider = new GeminiEmailTriageProvider(
+      { GEMINI_API_KEY: "test-key", GEMINI_MODEL: "gemini-test" },
+      async () => {
+        throw rpd;
+      },
+    );
+    const triageInput: ThreadAnalysisInput = {
+      userEmails: ["me@example.com"],
+      threadText: "Please reply today.",
+      latestFrom: "ada@example.com",
+      latestSubject: "Ping",
+      latestDirection: "INBOUND",
+    };
+    const started = Date.now();
+    const outcome = await tryAnalyzeThread(triageInput, provider);
+    const elapsedMs = Date.now() - started;
+    log("gemini 429 swallowed by tryAnalyzeThread", "RPD", {
+      ok: outcome.ok,
+      errorName: outcome.ok ? null : outcome.error.name,
+      errorMessage: outcome.ok ? null : outcome.error.message,
+      isAiUnavailable: outcome.ok ? false : isAiUnavailableError(outcome.error),
+      elapsedMs,
+      continuationBaseWithoutEnv: scanAppBaseUrl({}),
+    });
+
+    const store = createMemoryStore();
+    let discoverySnapshot: {
+      status: string | undefined;
+      discoveryComplete: boolean;
+      threadsDiscovered: number;
+      query: string;
+    } | null = null;
+    const result = await runScan({
+      store,
+      lookbackDays: 30,
+      analyze: async (input) => tryAnalyzeThread(input, provider),
+      gmail: {
+        getProfileHistoryId: async () => "hist",
+        listHistoryChanges: async () => ({ ok: false, refs: [] }),
+        listMessageRefs: async (query) => {
+          const run = store.scanRuns[0];
+          discoverySnapshot = {
+            query,
+            status: run?.status,
+            discoveryComplete: Boolean(run?.discoveryComplete),
+            threadsDiscovered: run?.threadsDiscovered ?? 0,
+          };
+          return [
+            { id: "m1", threadId: "t1" },
+            { id: "m2", threadId: "t2" },
+          ];
+        },
+        fetchThread: async (threadId) => [
+          parsedMessage({ gmailThreadId: threadId, gmailMessageId: `m-${threadId}` }),
+        ],
+        loadLabelMap: async () => LABEL_MAP,
+        modifyThreadLabels: async () => {},
+      },
+    });
+    log("30-day scan after every thread hit gemini 429", "RPD", {
+      status: result.status,
+      errorCode: store.scanRuns[0]?.errorCode ?? null,
+      discoveryComplete: store.scanRuns[0]?.discoveryComplete ?? false,
+      threadCursor: store.scanRuns[0]?.threadCursor ?? null,
+      failedThreadIds: store.scanRuns[0]?.failedThreadIds ?? [],
+      discoverySnapshot,
+    });
+    expect(outcome.ok).toBe(false);
+    expect(isAiUnavailableError(outcome.ok ? new Error("unused") : outcome.error)).toBe(false);
+    expect(elapsedMs).toBeLessThan(5_000);
+    expect(discoverySnapshot?.discoveryComplete).toBe(false);
+    expect(discoverySnapshot?.query).toBe("-in:spam -in:trash newer_than:30d");
+    expect(result.status).toBe("PARTIAL");
+    expect(store.scanRuns[0]?.status).toBe("PARTIAL");
+    expect(store.scanRuns[0]?.errorCode).toBe("partial_thread_failures");
   });
 });

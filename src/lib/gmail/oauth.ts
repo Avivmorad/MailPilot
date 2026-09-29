@@ -7,6 +7,11 @@ import { GMAIL_MODIFY_SCOPE } from "@/lib/gmail/constants";
 import { emitProductEvent } from "@/lib/observability/events";
 import { GMAIL_UNITS } from "@/lib/gmail/quota";
 import { withGmailRetry } from "@/lib/gmail/retry";
+import {
+  GMAIL_REQUEST_TIMEOUT_MS,
+  withGmailRequest,
+  type GmailRequestBudget,
+} from "@/lib/gmail/request-budget";
 import { timingSafeStringEqual } from "@/lib/security/encryption";
 
 export class GmailConnectError extends Error {
@@ -21,11 +26,33 @@ export class GmailConnectError extends Error {
 
 export function createOAuth2Client() {
   const env = getGmailEnv();
-  return new google.auth.OAuth2(
+  const client = new google.auth.OAuth2(
     env.GOOGLE_CLIENT_ID,
     env.GOOGLE_CLIENT_SECRET,
     env.GOOGLE_REDIRECT_URI,
   );
+  client.transporter.defaults.timeout = GMAIL_REQUEST_TIMEOUT_MS;
+  return client;
+}
+
+/** Token requests do not accept per-call options; bound their transporter too. */
+export async function withGmailOAuthRequest<T>(
+  client: ReturnType<typeof createOAuth2Client>,
+  operation: () => Promise<T>,
+  budget: GmailRequestBudget = {},
+): Promise<T> {
+  const previousSignal = client.transporter.defaults.signal;
+  const previousTimeout = client.transporter.defaults.timeout;
+  try {
+    return await withGmailRequest((options) => {
+      client.transporter.defaults.signal = options.signal;
+      client.transporter.defaults.timeout = options.timeout;
+      return operation();
+    }, budget);
+  } finally {
+    client.transporter.defaults.signal = previousSignal;
+    client.transporter.defaults.timeout = previousTimeout;
+  }
 }
 
 export function createOAuthState(): string {
@@ -62,7 +89,7 @@ export interface GoogleTokenSet {
 export async function exchangeAuthorizationCode(code: string): Promise<GoogleTokenSet> {
   const client = createOAuth2Client();
   try {
-    const { tokens } = await client.getToken(code);
+    const { tokens } = await withGmailOAuthRequest(client, () => client.getToken(code));
     if (!tokens.access_token) {
       throw new GmailConnectError(
         "token_exchange",
@@ -98,9 +125,12 @@ export async function fetchGmailIdentity(
 
   const gmail = google.gmail({ version: "v1", auth: client });
   try {
-    const profile = await withGmailRetry(() => gmail.users.getProfile({ userId: "me" }), {
-      units: GMAIL_UNITS.getProfile,
-    });
+    const profile = await withGmailRetry(
+      (options) => gmail.users.getProfile({ userId: "me" }, options),
+      {
+        units: GMAIL_UNITS.getProfile,
+      },
+    );
     const email = profile.data.emailAddress;
     if (!email) {
       throw new GmailConnectError(
@@ -128,7 +158,7 @@ export async function fetchGmailIdentity(
 
 export async function revokeRefreshToken(refreshToken: string): Promise<void> {
   const client = createOAuth2Client();
-  await client.revokeToken(refreshToken);
+  await withGmailOAuthRequest(client, () => client.revokeToken(refreshToken));
 }
 
 function googleErrorStatus(err: unknown): number | null {

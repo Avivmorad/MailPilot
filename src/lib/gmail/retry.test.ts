@@ -1,11 +1,13 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 
 import { resetSharedGmailQuotaForTests } from "@/lib/gmail/quota";
 import { isGmailAuthError, isGmailQuotaError, withGmailRetry } from "@/lib/gmail/retry";
+import { GmailDeadlineError } from "@/lib/gmail/request-budget";
 
 beforeEach(() => {
   resetSharedGmailQuotaForTests();
 });
+afterEach(() => vi.useRealTimers());
 
 describe("isGmailQuotaError", () => {
   it("detects Gmail units-per-minute quota errors", () => {
@@ -39,6 +41,20 @@ describe("isGmailAuthError", () => {
 });
 
 describe("withGmailRetry", () => {
+  it.each([429, 503])("stops repeated %s before the slice deadline", async (status) => {
+    vi.useFakeTimers();
+    vi.setSystemTime(0);
+    const operation = vi.fn(async () => {
+      throw { response: { status } };
+    });
+    const result = withGmailRetry(operation, { deadlineAt: 90_000 });
+    const assertion = expect(result).rejects.toBeInstanceOf(GmailDeadlineError);
+    await vi.advanceTimersByTimeAsync(60_000);
+    await assertion;
+    expect(operation).toHaveBeenCalledTimes(2);
+    expect(Date.now()).toBe(60_000);
+    expect(vi.getTimerCount()).toBe(0);
+  });
   it("retries quota errors then succeeds", async () => {
     let calls = 0;
     const sleep = vi.fn(async () => undefined);

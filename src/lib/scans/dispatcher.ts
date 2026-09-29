@@ -10,6 +10,7 @@ import {
   DISPATCH_DEFAULT_LIMIT,
   DISPATCH_LEASE_SECONDS,
   SCAN_CONTINUE_RETRY_MS,
+  SCAN_WORK_BUDGET_MS,
   hasDispatchBudget,
 } from "@/lib/scans/dispatch-budget";
 import { scanHasRemainingWork } from "@/lib/scans/checkpoint";
@@ -61,6 +62,7 @@ async function runClaimedConnection(
   workerId: string,
   now: Date,
 ): Promise<DispatcherConnectionResult> {
+  const requestBudget = { deadlineAt: Date.now() + SCAN_WORK_BUDGET_MS };
   const leaseExpiresAt = new Date(now.getTime() + DISPATCH_LEASE_SECONDS * 1000).toISOString();
   let jobId: string | null = null;
   let attempt = 0;
@@ -70,7 +72,7 @@ async function runClaimedConnection(
       throw new Error("not_configured");
     }
 
-    const api = await createGmailApiForConnection(claimed.id);
+    const api = await createGmailApiForConnection(claimed.id, requestBudget);
     const store = createSupabaseScanStore();
     const running = await store.findRunningScan(claimed.id);
     const checkpoint = running ? await store.getScanCheckpoint(running.id) : null;
@@ -94,7 +96,7 @@ async function runClaimedConnection(
       ? await resumeGmailScan({
           scanId: resumeExisting.scanId,
           gmailEmail: api.gmailEmail,
-          gmail: createGmailScanPort(api.gmail, claimed.id),
+          gmail: createGmailScanPort(api.gmail, claimed.id, requestBudget),
           store,
           provider: createEmailTriageProvider(),
           modelName: getTriageModelName(),
@@ -106,7 +108,7 @@ async function runClaimedConnection(
           gmailEmail: api.gmailEmail,
           lookbackDays: DEFAULT_LOOKBACK_DAYS,
           triggerType: "SCHEDULED",
-          gmail: createGmailScanPort(api.gmail, claimed.id),
+          gmail: createGmailScanPort(api.gmail, claimed.id, requestBudget),
           store,
           provider: createEmailTriageProvider(),
           modelName: getTriageModelName(),

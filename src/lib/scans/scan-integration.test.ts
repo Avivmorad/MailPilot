@@ -439,7 +439,7 @@ describe("scan integration", () => {
     expect(store.actions.size).toBe(1);
     expect(mailbox.labelCreateCount).toBe(MAILPILOT_LABELS.length);
     expect(mailbox.appliedAdds[0]?.length).toBeGreaterThan(0);
-    expect(mailbox.appliedAdds[1]).toEqual([]);
+    expect(mailbox.appliedAdds).toHaveLength(1);
 
     const periodStart = "2026-09-03T12:00:00.000Z";
     const periodEnd = now.toISOString();

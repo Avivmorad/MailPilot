@@ -1,12 +1,26 @@
 import { google, type gmail_v1 } from "googleapis";
+import { z } from "zod";
 
 import { getGmailEnv, type GmailEnv } from "@/lib/config/env";
-import { createOAuth2Client, GmailConnectError } from "@/lib/gmail/oauth";
+import { createOAuth2Client, GmailConnectError, withGmailOAuthRequest } from "@/lib/gmail/oauth";
+import { GmailDeadlineError, type GmailRequestBudget } from "@/lib/gmail/request-budget";
 import { SCAN_USER_MESSAGES } from "@/lib/scans/errors";
 import { rotateSecretEnvelope } from "@/lib/security/encryption";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 type AdminClient = ReturnType<typeof createAdminClient>;
+
+const refreshErrorSchema = z.object({
+  response: z.object({ data: z.object({ error: z.string() }) }),
+});
+
+function isRevokedRefreshToken(error: unknown): boolean {
+  const parsed = refreshErrorSchema.safeParse(error);
+  if (parsed.success) {
+    return parsed.data.response.data.error === "invalid_grant";
+  }
+  return error instanceof Error && /^invalid_grant\b/i.test(error.message);
+}
 
 async function unwrapStoredRefreshToken(
   db: AdminClient,
@@ -39,13 +53,22 @@ async function unwrapStoredRefreshToken(
   return rotated.plaintext;
 }
 
-export async function createGmailApi(refreshToken: string): Promise<gmail_v1.Gmail> {
+export async function createGmailApi(
+  refreshToken: string,
+  budget: GmailRequestBudget = {},
+): Promise<gmail_v1.Gmail> {
   const auth = createOAuth2Client();
   auth.setCredentials({ refresh_token: refreshToken });
   try {
-    await auth.getAccessToken();
-  } catch {
-    throw new GmailConnectError("reauth_required", SCAN_USER_MESSAGES.reauth_required);
+    await withGmailOAuthRequest(auth, () => auth.getAccessToken(), budget);
+  } catch (error) {
+    if (error instanceof GmailDeadlineError || budget.signal?.aborted) throw error;
+    if (isRevokedRefreshToken(error)) {
+      throw new GmailConnectError("reauth_required", SCAN_USER_MESSAGES.reauth_required);
+    }
+    // Do not turn a network outage, quota error or client configuration failure
+    // into permanent loss of the user's Gmail consent; never echo token errors.
+    throw new GmailConnectError("gmail_unavailable", SCAN_USER_MESSAGES.gmail_unavailable);
   }
   return google.gmail({ version: "v1", auth });
 }
@@ -53,7 +76,10 @@ export async function createGmailApi(refreshToken: string): Promise<gmail_v1.Gma
 /**
  * Build a Gmail API client from the user's stored encrypted refresh token.
  */
-export async function createGmailApiForUser(userId: string): Promise<{
+export async function createGmailApiForUser(
+  userId: string,
+  budget: GmailRequestBudget = {},
+): Promise<{
   gmail: gmail_v1.Gmail;
   connectionId: string;
   gmailEmail: string;
@@ -87,7 +113,7 @@ export async function createGmailApiForUser(userId: string): Promise<{
   );
 
   try {
-    const gmail = await createGmailApi(refreshToken);
+    const gmail = await createGmailApi(refreshToken, budget);
     return { gmail, connectionId: data.id as string, gmailEmail: data.gmail_email as string };
   } catch (err) {
     if (err instanceof GmailConnectError && err.reason === "reauth_required") {
@@ -97,7 +123,10 @@ export async function createGmailApiForUser(userId: string): Promise<{
   }
 }
 
-export async function createGmailApiForConnection(connectionId: string): Promise<{
+export async function createGmailApiForConnection(
+  connectionId: string,
+  budget: GmailRequestBudget = {},
+): Promise<{
   gmail: gmail_v1.Gmail;
   userId: string;
   gmailEmail: string;
@@ -123,7 +152,7 @@ export async function createGmailApiForConnection(connectionId: string): Promise
   );
 
   try {
-    const gmail = await createGmailApi(refreshToken);
+    const gmail = await createGmailApi(refreshToken, budget);
     return { gmail, userId: data.user_id as string, gmailEmail: data.gmail_email as string };
   } catch (err) {
     if (err instanceof GmailConnectError && err.reason === "reauth_required") {

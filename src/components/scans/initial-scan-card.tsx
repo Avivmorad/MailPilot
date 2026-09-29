@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { z } from "zod";
 
 import { ScanProgressBar } from "@/components/scans/scan-progress-bar";
 import { Button } from "@/components/ui/button";
@@ -30,24 +31,116 @@ import { scanUserMessage } from "@/lib/scans/errors";
 import { formatDateTime } from "@/lib/ui/format";
 import { labelForScanStatus } from "@/lib/ui/labels";
 
-const POLL_NULL_LIMIT = 3;
+const POLL_MISS_LIMIT = 3;
+/** Wait this long after a poll settles before the next one. One request at a time. */
+const POLL_INTERVAL_MS = 800;
+/** Stop observing a hung request. The background scan itself is left running. */
+const POLL_DEADLINE_MS = 10_000;
 /** Resume a stalled RUNNING scan after the serverless lease window plus a buffer. */
 const STALE_RESUME_MS = (DISPATCH_LEASE_SECONDS + 60) * 1000;
 
-async function fetchLatestScan(): Promise<
-  { ok: true; scan: ScanRunSnapshot | null } | { ok: false; status: number }
-> {
+const scanFailureSchema = z.object({
+  error: z.string().optional(),
+  message: z.string().optional(),
+});
+
+type LatestScanResult =
+  | { kind: "scan"; scan: ScanRunSnapshot }
+  | { kind: "missing" }
+  | { kind: "http"; status: number }
+  | { kind: "network" };
+
+type DeadlineHandle = {
+  signal: AbortSignal;
+  dispose: () => void;
+};
+
+function readFailure(payload: unknown): { error?: string; message?: string } {
+  const parsed = scanFailureSchema.safeParse(payload);
+  return parsed.success ? parsed.data : {};
+}
+
+async function fetchLatestScan(signal: AbortSignal): Promise<LatestScanResult> {
   try {
-    const response = await fetch("/api/scans", { cache: "no-store" });
+    const response = await fetch("/api/scans", { cache: "no-store", signal });
     if (!response.ok) {
-      return { ok: false, status: response.status };
+      return { kind: "http", status: response.status };
     }
     const payload: unknown = await response.json();
     const parsed = latestScanResponseSchema.safeParse(payload);
-    return { ok: true, scan: parsed.success ? parsed.data.scan : null };
+    // A 200 with a null scan or a payload that fails the schema is not progress.
+    if (!parsed.success || parsed.data.scan === null) {
+      return { kind: "missing" };
+    }
+    return { kind: "scan", scan: parsed.data.scan };
   } catch {
-    return { ok: false, status: 0 };
+    return { kind: "network" };
   }
+}
+
+/**
+ * Abort after `ms`, or when `parent` aborts. Call `dispose` in `finally` so
+ * timers and parent listeners are cleared even when the request succeeds.
+ */
+function deadlineSignal(parent: AbortSignal, ms: number): DeadlineHandle {
+  const controller = new AbortController();
+  let disposed = false;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let onParentAbort: (() => void) | undefined;
+
+  const dispose = () => {
+    if (disposed) {
+      return;
+    }
+    disposed = true;
+    if (timer !== undefined) {
+      clearTimeout(timer);
+      timer = undefined;
+    }
+    if (onParentAbort) {
+      parent.removeEventListener("abort", onParentAbort);
+      onParentAbort = undefined;
+    }
+  };
+
+  const abortChild = () => {
+    dispose();
+    if (!controller.signal.aborted) {
+      controller.abort();
+    }
+  };
+
+  // Already-aborted parent: abort immediately and install nothing to clean up.
+  if (parent.aborted) {
+    controller.abort();
+    return { signal: controller.signal, dispose: () => undefined };
+  }
+
+  timer = setTimeout(abortChild, ms);
+  onParentAbort = () => {
+    abortChild();
+  };
+  parent.addEventListener("abort", onParentAbort, { once: true });
+
+  return { signal: controller.signal, dispose };
+}
+
+function wait(ms: number, signal: AbortSignal): Promise<void> {
+  return new Promise((resolve) => {
+    if (signal.aborted) {
+      resolve();
+      return;
+    }
+    const timer = setTimeout(() => {
+      signal.removeEventListener("abort", onAbort);
+      resolve();
+    }, ms);
+    const onAbort = () => {
+      clearTimeout(timer);
+      resolve();
+    };
+    signal.addEventListener("abort", onAbort, { once: true });
+  });
 }
 
 function isStaleRunning(scan: ScanRunSnapshot, nowMs: number): boolean {
@@ -95,119 +188,166 @@ export function InitialScanCard({
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState(false);
   const [errorCode, setErrorCode] = useState<string | null>(null);
-  const nullPolls = useRef(0);
-  const resumeInFlight = useRef(false);
   const progressRef = useRef(progress);
+  const lookbackRef = useRef(lookbackDays);
+  const routerRef = useRef(router);
+  const generationRef = useRef(0);
+  /** Controllers for start/cancel while polling may not be mounted yet. */
+  const actionControllersRef = useRef(new Set<AbortController>());
+  /** One cancel at a time so a late failure cannot overwrite a confirmed cancel. */
+  const cancelInFlightRef = useRef(false);
+  /** One automatic resume per scan id. A failed resume must not start another by itself. */
+  const resumedScanIds = useRef(new Set<string>());
 
   useEffect(() => {
     progressRef.current = progress;
   }, [progress]);
 
   useEffect(() => {
+    lookbackRef.current = lookbackDays;
+  }, [lookbackDays]);
+
+  useEffect(() => {
+    routerRef.current = router;
+  }, [router]);
+
+  // Abort start/cancel requests on unmount even when watchId is still null.
+  useEffect(() => {
+    const controllers = actionControllersRef.current;
+    return () => {
+      generationRef.current += 1;
+      for (const controller of controllers) {
+        controller.abort();
+      }
+      controllers.clear();
+    };
+  }, []);
+
+  useEffect(() => {
     if (!busy || !watchId) {
       return;
     }
-    let cancelled = false;
+    const generation = ++generationRef.current;
+    const stop = new AbortController();
+    let active = true;
+    let misses = 0;
+    let resumeInFlight = false;
 
-    async function resumeStalled(scanId: string) {
-      if (resumeInFlight.current) {
+    function stillCurrent(): boolean {
+      return active && generation === generationRef.current;
+    }
+
+    function stopWatching(nextMessage: string, code: string, isError: boolean) {
+      if (!stillCurrent()) {
         return;
       }
-      resumeInFlight.current = true;
+      active = false;
+      stop.abort();
+      setError(isError);
+      setErrorCode(code);
+      setMessage(nextMessage);
+      setBusy(false);
+      setProgress(null);
+      setWatchId(null);
+    }
+
+    async function resumeStalled(scanId: string) {
+      if (resumeInFlight || resumedScanIds.current.has(scanId)) {
+        return;
+      }
+      resumeInFlight = true;
+      resumedScanIds.current.add(scanId);
+      const deadline = deadlineSignal(stop.signal, POLL_DEADLINE_MS);
       try {
         const response = await fetch("/api/scans", {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ lookbackDays }),
+          body: JSON.stringify({ lookbackDays: lookbackRef.current }),
+          signal: deadline.signal,
         });
-        const payload: unknown = await response.json().catch(() => ({}));
+        const payload: unknown = await response.json().catch(() => null);
+        if (!stillCurrent()) {
+          return;
+        }
+        if (response.status === 401) {
+          stopWatching("Sign in again to follow scan progress.", "not_signed_in", true);
+          return;
+        }
         if (!response.ok) {
-          const failed = payload as { error?: string; message?: string };
+          const failed = readFailure(payload);
           if (failed.error === "scan_in_progress") {
             return;
           }
-          setError(true);
-          setErrorCode(failed.error ?? "scan_failed");
-          setMessage(scanUserMessage(failed.error, failed.message));
-          setBusy(false);
-          setProgress(null);
-          setWatchId(null);
+          stopWatching(
+            scanUserMessage(failed.error, failed.message),
+            failed.error ?? "scan_failed",
+            true,
+          );
           return;
         }
         const started = startScanResponseSchema.safeParse(payload);
-        const prev = progressRef.current;
-        if (started.success) {
-          setWatchId(started.data.scanId);
-          setProgress({
-            id: started.data.scanId,
-            status: "RUNNING",
-            threads_discovered: prev?.threads_discovered ?? 0,
-            threads_checked: prev?.threads_checked ?? 0,
-            updated_at: new Date().toISOString(),
-          });
-        } else if (scanId) {
-          setProgress((current) =>
-            current ? { ...current, updated_at: new Date().toISOString() } : current,
-          );
+        if (!started.success) {
+          stopWatching("Could not load scan progress. Please try again.", "scan_failed", true);
+          return;
         }
+        const prev = progressRef.current;
+        misses = 0;
+        setWatchId(started.data.scanId);
+        setProgress({
+          id: started.data.scanId,
+          status: "RUNNING",
+          threads_discovered: prev?.threads_discovered ?? 0,
+          threads_checked: prev?.threads_checked ?? 0,
+          updated_at: new Date().toISOString(),
+        });
       } catch {
-        setError(true);
-        setMessage("Scan stalled. Please try again.");
-        setBusy(false);
-        setProgress(null);
-        setWatchId(null);
+        if (!stillCurrent()) {
+          return;
+        }
+        // Timeout or network: we could not observe the resume. The scan is not cancelled.
+        stopWatching("Could not load scan progress. Please try again.", "scan_failed", true);
       } finally {
-        resumeInFlight.current = false;
+        deadline.dispose();
+        resumeInFlight = false;
       }
     }
 
-    async function tick() {
-      const result = await fetchLatestScan();
-      if (cancelled) {
+    function noteMiss() {
+      misses += 1;
+      if (misses >= POLL_MISS_LIMIT) {
+        stopWatching("Could not load scan progress. Please try again.", "scan_failed", true);
+      }
+    }
+
+    function apply(result: LatestScanResult) {
+      if (!stillCurrent()) {
         return;
       }
-      if (!result.ok) {
-        nullPolls.current += 1;
-        if (nullPolls.current >= POLL_NULL_LIMIT) {
-          setError(true);
-          setErrorCode(result.status === 401 ? "not_signed_in" : "scan_failed");
-          setMessage(
-            result.status === 401
-              ? "Sign in again to follow scan progress."
-              : "Could not load scan progress. Please try again.",
-          );
-          setBusy(false);
-          setProgress(null);
-          setWatchId(null);
-        }
+      if (result.kind === "http" && result.status === 401) {
+        stopWatching("Sign in again to follow scan progress.", "not_signed_in", true);
         return;
       }
-      nullPolls.current = 0;
+      if (result.kind !== "scan") {
+        noteMiss();
+        return;
+      }
       const scan = result.scan;
-      if (!scan) {
-        nullPolls.current += 1;
-        if (nullPolls.current >= POLL_NULL_LIMIT) {
-          setError(true);
-          setMessage("Could not load scan progress. Please try again.");
-          setBusy(false);
-          setProgress(null);
-          setWatchId(null);
-        }
+      const watched = scan.id === watchId || watchId === "pending";
+      if (!watched) {
+        // An older scan must not clear the miss count or finish the scan we started.
         return;
       }
+      misses = 0;
       if (scan.status === "RUNNING") {
-        if (scan.id === watchId || watchId === "pending") {
-          setWatchId(scan.id);
-          setProgress(scan);
-          if (isStaleRunning(scan, Date.now())) {
-            void resumeStalled(scan.id);
-          }
+        setWatchId(scan.id);
+        setProgress(scan);
+        if (isStaleRunning(scan, Date.now())) {
+          void resumeStalled(scan.id);
         }
         return;
       }
-      if (scan.id !== watchId) {
-        return;
-      }
+      active = false;
+      stop.abort();
       setBusy(false);
       setProgress(null);
       setWatchId(null);
@@ -218,32 +358,102 @@ export function InitialScanCard({
         setMessage(scanUserMessage(scan.error_code, scan.error_message));
         return;
       }
-      router.push(completeHref);
-      router.refresh();
+      routerRef.current.push(completeHref);
+      routerRef.current.refresh();
     }
 
-    void tick();
-    const timer = setInterval(() => {
-      void tick();
-    }, 800);
+    async function loop() {
+      while (stillCurrent()) {
+        const deadline = deadlineSignal(stop.signal, POLL_DEADLINE_MS);
+        let result: LatestScanResult;
+        try {
+          result = await fetchLatestScan(deadline.signal);
+        } finally {
+          deadline.dispose();
+        }
+        if (!stillCurrent()) {
+          return;
+        }
+        apply(result);
+        if (!stillCurrent()) {
+          return;
+        }
+        await wait(POLL_INTERVAL_MS, stop.signal);
+      }
+    }
+
+    void loop();
     return () => {
-      cancelled = true;
-      clearInterval(timer);
+      active = false;
+      generationRef.current += 1;
+      stop.abort();
     };
-  }, [busy, watchId, router, completeHref, lookbackDays]);
+  }, [busy, watchId, completeHref]);
+
+  async function requestJson(
+    url: string,
+    init: RequestInit,
+    generation: number,
+  ): Promise<
+    | { ok: true; payload: unknown }
+    | { ok: false; stale: true }
+    | { ok: false; stale: false; status: number; failure: { error?: string; message?: string } }
+  > {
+    const stop = new AbortController();
+    actionControllersRef.current.add(stop);
+    const deadline = deadlineSignal(stop.signal, POLL_DEADLINE_MS);
+    try {
+      const response = await fetch(url, { ...init, signal: deadline.signal });
+      const payload: unknown = await response.json().catch(() => null);
+      if (generation !== generationRef.current) {
+        return { ok: false, stale: true };
+      }
+      if (!response.ok) {
+        return { ok: false, stale: false, status: response.status, failure: readFailure(payload) };
+      }
+      return { ok: true, payload };
+    } catch {
+      if (generation !== generationRef.current) {
+        return { ok: false, stale: true };
+      }
+      return { ok: false, stale: false, status: 0, failure: {} };
+    } finally {
+      deadline.dispose();
+      stop.abort();
+      actionControllersRef.current.delete(stop);
+    }
+  }
 
   async function cancelScan() {
-    if (!watchId || watchId === "pending") {
+    if (!watchId || watchId === "pending" || cancelInFlightRef.current) {
       return;
     }
+    const target = watchId;
+    cancelInFlightRef.current = true;
+    // Drop in-flight poll results so a late snapshot cannot finish this scan after cancel.
+    const generation = ++generationRef.current;
     try {
-      const response = await fetch(`/api/scans/${watchId}/cancel`, { method: "POST" });
-      const payload: unknown = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        const failed = payload as { error?: string; message?: string };
+      const result = await requestJson(
+        `/api/scans/${target}/cancel`,
+        { method: "POST" },
+        generation,
+      );
+      if (!result.ok) {
+        if (result.stale) {
+          return;
+        }
+        // Cancellation unconfirmed: leave a retryable idle state (not stuck busy with no polling).
+        setBusy(false);
+        setProgress(null);
+        setWatchId(null);
         setError(true);
-        setErrorCode(failed.error ?? "scan_failed");
-        setMessage(scanUserMessage(failed.error, failed.message));
+        if (result.status === 0) {
+          setErrorCode("scan_failed");
+          setMessage("Could not cancel the scan. Please try again.");
+          return;
+        }
+        setErrorCode(result.failure.error ?? "scan_failed");
+        setMessage(scanUserMessage(result.failure.error, result.failure.message));
         return;
       }
       setBusy(false);
@@ -252,18 +462,17 @@ export function InitialScanCard({
       setError(false);
       setErrorCode("cancelled");
       setMessage(scanUserMessage("cancelled"));
-    } catch {
-      setError(true);
-      setMessage("Could not cancel the scan.");
+    } finally {
+      cancelInFlightRef.current = false;
     }
   }
 
   async function runScan() {
+    const generation = ++generationRef.current;
     setBusy(true);
     setMessage(null);
     setError(false);
     setErrorCode(null);
-    nullPolls.current = 0;
     setProgress({
       id: "pending",
       status: "RUNNING",
@@ -271,44 +480,48 @@ export function InitialScanCard({
       threads_checked: 0,
       updated_at: new Date().toISOString(),
     });
-    try {
-      const response = await fetch("/api/scans", {
+    // watchId stays null until start succeeds so polling does not begin on "pending".
+    const result = await requestJson(
+      "/api/scans",
+      {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ lookbackDays }),
-      });
-      const payload: unknown = await response.json();
-      if (!response.ok) {
-        const failed = payload as { error?: string; message?: string };
-        setError(true);
-        setErrorCode(failed.error ?? "scan_failed");
-        setMessage(scanUserMessage(failed.error, failed.message));
-        setBusy(false);
-        setProgress(null);
+      },
+      generation,
+    );
+    if (!result.ok) {
+      if (result.stale) {
         return;
       }
-      const started = startScanResponseSchema.safeParse(payload);
-      if (!started.success) {
-        setError(true);
-        setMessage("Scan failed.");
-        setBusy(false);
-        setProgress(null);
-        return;
-      }
-      setWatchId(started.data.scanId);
-      setProgress({
-        id: started.data.scanId,
-        status: "RUNNING",
-        threads_discovered: 0,
-        threads_checked: 0,
-        updated_at: new Date().toISOString(),
-      });
-    } catch {
       setError(true);
-      setMessage("Scan failed. Please try again.");
+      setErrorCode(result.failure.error ?? "scan_failed");
+      setMessage(
+        result.status === 0 && !result.failure.error
+          ? "Scan failed. Please try again."
+          : scanUserMessage(result.failure.error, result.failure.message),
+      );
       setBusy(false);
       setProgress(null);
+      return;
     }
+    const started = startScanResponseSchema.safeParse(result.payload);
+    if (!started.success) {
+      setError(true);
+      setErrorCode("scan_failed");
+      setMessage("Scan failed.");
+      setBusy(false);
+      setProgress(null);
+      return;
+    }
+    setWatchId(started.data.scanId);
+    setProgress({
+      id: started.data.scanId,
+      status: "RUNNING",
+      threads_discovered: 0,
+      threads_checked: 0,
+      updated_at: new Date().toISOString(),
+    });
   }
 
   const bar = progress
@@ -337,9 +550,12 @@ export function InitialScanCard({
         ) : null}
         <div className="flex flex-wrap items-end gap-3">
           <label className="block min-w-40 flex-1 text-sm">
-            <span className="text-muted-foreground mb-1.5 block">Lookback window</span>
+            <span className="text-muted-foreground mb-1.5 block" id="scan-lookback-label">
+              Lookback window
+            </span>
             <select
               className="border-input bg-background h-9 w-full max-w-xs rounded-lg border px-3 text-sm"
+              aria-labelledby="scan-lookback-label"
               value={lookbackDays}
               disabled={!connected || busy}
               onChange={(event) =>
@@ -401,7 +617,7 @@ export function InitialScanCard({
               Last run {formatDateTime(lastRunAt)}
               {statusLabel ? ` · ${statusLabel}` : ""}
               {typeof messagesProcessed === "number" ? ` · ${messagesProcessed} emails` : ""}
-              {lastRunStatus === "PARTIAL" ? " · Retries queued" : ""}
+              {lastRunStatus === "PARTIAL" ? " · Some conversations need another scan" : ""}
             </span>
           ) : busy ? (
             <span>In progress</span>

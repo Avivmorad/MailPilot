@@ -1,4 +1,8 @@
-import { ThreadTriageError, type EmailTriageProvider } from "@/lib/ai/analyze-thread";
+import {
+  ThreadTriageError,
+  type EmailTriageProvider,
+  type TriageRequestOptions,
+} from "@/lib/ai/analyze-thread";
 import { buildTriageUserPrompt, TRIAGE_SYSTEM_PROMPT } from "@/lib/ai/prompts";
 import {
   threadAnalysisJsonSchema,
@@ -21,9 +25,18 @@ export type NvidiaGenerateFn = (params: {
   signal: AbortSignal;
 }) => Promise<string>;
 
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => {
-    setTimeout(resolve, ms);
+function sleep(ms: number, signal?: AbortSignal): Promise<void> {
+  signal?.throwIfAborted();
+  return new Promise((resolve, reject) => {
+    const cancel = () => {
+      clearTimeout(timer);
+      reject(signal?.reason);
+    };
+    const timer = setTimeout(() => {
+      signal?.removeEventListener("abort", cancel);
+      resolve();
+    }, ms);
+    signal?.addEventListener("abort", cancel, { once: true });
   });
 }
 
@@ -81,18 +94,23 @@ export class NvidiaEmailTriageProvider implements EmailTriageProvider {
     this.generate = generate;
   }
 
-  async analyzeThread(input: ThreadAnalysisInput): Promise<ThreadAnalysis> {
+  async analyzeThread(
+    input: ThreadAnalysisInput,
+    options: TriageRequestOptions = {},
+  ): Promise<ThreadAnalysis> {
     let lastError: unknown;
     for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt += 1) {
+      options.signal?.throwIfAborted();
       try {
-        return await this.completeOnce(input);
+        return await this.completeOnce(input, options);
       } catch (error) {
+        if (options.signal?.aborted) throw options.signal.reason;
         lastError = error;
         const status = httpStatus(error);
         if ((status !== 429 && status !== 503) || attempt === MAX_ATTEMPTS - 1) {
           break;
         }
-        await sleep(Math.min(500 * 2 ** attempt, 8_000));
+        await sleep(Math.min(500 * 2 ** attempt, 8_000), options.signal);
       }
     }
     if (lastError instanceof ThreadTriageError) {
@@ -101,8 +119,18 @@ export class NvidiaEmailTriageProvider implements EmailTriageProvider {
     throw new ThreadTriageError("provider", "NVIDIA triage call failed", lastError);
   }
 
-  private async completeOnce(input: ThreadAnalysisInput): Promise<ThreadAnalysis> {
+  private async completeOnce(
+    input: ThreadAnalysisInput,
+    options: TriageRequestOptions,
+  ): Promise<ThreadAnalysis> {
     const controller = new AbortController();
+    const cancel = () => controller.abort(options.signal?.reason);
+    options.signal?.addEventListener("abort", cancel, { once: true });
+    let rejectOnAbort: () => void;
+    const interrupted = new Promise<never>((_resolve, reject) => {
+      rejectOnAbort = () => reject(controller.signal.reason);
+      controller.signal.addEventListener("abort", rejectOnAbort, { once: true });
+    });
     let timer: ReturnType<typeof setTimeout> | undefined;
     let content: string;
     try {
@@ -122,9 +150,12 @@ export class NvidiaEmailTriageProvider implements EmailTriageProvider {
             controller.abort();
           }, NVIDIA_REQUEST_TIMEOUT_MS);
         }),
+        interrupted,
       ]);
     } finally {
       clearTimeout(timer);
+      options.signal?.removeEventListener("abort", cancel);
+      controller.signal.removeEventListener("abort", rejectOnAbort!);
     }
 
     if (!content) {

@@ -17,6 +17,7 @@ import { TRIAGE_PROMPT_VERSION } from "@/lib/ai/prompts";
 import { threadAnalysisSchema, type ThreadAnalysis } from "@/lib/ai/schemas";
 import type { MailPilotLogicalLabel } from "@/lib/gmail/constants";
 import type { ParsedGmailMessage } from "@/lib/gmail/parser";
+import { withGmailRequest } from "@/lib/gmail/request-budget";
 import { asLookbackDays } from "@/lib/scans/checkpoint";
 import type { InitialLookbackDays } from "@/lib/scans/lookback";
 import { DISPATCH_LEASE_SECONDS } from "@/lib/scans/dispatch-budget";
@@ -131,6 +132,7 @@ function createMemoryStore(): ScanStorePort & {
     userId?: string;
   }>;
   progressChecks: number[];
+  liveCursorAdvances: number;
 } {
   const threads = new Map<
     string,
@@ -341,6 +343,21 @@ function createMemoryStore(): ScanStorePort & {
       if (patch.importantCount !== undefined) {
         run.importantCount = patch.importantCount;
       }
+      if (patch.actionCount !== undefined) {
+        run.actionCount = patch.actionCount;
+      }
+      if (patch.replyCount !== undefined) {
+        run.replyCount = patch.replyCount;
+      }
+      if (patch.waitingCount !== undefined) {
+        run.waitingCount = patch.waitingCount;
+      }
+      if (patch.informationalCount !== undefined) {
+        run.informationalCount = patch.informationalCount;
+      }
+      if (patch.ignoredCount !== undefined) {
+        run.ignoredCount = patch.ignoredCount;
+      }
       if (patch.discoveryMode !== undefined) {
         run.discoveryMode = patch.discoveryMode;
       }
@@ -445,6 +462,372 @@ async function runScan(options: {
 }
 
 describe("processInitialScan", () => {
+  it("does not skip a hung earlier thread when a later worker finished before the deadline", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(0);
+    vi.stubEnv("AI_MAX_CONCURRENCY", "2");
+    const store = createMemoryStore();
+    const budget = { deadlineAt: 100 };
+    const applied = new Map<string, string[]>();
+    const modifyThreadLabels = vi.fn(async (id: string, add: string[], remove: string[]) => {
+      applied.set(id, [
+        ...new Set([...(applied.get(id) ?? []).filter((label) => !remove.includes(label)), ...add]),
+      ]);
+    });
+    const analyze = vi.fn(async () => ({ ok: true as const, analysis: validAnalysis() }));
+    const gmail: ScanGmailPort = {
+      requestBudget: budget,
+      getProfileHistoryId: async () => "hist-new",
+      listMessageRefs: async () => [
+        { id: "m-t1", threadId: "t1" },
+        { id: "m-t2", threadId: "t2" },
+      ],
+      listHistoryChanges: async () => ({ ok: true, refs: [], latestHistoryId: "hist-new" }),
+      loadLabelMap: async () => LABEL_MAP,
+      fetchThread: (id) =>
+        id === "t1"
+          ? withGmailRequest(() => new Promise<never>(() => undefined), budget)
+          : Promise.resolve([parsedMessage({ gmailThreadId: id, gmailMessageId: `m-${id}` })]),
+      modifyThreadLabels,
+    };
+    try {
+      const result = runScan({ store, gmail, analyze });
+      await vi.advanceTimersByTimeAsync(100);
+      await expect(result).resolves.toMatchObject({ status: "CONTINUED" });
+      expect(store.scanRuns[0]).toMatchObject({
+        status: "RUNNING",
+        threadCursor: 0,
+        threadsChecked: 0,
+        failedThreadIds: [],
+      });
+      expect(store.connection.historyId).toBeNull();
+      expect(modifyThreadLabels.mock.calls.map(([id]) => id)).toEqual(["t2"]);
+      const resumed = await resumeGmailScan({
+        scanId: store.scanRuns[0].id,
+        gmailEmail: "me@example.com",
+        store,
+        gmail: {
+          ...gmail,
+          requestBudget: { deadlineAt: 200 },
+          fetchThread: async (id) => [
+            parsedMessage({
+              gmailThreadId: id,
+              gmailMessageId: `m-${id}`,
+              labelIds: applied.get(id) ?? [],
+            }),
+          ],
+        },
+        provider: unusedProvider(),
+        modelName: "synthetic-model",
+        analyze,
+      });
+      await expect(executeGmailScan(resumed)).resolves.toMatchObject({ status: "SUCCESS" });
+      expect(store.scanRuns[0]).toMatchObject({
+        threadCursor: 2,
+        threadsChecked: 2,
+        actionCount: 2,
+      });
+      expect(modifyThreadLabels.mock.calls.map(([id]) => id)).toEqual(["t2", "t1"]);
+      expect(analyze).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it("aborts a hung provider at the shared deadline and leaves the thread resumable", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(0);
+    const store = createMemoryStore();
+    let providerSignal: AbortSignal | undefined;
+    const modifyThreadLabels = vi.fn(async () => undefined);
+    const analyze: NonNullable<Parameters<typeof processInitialScan>[0]["analyze"]> = (
+      input,
+      provider,
+      options,
+    ) => {
+      void input;
+      void provider;
+      providerSignal = options?.signal;
+      return new Promise(() => undefined);
+    };
+    try {
+      const result = runScan({
+        store,
+        analyze,
+        gmail: {
+          requestBudget: { deadlineAt: 100 },
+          getProfileHistoryId: async () => "hist-new",
+          listMessageRefs: async () => [{ id: "m1", threadId: "t1" }],
+          listHistoryChanges: async () => ({ ok: true, refs: [], latestHistoryId: "hist-new" }),
+          fetchThread: async () => [parsedMessage()],
+          loadLabelMap: async () => LABEL_MAP,
+          modifyThreadLabels,
+        },
+      });
+      await vi.advanceTimersByTimeAsync(100);
+      await expect(result).resolves.toMatchObject({ status: "CONTINUED" });
+      expect(providerSignal?.aborted).toBe(true);
+      expect(store.scanRuns[0]).toMatchObject({
+        status: "RUNNING",
+        threadCursor: 0,
+        threadsAnalyzed: 0,
+        failedThreadIds: [],
+      });
+      expect(store.connection.historyId).toBeNull();
+      expect(modifyThreadLabels).not.toHaveBeenCalled();
+      expect(store.actions.size).toBe(0);
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("keeps incomplete discovery resumable after a hung page reaches its deadline", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(0);
+    const store = createMemoryStore();
+    const budget = { deadlineAt: 100 };
+    const gmail: ScanGmailPort = {
+      requestBudget: budget,
+      getProfileHistoryId: async () => "hist-new",
+      listMessageRefs: () => withGmailRequest(() => new Promise<never>(() => undefined), budget),
+      listHistoryChanges: async () => ({ ok: true, refs: [], latestHistoryId: "hist-new" }),
+      fetchThread: async () => [parsedMessage()],
+      loadLabelMap: async () => LABEL_MAP,
+      modifyThreadLabels: vi.fn(async () => undefined),
+    };
+    try {
+      const result = runScan({
+        store,
+        gmail,
+        analyze: async () => ({ ok: true, analysis: validAnalysis() }),
+      });
+      await vi.advanceTimersByTimeAsync(100);
+      await expect(result).resolves.toMatchObject({ status: "CONTINUED" });
+      expect(store.scanRuns[0]).toMatchObject({ status: "RUNNING", threadCursor: 0 });
+      expect(store.scanRuns[0].discoveryComplete).not.toBe(true);
+      expect(store.connection.historyId).toBeNull();
+      expect(gmail.modifyThreadLabels).not.toHaveBeenCalled();
+      const resumed = await resumeGmailScan({
+        scanId: store.scanRuns[0].id,
+        gmailEmail: "me@example.com",
+        store,
+        gmail: {
+          ...gmail,
+          requestBudget: { deadlineAt: 200 },
+          listMessageRefs: async () => [{ id: "m1", threadId: "t1" }],
+        },
+        provider: unusedProvider(),
+        modelName: "synthetic-model",
+        analyze: async () => ({ ok: true, analysis: validAnalysis() }),
+      });
+      await expect(executeGmailScan(resumed)).resolves.toMatchObject({ status: "SUCCESS" });
+      expect(store.scanRuns[0]).toMatchObject({ status: "SUCCESS", threadCursor: 1 });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("preserves the committed prefix on fetch timeout and resumes without duplicate labels", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(0);
+    vi.stubEnv("AI_MAX_CONCURRENCY", "1");
+    const store = createMemoryStore();
+    const budget = { deadlineAt: 100 };
+    const modifyThreadLabels = vi.fn(async (id: string, add: string[], remove: string[]) => {
+      void id;
+      void add;
+      void remove;
+    });
+    const gmail: ScanGmailPort = {
+      requestBudget: budget,
+      listMessageRefs: async () => [
+        { id: "m-t1", threadId: "t1" },
+        { id: "m-t2", threadId: "t2" },
+      ],
+      listHistoryChanges: async () => ({ ok: true, refs: [], latestHistoryId: "hist-new" }),
+      getProfileHistoryId: async () => "hist-new",
+      loadLabelMap: async () => LABEL_MAP,
+      fetchThread: (id) =>
+        id === "t2"
+          ? withGmailRequest(() => new Promise<never>(() => undefined), budget)
+          : Promise.resolve([parsedMessage({ gmailThreadId: id, gmailMessageId: `m-${id}` })]),
+      modifyThreadLabels,
+    };
+    try {
+      const result = runScan({
+        store,
+        gmail,
+        analyze: async () => ({ ok: true, analysis: validAnalysis() }),
+      });
+      await vi.advanceTimersByTimeAsync(100);
+      await expect(result).resolves.toMatchObject({ status: "CONTINUED" });
+      expect(store.scanRuns[0]).toMatchObject({
+        status: "RUNNING",
+        threadCursor: 1,
+        messagesProcessed: 1,
+        threadsAnalyzed: 1,
+        actionCount: 1,
+        failedThreadIds: [],
+      });
+      expect(store.connection.historyId).toBeNull();
+      const fetchThread = vi.fn(async (id: string) => [
+        parsedMessage({ gmailThreadId: id, gmailMessageId: `m-${id}` }),
+      ]);
+      const resumed = await resumeGmailScan({
+        scanId: store.scanRuns[0].id,
+        gmailEmail: "me@example.com",
+        store,
+        gmail: { ...gmail, requestBudget: { deadlineAt: 200 }, fetchThread },
+        provider: unusedProvider(),
+        modelName: "synthetic-model",
+        analyze: async () => ({ ok: true, analysis: validAnalysis() }),
+      });
+      await expect(executeGmailScan(resumed)).resolves.toMatchObject({ status: "SUCCESS" });
+      expect(fetchThread).toHaveBeenCalledTimes(1);
+      expect(fetchThread).toHaveBeenCalledWith("t2");
+      expect(modifyThreadLabels.mock.calls.map(([id]) => id)).toEqual(["t1", "t2"]);
+      expect(store.scanRuns[0]).toMatchObject({
+        threadCursor: 2,
+        actionCount: 2,
+        messagesProcessed: 2,
+      });
+    } finally {
+      vi.useRealTimers();
+      vi.unstubAllEnvs();
+    }
+  });
+  it.each([true, false])(
+    "saves a consistent completed batch before fetching the next thread (AI succeeds: %s)",
+    async (aiSucceeds) => {
+      vi.stubEnv("AI_MAX_CONCURRENCY", "1");
+      const store = createMemoryStore();
+      let checkpointBeforeSecondThread: (typeof store.scanRuns)[number] | undefined;
+      try {
+        const result = await runScan({
+          store,
+          gmail: {
+            listMessageRefs: async () => [
+              { id: "m-t1", threadId: "t1" },
+              { id: "m-t2", threadId: "t2" },
+            ],
+            listHistoryChanges: async () => ({ ok: true, refs: [], latestHistoryId: "hist-new" }),
+            fetchThread: async (threadId) => {
+              if (threadId === "t2") {
+                checkpointBeforeSecondThread = {
+                  ...store.scanRuns[0],
+                  failedThreadIds: [...(store.scanRuns[0].failedThreadIds ?? [])],
+                };
+              }
+              return [parsedMessage({ gmailThreadId: threadId, gmailMessageId: `m-${threadId}` })];
+            },
+            getProfileHistoryId: async () => "hist-new",
+            loadLabelMap: async () => LABEL_MAP,
+            modifyThreadLabels: async () => undefined,
+          },
+          analyze: async () =>
+            aiSucceeds
+              ? { ok: true as const, analysis: validAnalysis() }
+              : { ok: false as const, error: new Error("AI unavailable") },
+        });
+        expect(checkpointBeforeSecondThread).toMatchObject({
+          threadCursor: 1,
+          messagesProcessed: 1,
+          threadsAnalyzed: aiSucceeds ? 1 : 0,
+          actionCount: aiSucceeds ? 1 : 0,
+          failedThreadIds: aiSucceeds ? [] : ["t1"],
+        });
+        expect(result.status).toBe(aiSucceeds ? "SUCCESS" : "PARTIAL");
+        expect(result.counters.messagesProcessed).toBe(2);
+        expect(result.counters.actionCount).toBe(aiSucceeds ? 2 : 0);
+      } finally {
+        vi.unstubAllEnvs();
+      }
+    },
+  );
+
+  it("skips actions and Gmail labels when cancelled during message persistence", async () => {
+    const store = createMemoryStore();
+    const originalWrite = store.upsertMessage.bind(store);
+    store.upsertMessage = async (input) => {
+      await originalWrite(input);
+      await store.failScan(store.scanRuns[0].id, "cancelled", "Scan stopped");
+    };
+    const modifyThreadLabels = vi.fn(async () => undefined);
+    const result = await runScan({
+      store,
+      gmail: {
+        listMessageRefs: async () => [{ id: "m1", threadId: "t1" }],
+        listHistoryChanges: async () => ({ ok: true, refs: [], latestHistoryId: "hist-new" }),
+        fetchThread: async () => [parsedMessage()],
+        getProfileHistoryId: async () => "hist-new",
+        loadLabelMap: async () => LABEL_MAP,
+        modifyThreadLabels,
+      },
+      analyze: async () => ({ ok: true as const, analysis: validAnalysis() }),
+    });
+    expect(result.status).toBe("FAILED");
+    expect(store.actions.size).toBe(0);
+    expect(modifyThreadLabels).not.toHaveBeenCalled();
+    expect(store.connection.historyId).toBeNull();
+  });
+
+  it.each([true, false])(
+    "settles concurrent message writes before marking partial (AI succeeds: %s)",
+    async (aiSucceeds) => {
+      const store = createMemoryStore();
+      const originalWrite = store.upsertMessage.bind(store);
+      let release!: () => void;
+      const blocked = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      let started!: () => void;
+      const secondStarted = new Promise<void>((resolve) => {
+        started = resolve;
+      });
+      store.upsertMessage = async (input) => {
+        if (input.message.gmailMessageId === "m1") throw new Error("database unavailable");
+        started();
+        await blocked;
+        await originalWrite(input);
+      };
+      const modifyThreadLabels = vi.fn(async () => undefined);
+      const result = runScan({
+        store,
+        gmail: {
+          listMessageRefs: async () => [{ id: "m2", threadId: "t1" }],
+          listHistoryChanges: async () => ({ ok: true, refs: [], latestHistoryId: "hist-new" }),
+          fetchThread: async () => [
+            parsedMessage(),
+            parsedMessage({
+              gmailMessageId: "m2",
+              internalDate: String(Date.parse("2026-09-10T11:00:00.000Z")),
+            }),
+          ],
+          getProfileHistoryId: async () => "hist-new",
+          loadLabelMap: async () => LABEL_MAP,
+          modifyThreadLabels,
+        },
+        analyze: async () =>
+          aiSucceeds
+            ? { ok: true as const, analysis: validAnalysis() }
+            : { ok: false as const, error: new Error("AI unavailable") },
+      });
+      await secondStarted;
+      expect(store.scanRuns[0]?.status).toBe("RUNNING");
+      expect(modifyThreadLabels).not.toHaveBeenCalled();
+      release();
+      const completed = await result;
+      expect(completed.status).toBe("PARTIAL");
+      expect(completed.counters.messagesProcessed).toBe(1);
+      expect(store.messages.size).toBe(1);
+      expect(store.scanRuns[0]?.failedThreadIds).toEqual(["t1"]);
+      expect(store.connection.historyId).toBeNull();
+      expect(modifyThreadLabels).not.toHaveBeenCalled();
+    },
+  );
+
   it("stops admitting work at the budget and preserves the cursor for retry", async () => {
     const store = createMemoryStore();
     store.connection.historyId = "old-history";
@@ -500,11 +883,12 @@ describe("processInitialScan", () => {
       ],
       fetchThread,
       loadLabelMap: async () => LABEL_MAP,
-      modifyThreadLabels: async () => {},
+      modifyThreadLabels: async () => {
+        clock.mockReturnValue(SCAN_WORK_BUDGET_MS);
+      },
     };
     try {
       fetchThread.mockImplementation(async (threadId: string) => {
-        clock.mockReturnValue(SCAN_WORK_BUDGET_MS);
         return [parsedMessage({ gmailThreadId: threadId, gmailMessageId: `m-${threadId}` })];
       });
       const first = await runScan({ store, gmail, analyze });
@@ -1218,6 +1602,22 @@ describe("openGmailScan admission", () => {
     await admit(store);
     expect(store.connection.lastAttemptedScanAt).toBeTruthy();
     await expect(admit(store)).rejects.toThrow("SCAN_IN_PROGRESS");
+    expect(store.scanRuns.filter((run) => run.status === "RUNNING")).toHaveLength(1);
+  });
+
+  it("fails only the new scan if updating its connection fails after insert", async () => {
+    const store = createMemoryStore();
+    const error = new Error("synthetic connection update failure");
+    store.updateConnectionScan = vi
+      .fn(store.updateConnectionScan.bind(store))
+      .mockRejectedValueOnce(error);
+    await expect(admit(store)).rejects.toBe(error);
+    expect(store.scanRuns).toHaveLength(1);
+    expect(store.scanRuns[0]).toMatchObject({
+      status: "FAILED",
+      errorCode: "scan_preparation_failed",
+    });
+    await expect(admit(store)).resolves.toHaveProperty("scanId");
     expect(store.scanRuns.filter((run) => run.status === "RUNNING")).toHaveLength(1);
   });
 

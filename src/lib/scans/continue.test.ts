@@ -22,6 +22,7 @@ describe("scan continuation scheduling", () => {
       "https://mail.example/api/scans/continue",
       expect.objectContaining({
         method: "POST",
+        signal: expect.any(AbortSignal),
       }),
     );
     vi.unstubAllEnvs();

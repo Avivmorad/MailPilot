@@ -40,6 +40,40 @@ export function scanProgressView(input: ScanProgressInput): {
 } {
   const { threadsDiscovered, threadsChecked, status, errorCode } = input;
 
+  // Terminal scans are decided before the empty-discovery branch. An empty
+  // SUCCESS used to fall through to the indeterminate "Finding conversations" state.
+  if (status === "SUCCESS") {
+    if (threadsDiscovered <= 0) {
+      return {
+        percent: 100,
+        label: "No conversations in this window.",
+        indeterminate: false,
+      };
+    }
+    return {
+      percent: 100,
+      label: `Checked ${threadsChecked} of ${threadsDiscovered} conversations (100%)`,
+      indeterminate: false,
+    };
+  }
+
+  if (status === "PARTIAL" || errorCode === "partial_thread_failures") {
+    // PARTIAL records failures. It does not prove a retry was queued.
+    if (threadsDiscovered <= 0) {
+      return {
+        percent: 0,
+        label: "No conversations were fully processed. Run Scan now again to try again.",
+        indeterminate: false,
+      };
+    }
+    const displayPercent = Math.min(95, scanProgressPercent(threadsChecked, threadsDiscovered));
+    return {
+      percent: displayPercent,
+      label: `Checked ${threadsChecked} of ${threadsDiscovered} conversations. Some could not be processed. Run Scan now again to try those.`,
+      indeterminate: false,
+    };
+  }
+
   if (threadsDiscovered <= 0) {
     if (status === "FAILED") {
       return {
@@ -59,16 +93,6 @@ export function scanProgressView(input: ScanProgressInput): {
   }
 
   const rawPercent = scanProgressPercent(threadsChecked, threadsDiscovered);
-
-  if (status === "PARTIAL" || errorCode === "partial_thread_failures") {
-    // Avoid claiming 100% when retry work remains
-    const displayPercent = Math.min(95, rawPercent);
-    return {
-      percent: displayPercent,
-      label: `Checked ${threadsChecked} of ${threadsDiscovered} conversations (partially completed, retries queued)`,
-      indeterminate: false,
-    };
-  }
 
   if (status === "FAILED") {
     if (errorCode === "cancelled") {
@@ -128,14 +152,6 @@ export function scanProgressView(input: ScanProgressInput): {
     return {
       percent: 99,
       label: `Finalizing triage and labels for ${threadsDiscovered} conversations…`,
-      indeterminate: false,
-    };
-  }
-
-  if (status === "SUCCESS") {
-    return {
-      percent: 100,
-      label: `Checked ${threadsChecked} of ${threadsDiscovered} conversations (100%)`,
       indeterminate: false,
     };
   }

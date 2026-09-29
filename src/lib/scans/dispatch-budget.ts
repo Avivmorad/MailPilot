@@ -6,7 +6,7 @@ export const DISPATCH_LEASE_SECONDS = Math.floor(DISPATCH_BUDGET_MS / 1000);
 /** One connection per invocation so a run can finish inside the Hobby cap. */
 export const DISPATCH_DEFAULT_LIMIT = 1;
 /** Leave headroom inside maxDuration for persist + HTTP continue. */
-export const SCAN_WORK_BUDGET_MS = 240_000;
+export const SCAN_WORK_BUDGET_MS = 210_000;
 /** No progress for this long → treat the RUNNING row as dead. */
 export const SCAN_STALE_PROGRESS_MS = 20 * 60 * 1000;
 /** Dispatcher must not resume a slice that is still working. */

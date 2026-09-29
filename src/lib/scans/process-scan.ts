@@ -13,6 +13,11 @@ import { labelDiff, logicalLabelsForAnalysis } from "@/lib/gmail/label-plan";
 import type { ParsedGmailMessage } from "@/lib/gmail/parser";
 import { GmailConnectError } from "@/lib/gmail/oauth";
 import { isGmailAuthError, isGmailQuotaError } from "@/lib/gmail/retry";
+import {
+  assertGmailBudget,
+  GmailDeadlineError,
+  withGmailRequest,
+} from "@/lib/gmail/request-budget";
 import { isAiUnavailableError, SCAN_IN_PROGRESS, scanUserMessage } from "@/lib/scans/errors";
 import { buildThreadContext } from "@/lib/gmail/thread-context";
 import { messageContentHash } from "@/lib/scans/content-hash";
@@ -264,10 +269,19 @@ export async function openGmailScan(input: ProcessGmailScanInput): Promise<Prepa
     windowEnd: plannedWindow.windowEnd.toISOString(),
     lookbackDays,
   });
-  await input.store.updateConnectionScan({
-    connectionId: input.connectionId,
-    lastAttemptedScanAt: now.toISOString(),
-  });
+  try {
+    await input.store.updateConnectionScan({
+      connectionId: input.connectionId,
+      lastAttemptedScanAt: now.toISOString(),
+    });
+  } catch (error) {
+    try {
+      await input.store.failScan(scanId, "scan_preparation_failed", scanUserMessage("scan_failed"));
+    } catch (cleanupError) {
+      throw new AggregateError([error, cleanupError], "Scan preparation and run cleanup failed");
+    }
+    throw error;
+  }
 
   return {
     scanId,
@@ -351,6 +365,15 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
     jobLease,
   } = prepared;
   const startedMs = Date.now();
+  const requestBudget = gmail.requestBudget ?? { deadlineAt: startedMs + SCAN_WORK_BUDGET_MS };
+  // Live progress can include in-flight writes. Only this completed-prefix
+  // snapshot is restored when a request deadline interrupts a batch.
+  let durableProgress = {
+    ...EMPTY_SCAN_COUNTERS,
+    threadCursor: 0,
+    threadsChecked: 0,
+    failedThreadIds: [] as string[],
+  };
   const assertJobLease = async (): Promise<void> => {
     if (!jobLease) {
       return;
@@ -398,7 +421,22 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
       }
     }
     const checkpoint = await store.getScanCheckpoint(scanId);
+    durableProgress = {
+      messagesDiscovered: checkpoint?.messagesDiscovered ?? 0,
+      messagesProcessed: checkpoint?.messagesProcessed ?? 0,
+      threadsAnalyzed: checkpoint?.threadsAnalyzed ?? 0,
+      importantCount: checkpoint?.importantCount ?? 0,
+      actionCount: checkpoint?.actionCount ?? 0,
+      replyCount: checkpoint?.replyCount ?? 0,
+      waitingCount: checkpoint?.waitingCount ?? 0,
+      informationalCount: checkpoint?.informationalCount ?? 0,
+      ignoredCount: checkpoint?.ignoredCount ?? 0,
+      threadCursor: checkpoint?.threadCursor ?? 0,
+      threadsChecked: checkpoint?.threadCursor ?? 0,
+      failedThreadIds: [...(checkpoint?.failedThreadIds ?? [])],
+    };
     await store.updateScanRun(scanId, { status: "RUNNING" });
+    assertGmailBudget(requestBudget);
     let historyBoundary = checkpoint?.historyBoundary ?? null;
     let discoveryMode: ScanDiscoveryMode = checkpoint?.discoveryMode ?? "INITIAL";
     let messagesDiscovered = checkpoint?.messagesDiscovered ?? 0;
@@ -447,6 +485,12 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
         threadsDiscovered: threadIds.length,
         threadsChecked: 0,
       });
+      durableProgress = {
+        ...durableProgress,
+        messagesDiscovered,
+        threadCursor: 0,
+        threadsChecked: 0,
+      };
     }
 
     const labelMap =
@@ -480,218 +524,270 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
     };
 
     const analysisKey = analysisPromptKey(settings);
-    let admitIndex = cursor;
     const remaining = Math.max(0, threadIds.length - cursor);
     const workerCount = Math.min(Math.max(1, limits.AI_MAX_CONCURRENCY), Math.max(1, remaining));
-    await mapPool(
-      Array.from({ length: workerCount }, (_, i) => i),
-      workerCount,
-      async () => {
-        for (;;) {
-          if ((await store.getScanStatus(scanId)) !== "RUNNING") {
-            return;
-          }
-          if (jobLease && !(await stillHoldsScanJob(jobLease.jobId, jobLease.workerId))) {
-            return;
-          }
-          if (Date.now() - startedMs >= SCAN_WORK_BUDGET_MS) {
-            return;
-          }
-          const index = admitIndex;
-          if (index >= threadIds.length) {
-            return;
-          }
-          admitIndex += 1;
-          const gmailThreadId = threadIds[index];
-          if (!gmailThreadId) {
-            threadsChecked = advanceContiguousCursor(threadsChecked, finishedIndexes, index);
-            persistProgress();
-            continue;
-          }
-          let countTowardCursor = false;
-          try {
-            const messages = await gmail.fetchThread(gmailThreadId);
-            if (messages.length === 0) {
-              countTowardCursor = true;
+    const persistMessages = async (
+      threadId: string,
+      messages: ParsedGmailMessage[],
+    ): Promise<void> => {
+      await mapPool(messages, limits.AI_MAX_CONCURRENCY, async (message) => {
+        const from = parseEmailAddress(message.from);
+        await store.upsertMessage({
+          userId,
+          connectionId,
+          threadId,
+          message,
+          direction: classifyDirection({
+            from,
+            to: parseAddressList(message.to),
+            cc: parseAddressList(message.cc),
+            userEmails,
+          }),
+          receivedAt: receivedAtIso(message.internalDate),
+          contentHash: messageContentHash(message),
+        });
+        messagesProcessed += 1;
+      });
+    };
+
+    const currentCounters = () => {
+      const tallies = countersFromAnalyses(analyses);
+      return {
+        messagesDiscovered,
+        messagesProcessed,
+        threadsAnalyzed,
+        importantCount: priorTallies.importantCount + tallies.importantCount,
+        actionCount: priorTallies.actionCount + tallies.actionCount,
+        replyCount: priorTallies.replyCount + tallies.replyCount,
+        waitingCount: priorTallies.waitingCount + tallies.waitingCount,
+        informationalCount: priorTallies.informationalCount + tallies.informationalCount,
+        ignoredCount: priorTallies.ignoredCount + tallies.ignoredCount,
+      };
+    };
+    let stopAdmission = false;
+    for (let batchStart = cursor; batchStart < threadIds.length; batchStart += workerCount) {
+      let admitIndex = batchStart;
+      const batchEnd = Math.min(batchStart + workerCount, threadIds.length);
+      await mapPool(
+        Array.from({ length: workerCount }, (_, i) => i),
+        workerCount,
+        async () => {
+          for (;;) {
+            if (stopAdmission) {
+              return;
+            }
+            if ((await store.getScanStatus(scanId)) !== "RUNNING") {
+              return;
+            }
+            if (jobLease && !(await stillHoldsScanJob(jobLease.jobId, jobLease.workerId))) {
+              return;
+            }
+            if (requestBudget.deadlineAt !== undefined && Date.now() >= requestBudget.deadlineAt) {
+              return;
+            }
+            const index = admitIndex;
+            if (index >= batchEnd) {
+              return;
+            }
+            admitIndex += 1;
+            const gmailThreadId = threadIds[index];
+            if (!gmailThreadId) {
+              threadsChecked = advanceContiguousCursor(threadsChecked, finishedIndexes, index);
+              persistProgress();
               continue;
             }
-            const chronological = [...messages].sort(
-              (a, b) => Number(a.internalDate ?? 0) - Number(b.internalDate ?? 0),
-            );
-            const latest = chronological[chronological.length - 1];
-            if (!latest) {
-              countTowardCursor = true;
-              continue;
-            }
-            const existing = await store.getThread(connectionId, gmailThreadId);
-            const context = buildThreadContext(chronological, userEmails);
-            const latestDirection = context.messages.at(-1)?.direction ?? "UNKNOWN";
-            const latestAt = receivedAtIso(latest.internalDate);
-
-            let analysis = existing ? analysisFromStoredThread(existing) : null;
-            const unchanged = shouldReuseStoredAnalysis(
-              existing,
-              latest.gmailMessageId,
-              analysisKey,
-            );
-
-            if (!unchanged) {
-              const outcome = await analyze(
-                threadAnalysisInputFromContext(context, userEmails, {
-                  vipSenders: settings.vipSenders,
-                  ignoreSenders: settings.ignoredSenders,
-                  ignoreDomains: settings.ignoredDomains,
-                  customInstructions: settings.customAiInstructions,
-                }),
-                provider,
-              );
-              if (!(await holdsJobLease())) {
-                return;
-              }
-              if (!outcome.ok) {
-                failedGmailThreadIds.push(gmailThreadId);
-                const threadId = await store.upsertThread({
-                  userId,
-                  connectionId,
-                  gmailThreadId,
-                  subject: latest.subject,
-                  participants: participantsOf(chronological),
-                  latestMessageAt: latestAt,
-                  latestMessageDirection: latestDirection,
-                  analysis,
-                  lastAnalyzedMessageId: existing?.lastAnalyzedMessageId ?? null,
-                  promptVersion: analysis ? (existing?.promptVersion ?? null) : null,
-                  modelName: analysis ? modelName : null,
-                });
-                await Promise.all(
-                  chronological.map(async (message) => {
-                    const from = parseEmailAddress(message.from);
-                    await store.upsertMessage({
-                      userId,
-                      connectionId,
-                      threadId,
-                      message,
-                      direction: classifyDirection({
-                        from,
-                        to: parseAddressList(message.to),
-                        cc: parseAddressList(message.cc),
-                        userEmails,
-                      }),
-                      receivedAt: receivedAtIso(message.internalDate),
-                      contentHash: messageContentHash(message),
-                    });
-                  }),
-                );
-                messagesProcessed += chronological.length;
+            let countTowardCursor = false;
+            try {
+              const messages = await gmail.fetchThread(gmailThreadId);
+              if (messages.length === 0) {
                 countTowardCursor = true;
                 continue;
               }
-              analysis = outcome.analysis;
-              threadsAnalyzed += 1;
-              emitProductEvent({
-                type: "thread.analyzed",
-                scanId,
-                threadReused: 0,
-                status: analysis.status,
-                category: analysis.category,
-                requiresAction: analysis.requires_action,
-              });
-            }
-
-            if (!(await holdsJobLease())) {
-              return;
-            }
-
-            const threadId = await store.upsertThread({
-              userId,
-              connectionId,
-              gmailThreadId,
-              subject: latest.subject,
-              participants: participantsOf(chronological),
-              latestMessageAt: latestAt,
-              latestMessageDirection: latestDirection,
-              analysis,
-              lastAnalyzedMessageId: analysis
-                ? latest.gmailMessageId
-                : (existing?.lastAnalyzedMessageId ?? null),
-              promptVersion: analysis ? analysisKey : null,
-              modelName: analysis ? modelName : null,
-            });
-
-            await Promise.all(
-              chronological.map(async (message) => {
-                const from = parseEmailAddress(message.from);
-                await store.upsertMessage({
-                  userId,
-                  connectionId,
-                  threadId,
-                  message,
-                  direction: classifyDirection({
-                    from,
-                    to: parseAddressList(message.to),
-                    cc: parseAddressList(message.cc),
-                    userEmails,
-                  }),
-                  receivedAt: receivedAtIso(message.internalDate),
-                  contentHash: messageContentHash(message),
-                });
-              }),
-            );
-            messagesProcessed += chronological.length;
-
-            if (analysis) {
-              analyses.push(analysis);
-              const existingAction = await store.getAction(threadId);
-              const nextAction = reconcileActionItem({
-                analysis,
-                existing: existingAction,
-                latestDirection,
-                latestMessageAt: latestAt,
-              });
-              if (nextAction) {
-                emitProductEvent({
-                  type: "action.upserted",
-                  threadId,
-                  status: nextAction.status,
-                  created: existingAction ? 0 : 1,
-                });
-                await store.upsertAction(userId, threadId, nextAction);
+              const chronological = [...messages].sort(
+                (a, b) => Number(a.internalDate ?? 0) - Number(b.internalDate ?? 0),
+              );
+              const latest = chronological[chronological.length - 1];
+              if (!latest) {
+                countTowardCursor = true;
+                continue;
               }
+              const existing = await store.getThread(connectionId, gmailThreadId);
+              const context = buildThreadContext(chronological, userEmails);
+              const latestDirection = context.messages.at(-1)?.direction ?? "UNKNOWN";
+              const latestAt = receivedAtIso(latest.internalDate);
 
-              const desiredLogical = logicalLabelsForAnalysis(analysis);
-              const desiredIds = desiredLogical
-                .map((name) => labelMap.get(name))
-                .filter((id): id is string => typeof id === "string");
-              const currentIds = mailpilotIdsOnMessage(latest.labelIds, labelMap);
-              const diff = labelDiff(currentIds, desiredIds);
-              if (diff.addLabelIds.length > 0 || diff.removeLabelIds.length > 0) {
-                await gmail.modifyThreadLabels(
-                  gmailThreadId,
-                  diff.addLabelIds,
-                  diff.removeLabelIds,
+              let analysis = existing ? analysisFromStoredThread(existing) : null;
+              const unchanged = shouldReuseStoredAnalysis(
+                existing,
+                latest.gmailMessageId,
+                analysisKey,
+              );
+
+              if (!unchanged) {
+                const outcome = await withGmailRequest(
+                  ({ signal }) =>
+                    analyze(
+                      threadAnalysisInputFromContext(context, userEmails, {
+                        vipSenders: settings.vipSenders,
+                        ignoreSenders: settings.ignoredSenders,
+                        ignoreDomains: settings.ignoredDomains,
+                        customInstructions: settings.customAiInstructions,
+                      }),
+                      provider,
+                      { signal },
+                    ),
+                  {
+                    ...requestBudget,
+                    requestTimeoutMs:
+                      requestBudget.deadlineAt === undefined
+                        ? SCAN_WORK_BUDGET_MS
+                        : Math.max(1, requestBudget.deadlineAt - Date.now()),
+                  },
                 );
+                if (!(await holdsJobLease())) {
+                  return;
+                }
+                if (!outcome.ok) {
+                  failedGmailThreadIds.push(gmailThreadId);
+                  const threadId = await store.upsertThread({
+                    userId,
+                    connectionId,
+                    gmailThreadId,
+                    subject: latest.subject,
+                    participants: participantsOf(chronological),
+                    latestMessageAt: latestAt,
+                    latestMessageDirection: latestDirection,
+                    analysis,
+                    lastAnalyzedMessageId: existing?.lastAnalyzedMessageId ?? null,
+                    promptVersion: analysis ? (existing?.promptVersion ?? null) : null,
+                    modelName: analysis ? modelName : null,
+                  });
+                  await persistMessages(threadId, chronological);
+                  countTowardCursor = true;
+                  continue;
+                }
+                analysis = outcome.analysis;
+                threadsAnalyzed += 1;
+                emitProductEvent({
+                  type: "thread.analyzed",
+                  scanId,
+                  threadReused: 0,
+                  status: analysis.status,
+                  category: analysis.category,
+                  requiresAction: analysis.requires_action,
+                });
               }
-            }
-            countTowardCursor = true;
-          } catch (error) {
-            if (
-              isGmailAuthError(error) ||
-              (error instanceof GmailConnectError && error.reason === "reauth_required")
-            ) {
-              throw error;
-            }
-            failedGmailThreadIds.push(gmailThreadId);
-            countTowardCursor = true;
-          } finally {
-            if (countTowardCursor) {
-              threadsChecked = advanceContiguousCursor(threadsChecked, finishedIndexes, index);
-              persistProgress();
+
+              if (!(await holdsJobLease())) {
+                return;
+              }
+
+              const threadId = await store.upsertThread({
+                userId,
+                connectionId,
+                gmailThreadId,
+                subject: latest.subject,
+                participants: participantsOf(chronological),
+                latestMessageAt: latestAt,
+                latestMessageDirection: latestDirection,
+                analysis,
+                lastAnalyzedMessageId: analysis
+                  ? latest.gmailMessageId
+                  : (existing?.lastAnalyzedMessageId ?? null),
+                promptVersion: analysis ? analysisKey : null,
+                modelName: analysis ? modelName : null,
+              });
+
+              await persistMessages(threadId, chronological);
+
+              if (!(await holdsJobLease()) || (await store.getScanStatus(scanId)) !== "RUNNING") {
+                return;
+              }
+
+              if (analysis) {
+                analyses.push(analysis);
+                const existingAction = await store.getAction(threadId);
+                const nextAction = reconcileActionItem({
+                  analysis,
+                  existing: existingAction,
+                  latestDirection,
+                  latestMessageAt: latestAt,
+                });
+                if (nextAction) {
+                  emitProductEvent({
+                    type: "action.upserted",
+                    threadId,
+                    status: nextAction.status,
+                    created: existingAction ? 0 : 1,
+                  });
+                  await store.upsertAction(userId, threadId, nextAction);
+                }
+
+                const desiredLogical = logicalLabelsForAnalysis(analysis);
+                const desiredIds = desiredLogical
+                  .map((name) => labelMap.get(name))
+                  .filter((id): id is string => typeof id === "string");
+                const currentIds = mailpilotIdsOnMessage(latest.labelIds, labelMap);
+                const diff = labelDiff(currentIds, desiredIds);
+                if (diff.addLabelIds.length > 0 || diff.removeLabelIds.length > 0) {
+                  await gmail.modifyThreadLabels(
+                    gmailThreadId,
+                    diff.addLabelIds,
+                    diff.removeLabelIds,
+                  );
+                }
+              }
+              countTowardCursor = true;
+            } catch (error) {
+              if (
+                error instanceof GmailDeadlineError ||
+                isGmailAuthError(error) ||
+                (error instanceof GmailConnectError && error.reason === "reauth_required")
+              ) {
+                stopAdmission = true;
+                throw error;
+              }
+              failedGmailThreadIds.push(gmailThreadId);
+              countTowardCursor = true;
+            } finally {
+              if (countTowardCursor) {
+                threadsChecked = advanceContiguousCursor(threadsChecked, finishedIndexes, index);
+                persistProgress();
+              }
             }
           }
-        }
-      },
-    );
-    await progressWrites;
+        },
+      ).finally(() => progressWrites);
+      await progressWrites;
+      await assertJobLease();
+      if ((await store.getScanStatus(scanId)) !== "RUNNING") {
+        break;
+      }
+      // No workers remain in flight: cursor, failures, and counters describe
+      // the same completed prefix even if this invocation is killed later.
+      const batchCounters = currentCounters();
+      const batchFailures = [...new Set(failedGmailThreadIds)];
+      const saved = await store.updateScanRun(scanId, {
+        ...batchCounters,
+        status: "RUNNING",
+        threadsDiscovered: threadIds.length,
+        threadsChecked,
+        threadCursor: threadsChecked,
+        failedThreadIds: batchFailures,
+        discoveryComplete: true,
+      });
+      if (saved) {
+        durableProgress = {
+          ...batchCounters,
+          threadCursor: threadsChecked,
+          threadsChecked,
+          failedThreadIds: batchFailures,
+        };
+      }
+      if (threadsChecked < batchEnd) {
+        break;
+      }
+    }
 
     if ((await store.getScanStatus(scanId)) !== "RUNNING") {
       emitProductEvent({
@@ -705,19 +801,7 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
     }
 
     const nextCursor = threadsChecked;
-    const chunkTallies = countersFromAnalyses(analyses);
-    const counters = {
-      ...EMPTY_SCAN_COUNTERS,
-      messagesDiscovered,
-      messagesProcessed,
-      threadsAnalyzed,
-      importantCount: priorTallies.importantCount + chunkTallies.importantCount,
-      actionCount: priorTallies.actionCount + chunkTallies.actionCount,
-      replyCount: priorTallies.replyCount + chunkTallies.replyCount,
-      waitingCount: priorTallies.waitingCount + chunkTallies.waitingCount,
-      informationalCount: priorTallies.informationalCount + chunkTallies.informationalCount,
-      ignoredCount: priorTallies.ignoredCount + chunkTallies.ignoredCount,
-    };
+    const counters = currentCounters();
     const uniqueFailed = [...new Set(failedGmailThreadIds)];
 
     await assertJobLease();
@@ -809,6 +893,30 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
     const stopped = await store.getScanStatus(scanId);
     if (stopped && stopped !== "RUNNING") {
       return asFailedResult("INITIAL");
+    }
+    if (error instanceof GmailDeadlineError) {
+      if (!(await holdsJobLease())) return asFailedResult("INITIAL");
+      const saved = await store.updateScanRun(scanId, { ...durableProgress, status: "RUNNING" });
+      if (!saved) return asFailedResult("INITIAL");
+      const checkpoint = await store.getScanCheckpoint(scanId);
+      const { threadCursor, threadsChecked, failedThreadIds, ...counters } = durableProgress;
+      void threadCursor;
+      void failedThreadIds;
+      emitProductEvent({
+        type: "scan.continued",
+        scanId,
+        connectionId,
+        threadsChecked,
+        threadsDiscovered: checkpoint?.discoveredThreadIds.length ?? 0,
+        durationMs: Date.now() - startedMs,
+      });
+      return {
+        scanId,
+        status: "CONTINUED",
+        counters,
+        lookbackDays,
+        mode: checkpoint?.discoveryMode ?? "INITIAL",
+      };
     }
     const reauth =
       isGmailAuthError(error) ||

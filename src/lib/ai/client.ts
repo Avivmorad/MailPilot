@@ -1,6 +1,10 @@
 import { GoogleGenAI } from "@google/genai";
 
-import { ThreadTriageError, type EmailTriageProvider } from "@/lib/ai/analyze-thread";
+import {
+  ThreadTriageError,
+  type EmailTriageProvider,
+  type TriageRequestOptions,
+} from "@/lib/ai/analyze-thread";
 import { NvidiaEmailTriageProvider } from "@/lib/ai/nvidia";
 import { buildTriageUserPrompt, TRIAGE_SYSTEM_PROMPT } from "@/lib/ai/prompts";
 import {
@@ -25,9 +29,18 @@ export interface GeminiGenerateParams {
 
 export type GeminiGenerateFn = (params: GeminiGenerateParams) => Promise<string>;
 
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => {
-    setTimeout(resolve, ms);
+function sleep(ms: number, signal?: AbortSignal): Promise<void> {
+  signal?.throwIfAborted();
+  return new Promise((resolve, reject) => {
+    const cancel = () => {
+      clearTimeout(timer);
+      reject(signal?.reason);
+    };
+    const timer = setTimeout(() => {
+      signal?.removeEventListener("abort", cancel);
+      resolve();
+    }, ms);
+    signal?.addEventListener("abort", cancel, { once: true });
   });
 }
 
@@ -82,18 +95,23 @@ export class GeminiEmailTriageProvider implements EmailTriageProvider {
     this.generate = generate;
   }
 
-  async analyzeThread(input: ThreadAnalysisInput): Promise<ThreadAnalysis> {
+  async analyzeThread(
+    input: ThreadAnalysisInput,
+    options: TriageRequestOptions = {},
+  ): Promise<ThreadAnalysis> {
     let lastError: unknown;
     for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt += 1) {
+      options.signal?.throwIfAborted();
       try {
-        return await this.completeOnce(input);
+        return await this.completeOnce(input, options);
       } catch (error) {
+        if (options.signal?.aborted) throw options.signal.reason;
         lastError = error;
         const delay = retryDelayMs(error, attempt);
         if (delay === null || attempt === MAX_ATTEMPTS - 1) {
           break;
         }
-        await sleep(delay);
+        await sleep(delay, options.signal);
       }
     }
     if (lastError instanceof ThreadTriageError) {
@@ -102,8 +120,18 @@ export class GeminiEmailTriageProvider implements EmailTriageProvider {
     throw new ThreadTriageError("provider", "Gemini triage call failed", lastError);
   }
 
-  private async completeOnce(input: ThreadAnalysisInput): Promise<ThreadAnalysis> {
+  private async completeOnce(
+    input: ThreadAnalysisInput,
+    options: TriageRequestOptions,
+  ): Promise<ThreadAnalysis> {
     const controller = new AbortController();
+    const cancel = () => controller.abort(options.signal?.reason);
+    options.signal?.addEventListener("abort", cancel, { once: true });
+    let rejectOnAbort: () => void;
+    const interrupted = new Promise<never>((_resolve, reject) => {
+      rejectOnAbort = () => reject(controller.signal.reason);
+      controller.signal.addEventListener("abort", rejectOnAbort, { once: true });
+    });
     let timer: ReturnType<typeof setTimeout> | undefined;
     let content: string;
     try {
@@ -122,9 +150,12 @@ export class GeminiEmailTriageProvider implements EmailTriageProvider {
             controller.abort();
           }, GEMINI_REQUEST_TIMEOUT_MS);
         }),
+        interrupted,
       ]);
     } finally {
       clearTimeout(timer);
+      options.signal?.removeEventListener("abort", cancel);
+      controller.signal.removeEventListener("abort", rejectOnAbort!);
     }
 
     if (!content) {

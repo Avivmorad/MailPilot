@@ -7,16 +7,21 @@ export type OnboardingStep = (typeof ONBOARDING_STEPS)[number];
 export interface OnboardingFacts {
   connectionStatus: GmailConnectionStatus | null;
   latestScanStatus: string | null;
+  /** True when any successful or partial scan exists, including one that is not the latest run. */
+  hasCompletedScan: boolean;
 }
 
-const COMPLETED_SCAN_STATUSES = new Set(["SUCCESS", "PARTIAL"]);
+export const COMPLETED_SCAN_STATUSES = ["SUCCESS", "PARTIAL"] as const;
 
 export function hasCompletedFirstScan(latestScanStatus: string | null): boolean {
-  return latestScanStatus != null && COMPLETED_SCAN_STATUSES.has(latestScanStatus);
+  return (
+    latestScanStatus != null &&
+    (COMPLETED_SCAN_STATUSES as readonly string[]).includes(latestScanStatus)
+  );
 }
 
 export function resolveOnboardingStep(facts: OnboardingFacts): OnboardingStep {
-  if (hasCompletedFirstScan(facts.latestScanStatus)) {
+  if (facts.hasCompletedScan || hasCompletedFirstScan(facts.latestScanStatus)) {
     return "complete";
   }
 

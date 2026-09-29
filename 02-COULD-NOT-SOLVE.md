@@ -1,5 +1,11 @@
 # Unresolved problems and prerequisites
 
+## Current state — 2026-09-29
+
+The goal and 15-minute Cursor-review heartbeat are active; the older paused-handoff text below is historical. PR #92 merged, but its SQL migration is unapplied and still needs a disposable-database rehearsal before the matching app code is deployed. PR #93 is draft, unmerged and green in CI, with a review-identified TASK-005 oversized-thread non-retryable failure-path gap. Neither a green check nor a `COMMENTED` review is human approval. SEC-003 has local synthetic tests and a build-canary check, but no deployed-browser, live analytics or live Sentry privacy proof. The 72-task plan remains unfinished.
+
+The missing approved disposable database, authenticated test account/Gmail consent, runtime logs, owner decisions and live-release gates in the table below still apply. No production schema, Gmail, deployment or merge action has been taken in this checkpoint.
+
 Handoff checkpoint, 2026-09-29. The full plan is not finished. The owner requested commit/push, a draft PR and then goal pause for another chat. These remain carried-forward blockers, not live-success claims. The Cursor-review heartbeat is PAUSED.
 
 ## Resumed execution prerequisites — 2026-09-29

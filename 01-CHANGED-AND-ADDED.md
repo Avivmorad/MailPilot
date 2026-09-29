@@ -1,5 +1,13 @@
 # Changes and verification
 
+## Current checkpoint — SEC-003 (2026-09-29)
+
+The 72-task goal remains active. PR #92 merged to `main` at `f350c93`; its new analysis-attribution SQL migration has **not** been applied or rehearsed in a disposable database. PR #93 (`codex/sec-008-mime-ingestion`, `2439877`) remains draft and unmerged. Its CI/checks passed, but the Cursor review identified the unresolved TASK-005 oversized-thread non-retryable failure path; green CI is not approval or full task acceptance. The Cursor-review heartbeat is active, and C05 still needs an authenticated disposable session/viewport proof. Older handoff statements below are historical.
+
+SEC-003 work is isolated on `codex/sec-003-telemetry-boundary`, based on current `origin/main`, rather than added to PR #93. `src/lib/observability/events.ts` now accepts only the metadata keys used by production event callers and redacts free-form string values. `src/lib/observability/sentry-privacy.ts` reconstructs outbound events from a minimal allowlist, drops nested SDK/request/exception payloads, and accepts only known route templates, tag values and HTTP methods. This sacrifices raw exception stack/message diagnostics to prevent arbitrary email bodies, prompts or provider responses from escaping through nested event fields. The accompanying tests first reproduced two synthetic canary leaks, then passed after the fix. New `src/lib/config/client-boundary.test.ts` traverses transitive local imports from client components and rejects privileged server modules.
+
+Four targeted files passed 33/33 tests. Final local gates passed: `npm run format:check`; `npm run lint`; `npm run typecheck`; `npm test` (570/570 across 103 files); `npm run test:integration` (17/17); `npm run eval:scorecard` (2/2); and `npm run build`. The initial formatting check flagged only the three just-edited root reports; formatting them and rerunning the check passed. A production build with synthetic private-key canaries also passed: no private canary was found in client assets or prerendered HTML/RSC; the intentionally public anon-key control was found in client assets. This is local build evidence, not deployed-browser, live analytics or live Sentry proof. The security-best-practices guidance led to strict outbound allowlists and a synthetic bundle control.
+
 Execution started 2026-09-29. This is a live checkpoint, not a completion claim.
 
 ## Resumed execution — TASK-003

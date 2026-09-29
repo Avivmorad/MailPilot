@@ -24,7 +24,7 @@ describe("product events", () => {
     expect(json).not.toMatch(/ya29|v1:iv|Invoice attached|Q3 numbers|code=4\/0/i);
     expect(sanitized.connectionId).toBe("conn-1");
     expect(sanitized.errorCode).toBe("token_exchange");
-    expect(sanitized.callbackUrl).toBe("https://app.example/api/gmail/callback");
+    expect(sanitized.callbackUrl).toBeUndefined();
     expect(sanitized.refreshToken).toBeUndefined();
     expect(sanitized.email_body).toBeUndefined();
   });
@@ -36,9 +36,26 @@ describe("product events", () => {
       note: "Bearer ya29.abcdefghijklmnopqrstuvwxyz",
       key: "a".repeat(64),
     });
-    expect(sanitized.note).toBe("[redacted]");
-    expect(sanitized.key).toBe("[redacted]");
+    expect(sanitized.note).toBeUndefined();
+    expect(sanitized.key).toBeUndefined();
     expect(sanitized.scanId).toBe("scan-1");
+  });
+
+  it("does not log arbitrary unapproved fields that can contain mail content", () => {
+    const privateText = "PRIVATE_MAIL_BODY_AND_PROMPT_CANARY";
+    const sanitized = sanitizeProductEvent({
+      type: "scan.failed",
+      scanId: "scan-1",
+      subject: privateText,
+      providerResponse: privateText,
+      errorCode: "gmail_unavailable",
+    });
+    expect(JSON.stringify(sanitized)).not.toContain(privateText);
+    expect(sanitized.scanId).toBe("scan-1");
+    expect(sanitized.errorCode).toBe("gmail_unavailable");
+    expect(
+      sanitizeProductEvent({ type: "scan.failed", errorCode: `raw body ${privateText}` }).errorCode,
+    ).toBe("[redacted]");
   });
 
   it("emits JSON that operators can use without private email content", () => {

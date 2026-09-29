@@ -90,7 +90,45 @@ describe("sentry privacy", () => {
       scan_type: "manual",
       error_category: "quota",
     });
-    expect(sanitized?.exception?.values?.[0]?.value).toBe("invalid_grant for [email]");
+    expect(sanitized?.exception?.values?.[0]?.value).toBe("[redacted]");
+  });
+
+  it("drops nested exception, context, and arbitrary event content", () => {
+    const privateText = "PRIVATE_MAIL_BODY_AND_PROMPT_CANARY";
+    const event = {
+      event_id: "a".repeat(32),
+      message: privateText,
+      logentry: { message: privateText, formatted: privateText },
+      exception: {
+        values: [
+          {
+            type: "Error",
+            value: privateText,
+            mechanism: { data: { body: privateText } },
+            stacktrace: { frames: [{ filename: "parser.ts", vars: { prompt: privateText } }] },
+          },
+        ],
+      },
+      contexts: { trace: { data: { body: privateText } }, app: { prompt: privateText } },
+      request: {
+        method: "POST",
+        url: `https://app.example/thread/${privateText}`,
+        headers: { authorization: privateText },
+        data: { body: privateText },
+      },
+      sdkProcessingMetadata: { prompt: privateText },
+      arbitraryProviderPayload: privateText,
+      tags: { route: "/api/scans", provider: "gmail" },
+    } as unknown as Event;
+
+    const sanitized = sanitizeSentryEvent(event);
+    expect(JSON.stringify(sanitized)).not.toContain(privateText);
+    expect(sanitized?.event_id).toBe("a".repeat(32));
+    expect(sanitized?.tags?.route).toBe("/api/scans");
+    expect(sanitized?.request).toEqual({ method: "POST", url: "/api/scans" });
+    expect(
+      pickAllowedSentryTags({ provider: privateText, route: `/thread/${privateText}` }),
+    ).toEqual({});
   });
 
   it("replaces the transaction name with the sanitized route", () => {

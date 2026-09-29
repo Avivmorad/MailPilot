@@ -1,6 +1,6 @@
 # Unresolved problems and prerequisites
 
-Execution checkpoint, 2026-09-29. The full plan is not finished. These are carried-forward audit blockers, not newly successful live checks. Independent local work continues.
+Handoff checkpoint, 2026-09-29. The full plan is not finished. The owner requested commit/push, a draft PR and then goal pause for another chat. These remain carried-forward blockers, not live-success claims. The Cursor-review heartbeat is PAUSED.
 
 | Tasks                                      | Problem / exact evidence                                                                                                                                                                                                                         | Needed from owner / safest next step                                                                                                                             |
 | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -14,3 +14,12 @@ Execution checkpoint, 2026-09-29. The full plan is not finished. These are carri
 ## Attempt policy
 
 At most two reasonable alternatives per blocking action; stop any hung attempt at five minutes. Record fresh failures below. No unresolved issue is treated as completed.
+
+## Handoff-specific unresolved checks
+
+- Initial whole-tree formatting failed on a concurrent `docs/HUMAN_TASKS.md` change. Codex excluded it from staging, but another actor had already committed it with the source snapshot in `c00dd92`. That commit is preserved; a follow-up applies only formatting to the document, retaining all content edits. The final format recheck is separate from the initial failure.
+- BUG-007 has local deadline/SDK/provider/recovery coverage and green build/tests, but TEST-007 real process termination and disposable-database write-boundary recovery were not performed. TASK-003 / EDGE-001 must still address truthful counter accounting for replayed out-of-prefix workers.
+- Cursor C01–C04 were accepted locally after corrections (50/50 independent component/helper tests). C05 real authenticated/mobile/200% zoom verification is still pending. No Gmail mutation consent or approved disposable database was supplied.
+- The handoff branch retains the existing source ancestry; remote references were fetched, but newer main commits were not merged/rebased into a dirty worktree. PR conflict/CI/preview/reviewer checks remain before any merge. No automatic merge or explicit production deployment is authorized by this checkpoint.
+
+Formatting is now resolved: final `npm run format:check` PASS after a trailing-newline-only fix. External-success statements in the concurrently committed human-task document are preserved as that actor's claims, not independently verified results from this run. Keep the audit/live prerequisites above authoritative for this handoff.

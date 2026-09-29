@@ -11,7 +11,7 @@ The master plan has 72 tasks. Existing source changes in eight scan files predat
 - `01-CHANGED-AND-ADDED.md`: file-level change and verified-task ledger.
 - `02-COULD-NOT-SOLVE.md`: unresolved access, decisions and verification blockers.
 - `03-REMAINING-TASKS.md`: original 72-task coverage, routing recommendations and detailed remaining steps.
-- `cursorTasks.md`: user-requested parallel Cursor handoff with five scoped frontend tasks, owned-file boundaries, per-task status/evidence protocol and a reserved independent Codex-review column. The handoff is formatted and its source references were verified; Cursor implementation has not yet been observed.
+- `cursorTasks.md`: user-requested parallel Cursor handoff with five scoped frontend tasks, owned-file boundaries, per-task status/evidence protocol and a reserved independent Codex-review column. Cursor implemented the assigned local scope; Codex independently accepted C01–C04 after review and requested/follow-up fixes. C05 remains externally pending.
 
 ## Decisions
 
@@ -51,13 +51,86 @@ Actual model: Codex, current session; actual work effort: Heavy, as planned.
 
 ## Checks
 
-### BUG-007 — In progress, not complete
+### BUG-007 — Initial implementation checkpoint (superseded below)
 
 - Added `src/lib/gmail/request-budget.ts`: bounded request/abort and budget-aware waits, with distinct slice-deadline versus request-timeout errors.
 - Changed `src/lib/gmail/retry.ts`: request bounding and remaining-budget propagation through waits/quota; bounded 502/503/504 retries in addition to quota retries. Existing retries remain covered.
 - Changed `src/lib/gmail/quota.ts`: quota admission/waits honor deadline and cancellation.
 - Initial helper-boundary compatibility verification: `npm test -- src/lib/gmail/retry.test.ts src/lib/gmail/quota.test.ts` PASS 5/5. This is not sufficient to close BUG-007: fake-clock negative tests, SDK/OAuth option forwarding, same-invocation budget wiring, safe interruption checkpoints, and broader verification remain unfinished. These backend files remain exclusively owned by Codex.
 
-Parallel-work decision: the owner authorized Cursor to help meanwhile. Cursor owns the specified scan UI/presentation files; Codex owns scan/Gmail backend and root reports. A thread follow-up checks Cursor status/evidence and relevant diffs every 15 minutes, staying quiet on unchanged state. Cursor claims are independently reviewed before acceptance. This does not imply Cursor has started.
+Parallel-work decision: the owner authorized Cursor to help meanwhile. Cursor owns the specified scan UI/presentation files; Codex owns scan/Gmail backend and root reports. A thread follow-up checks Cursor status/evidence and relevant diffs every 15 minutes, staying quiet on unchanged state. Cursor claims are independently reviewed before acceptance. The initial handoff was later implemented and reviewed; see the final checkpoint below.
 
-BUG-001 targeted tests: PASS 35/35. Full suite after BUG-001: PASS 459/459 (92 files). Other gates have not yet been rerun in execution. Live database, Gmail consent, authenticated UI, deployment and merge remain unverified.
+BUG-001 targeted tests: PASS 35/35. Full suite after BUG-001: PASS 459/459 (92 files). This was the initial checkpoint; the final checks are recorded below. Live database, Gmail consent, authenticated UI, deployment and merge remain unverified.
+
+## Handoff checkpoint — 2026-09-29
+
+Owner requested wrapping up the current work, committing/pushing it, opening a draft PR, then pausing the goal to continue in another chat. The full 72-task plan is **not finished**. No merge or explicit production deployment was performed. Branch: `codex/mailpilot-reliability-handoff-20260929`, created from the existing source HEAD to preserve work. `git fetch origin` passed; no dirty-tree pull, reset, discard, autostash or rebase was performed. The branch is not represented as synchronized with newer main commits.
+
+### BUG-007 — Implemented and locally verified; termination/live gates remain
+
+Actual model: Codex current session, no override. Planned/actual effort: Heavy; multi-file provider cancellation was necessary to prevent AI requests consuming checkpoint headroom. No provider failover, new data destination or dependency added.
+
+- `src/lib/gmail/request-budget.ts` (new): distinguishes slice deadline and per-request timeout, aborts bounded requests, rejects waits that cannot fit, and removes timers/listeners when settled.
+- `src/lib/gmail/request-budget.test.ts` (new): expired/hung/synchronous failure/success/cancellation/wait boundary tests.
+- `src/lib/gmail/retry.ts`, `retry.test.ts`: bounded retries/quota waits including 429/502/503/504; no auth retry and no extra attempt when deadline cannot fit.
+- `src/lib/gmail/quota.ts`, `quota.test.ts`: quota admission honors cancellation/deadline without consuming a rejected admission.
+- `src/lib/gmail/messages.ts`: SDK deadline/signal and disabled implicit retry forwarded to message listing/fetch, thread fetch and history profile lookup.
+- `src/lib/gmail/history-list.ts`: paginated History requests share the same remaining budget; incomplete discovery is not committed as complete.
+- `src/lib/gmail/aliases.ts`: SendAs requests use the shared budget.
+- `src/lib/gmail/labels.ts`: list/create requests have finite per-request bounds; scan label modifications share the invocation deadline. Managed-label behavior is preserved.
+- `src/lib/gmail/oauth.ts`: token exchange, refresh and revocation have a bounded transporter; temporary signal/timeout options are restored.
+- `src/lib/gmail/oauth-budget.test.ts` (new): synthetic transporter signal/timeout/restore tests, no network calls.
+- `src/lib/gmail/client.ts`, `client.test.ts`: carry refresh deadlines through per-user/connection creation; a timed-out refresh does not falsely require renewed consent.
+- `src/lib/scans/gmail-port.ts`, `types.ts`: a shared request budget is exposed to the processor and forwarded to every real Gmail scan operation.
+- `src/lib/scans/gmail-port.test.ts` (new): six never-resolving SDK-method cases prove timeout/signal/retry options and timer cleanup.
+- `src/lib/scans/manual.ts`, `continue.ts`, `dispatcher.ts`: start the deadline before preparation/refresh and reuse it during execution rather than resetting it for the scan.
+- `src/lib/ai/analyze-thread.ts`: optional caller AbortSignal is passed through validation wrappers to the provider.
+- `src/lib/ai/client.ts`, `nvidia.ts`: caller cancellation aborts generation and retry backoff without another attempt; timers/listeners are cleaned up.
+- `src/lib/ai/provider-cancellation.test.ts` (new): eight synthetic Gemini/NVIDIA cancellation/backoff/pre-aborted regressions, no paid calls.
+- `src/lib/scans/process-scan.ts`: provider work is bounded by remaining slice time; interrupted discovery or thread work returns CONTINUED, leaves the scan RUNNING and restores the last durable completed-prefix counters/cursor/failures. Worker/progress writes drain first; no false SUCCESS/history advance.
+- `src/lib/scans/process-scan.test.ts`: hung discovery, hung fetch with committed-prefix resume, hung provider, and later-worker completion behind a hung earlier thread are covered. Cached results/current label state avoid replaying completed labels in the local model.
+- `src/lib/scans/errors.ts`: formatting finalized for the previously added sanitized unavailable message.
+
+Local checkpoint counters do **not** prove crash-safe per-thread accounting for all mid-write boundaries. In particular, a completed later worker outside the saved prefix can be cached on resume while its first-attempt AI-call metric was not durably counted. TASK-003 / EDGE-001 / TEST-007 remain open. Real process-kill, disposable database concurrency/RLS and live OAuth/Gmail integration have not been verified. BUG-007 is not claimed fully closed against its TEST-007 termination gate.
+
+Verification: nine-file targeted run PASS 88/88; follow-up OAuth/processor/continue/dispatcher/integration run PASS 65/65. Initial TS2493 test-mock tuple errors and TS2322 nullable-signal fixture error were fixed; final typecheck passes. One existing resume test initially failed because it moved the clock to the deadline before admitting AI; its clock now ends after the first thread's label commit, preserving the completed-prefix assertion while the new deadline test forbids late provider admission.
+
+### Cursor lane — independently reviewed, local scope only
+
+- `src/components/scans/initial-scan-card.tsx`: three unavailable/malformed responses stop observation; matching snapshots reset the count; unrelated scans cannot finish the watched scan. Serial bounded polling, single resume, generation guards and unmount cleanup; failed cancellation is retryable, concurrent cancellation is guarded; 401 uses sign-in messaging. Truthful partial copy and accessible lookback name.
+- `src/components/scans/initial-scan-card.test.tsx` (new): fake timers/deferred requests cover reset limit, hung/late poll, start/cancel/resume lifecycle and Strict Mode.
+- `src/components/scans/scan-progress-bar.test.tsx` (new): terminal empty results, ARIA/reduced-motion and partial copy. Production `scan-progress-bar.tsx` was not modified.
+- `src/lib/scans/progress.ts`, `progress.test.ts`: only presentation changed; empty SUCCESS is determinate 100%, empty PARTIAL/FAILED terminal, no unsupported queued-retry claim. Cursor/schema APIs retained.
+- `cursorTasks.md`: statuses, ownership, append-only evidence, initial review requests and acceptance after fixes. Independent targeted verification PASS 50/50. C01–C04 accepted locally; C05 externally pending for real viewport/authenticated checks.
+- The 15-minute review heartbeat `review-cursor-mailpilot-tasks` is PAUSED for the requested chat handoff, not silently active.
+
+### Preserved pre-existing source changes included in the handoff
+
+These eight files were already dirty before this execution. Their related scan reliability changes are retained, not falsely attributed as wholly new work:
+
+- `src/lib/scans/continue.test.ts`: existing continuation fault/scheduling test changes.
+- `src/lib/scans/continue.ts`: existing bounded self-fetch and checked fallback scheduling/preparation scope.
+- `src/lib/scans/dispatch-budget.ts`: existing 210-second work budget.
+- `src/lib/scans/pool.ts`, `pool.test.ts`: existing pool failure stops admission and drains workers.
+- `src/lib/scans/process-scan.ts`, `process-scan.test.ts`: existing batch/prefix checkpoint and fenced processing changes, plus fixes described above.
+- `src/lib/scans/scan-integration.test.ts`: existing integration mock option/lease compatibility.
+
+Other execution files `src/lib/scans/jobs.ts`, `jobs.test.ts`, `manual-admission.test.ts` are accounted for under BUG-004 above. `docs/MASTER_PROJECT_PLAN.md` is the prior audit's original 72-task plan and is included for portable context. All three root reports are updated for handoff. A concurrent actor committed the entire source snapshot as `c00dd928ba2a738c8b20fe76c9f1b698dceb4f9d` during wrap-up, including `docs/HUMAN_TASKS.md`. That commit is preserved without rewriting history; the human-task document subsequently received a format-only fix so the existing content remains intact and CI formatting can pass.
+
+### Final practical checks
+
+- `npm test`: PASS 537/537 across 100 files.
+- `npm run test:integration`: PASS 17/17 across three files (local simulations, not live database proof).
+- `npm run eval:scorecard`: PASS 2/2.
+- `npm run typecheck`: PASS after the documented test-fixture fixes.
+- `npm run lint`: PASS, zero warnings after Cursor's cleanup fix.
+- `npm run build`: PASS, production compilation/typecheck/page generation completed.
+- Cursor-owned-file tests/check: PASS 50/50 and explicit Prettier check PASS.
+- Whole working-tree `npm run format:check`: initially failed on in-progress owned files and the human-task document. Owned files were formatted; after the concurrent commit included the human-task document, an explicit format-only fix was applied without removing its content changes. Final recheck is recorded below.
+- `git diff --check`: PASS.
+
+Next chat: read `cursorTasks.md`, this report, `02-COULD-NOT-SOLVE.md`, `03-REMAINING-TASKS.md`, repository instructions and product decisions. Verify the PR/head and current worktree first, then resume TASK-003 accounting/crash gates and the remaining dependency-ordered work. Do not restart completed local fixes or mark live/external tasks done.
+
+Formatting provenance: the previous check failed solely on `docs/HUMAN_TASKS.md`; it was excluded from Codex staging, but a concurrent actor had already included it in commit `c00dd92`. A follow-up formats only that included file and preserves its content. Do not claim the initial failing check passed; the final recheck is separate.
+
+Final `npm run format:check`: PASS after adding the missing trailing newline to the already-committed human-task document. No substantive content was changed by this formatting fix. That document's externally checked/live-success claims were authored by another actor and were not reverified here; the current audited scan failures and real release gates in the master plan/root reports still apply. Manual Scan now continues honoring its selected lookback, rather than being guaranteed incremental.

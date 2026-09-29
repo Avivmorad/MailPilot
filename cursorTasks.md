@@ -39,7 +39,7 @@ For every update, append UTC time, task ID, actual files changed, behavior fixed
 | Cursor ID | Master-plan mapping                          | Priority | Depends on    | Cursor status    | Codex review          |
 | --------- | -------------------------------------------- | -------- | ------------- | ---------------- | --------------------- |
 | C01       | BUG-002                                      | P1       | None          | VERIFIED_LOCALLY | ACCEPTED_LOCAL        |
-| C02       | EDGE-010; local part of EDGE-011 / TEST-006  | P1       | C01           | VERIFIED_LOCALLY | CHANGES_REQUESTED     |
+| C02       | EDGE-010; local part of EDGE-011 / TEST-006  | P1       | C01           | VERIFIED_LOCALLY | ACCEPTED_LOCAL        |
 | C03       | BUG-006; local part of TEST-006              | P2       | None          | VERIFIED_LOCALLY | ACCEPTED_LOCAL        |
 | C04       | UI-only part of BUG-005                      | P1       | C01, C03      | VERIFIED_LOCALLY | ACCEPTED_LOCAL        |
 | C05       | Scan-component subset of TASK-013 / TEST-006 | P2       | C02, C03, C04 | VERIFIED_LOCALLY | EXTERNAL_GATE_PENDING |
@@ -163,3 +163,7 @@ C02 CHANGES_REQUESTED — fix only your owned files, add focused regressions, th
 4. Automatic resume currently treats HTTP 200 malformed/null payload as a silent no-op. The scan is already added to `resumedScanIds`, so it will never automatically retry, while each valid stale RUNNING poll continues clearing observation misses. Stop with an explicit retryable observation error for malformed resume; use the sign-in message for a 401 resume rather than generic failure. Add stale-scan tests for single resume, rejected/malformed/401 resume and late resume after unmount/cancel.
 
 The existing reset-count test stops after only two misses following a valid snapshot; extend it through the third miss and prove polling stops. Add the requested Strict Mode, successful-cancel race and start-schema tests. These gaps were found by source review; the existing 36 passing tests do not cover them. Main-owned test TS2493 failures noted by Cursor were corrected and typecheck subsequently passed; do not edit those backend files.
+
+2026-09-29T12:15Z Re-review: C02 accepted locally after inspecting Cursor's fixes and independently rerunning the three owned test files (50/50 PASS). Cancellation serialization, independent action-controller unmount cleanup, explicit deadline disposal, malformed-resume handling and sign-in resume response are implemented; new fake-clock/deferred regressions cover the review requests. Typecheck, lint (zero warnings) and production build passed after correcting the main-owned nullable-signal test fixture. C05 remains EXTERNAL_GATE_PENDING: no authenticated browser/mobile/200% zoom proof. Real Gmail/background recovery, crash termination and database isolation remain separate master-plan gates.
+
+Handoff freeze: the owner requested wrapping up, committing/pushing a draft PR, moving to another chat and pausing the goal. Do not start additional implementation in this lane until the owner resumes coordination. Preserve this evidence and source snapshot; the 15-minute Cursor-review heartbeat is PAUSED. The next chat must read this file and the three root reports before resuming.

@@ -1,6 +1,6 @@
 # Remaining master-plan tasks
 
-Execution checkpoint, 2026-09-29. Original scope: [Master Project Plan](docs/MASTER_PROJECT_PLAN.md). All 72 original IDs are tracked; BUG-001 is complete locally. The full plan is not finished. Completed task cards are retained below for provenance, with their execution status explicitly updated.
+Execution handoff, 2026-09-29. All 72 original IDs remain tracked. BUG-001/002/003/004/006 are complete locally; BUG-007 is implemented and locally checked but its real termination gate remains open. The owner requested a draft-PR checkpoint and paused-goal handoff to another chat. The full plan is not finished.
 
 ## Execution assumptions
 
@@ -14,80 +14,80 @@ Critical path: BUG-001 → BUG-004 / BUG-007 → TASK-003 → TASK-004 / TASK-00
 
 The task cards below preserve each original acceptance criterion, affected files, steps, tests, dependencies and priority. Do not mark complete from edits alone.
 
-| ID       | Task                                                            | Depends on                                        | Status              | Acceptance / verification                       |
-| -------- | --------------------------------------------------------------- | ------------------------------------------------- | ------------------- | ----------------------------------------------- |
-| TASK-001 | Diagnose the two all-failure live scans                         | none                                              | Not started         | Original acceptance and verification below      |
-| TASK-002 | Complete and reconcile historical context inventory             | none                                              | Not started         | Original acceptance and verification below      |
-| BUG-001  | Repair the checkpoint regression test harness                   | none                                              | Complete locally    | 35/35 targeted; 459/459 full suite              |
-| BUG-003  | Do not disconnect Gmail on transient refresh failure            | none                                              | Complete locally    | 27/27 targeted; typecheck PASS                  |
-| BUG-004  | Release admitted leases when scan preparation fails             | BUG-001                                           | Complete locally    | 57/57 targeted; typecheck PASS                  |
-| BUG-007  | Bound Gmail calls and retries by the slice deadline             | BUG-001                                           | In progress (Codex) | Helpers added; full acceptance not yet verified |
-| BUG-008  | Distinguish failed analysis from normal FYI                     | TASK-001                                          | Not started         | Original acceptance and verification below      |
-| TASK-003 | Finish verification of the existing checkpoint/pool patch       | BUG-001, BUG-007                                  | Not started         | Original acceptance and verification below      |
-| TASK-004 | Make continuation/retry independent of an open browser          | BUG-004, BUG-007, DEC-002                         | Not started         | Original acceptance and verification below      |
-| TASK-005 | Record redacted per-thread failure reasons and retry policy     | TASK-001, DEC-002                                 | Not started         | Original acceptance and verification below      |
-| EDGE-001 | Crash between writes and durable checkpoint                     | BUG-001, TASK-003                                 | Not started         | Original acceptance and verification below      |
-| EDGE-002 | Simultaneous tabs, cron, manual scan and continuation           | BUG-004                                           | Not started         | Original acceptance and verification below      |
-| EDGE-003 | Cancellation/deletion while a worker is in flight               | TASK-003, TEST-001                                | Not started         | Original acceptance and verification below      |
-| EDGE-004 | Discovery pagination interrupted before discovery_complete      | BUG-007                                           | Not started         | Original acceptance and verification below      |
-| EDGE-005 | New inbound arrives during scan/history recovery                | TASK-003                                          | Not started         | Original acceptance and verification below      |
-| EDGE-006 | Stale timestamps and misleading job/scan status combinations    | TASK-004/005                                      | Not started         | Original acceptance and verification below      |
-| EDGE-007 | Deleted/stale managed labels and legacy rename                  | TEST-005                                          | Not started         | Original acceptance and verification below      |
-| EDGE-008 | MIME, aliases, attachments, multilingual and long threads       | TEST-004/005                                      | Not started         | Original acceptance and verification below      |
-| EDGE-009 | Deletions, Trash and label-only history events                  | DEC-006                                           | Not started         | Original acceptance and verification below      |
-| TASK-006 | Establish a representative classification quality gate          | TASK-001                                          | Not started         | Original acceptance and verification below      |
-| TASK-007 | Add optional bounded runtime failover only after decision       | TASK-001, DEC-003, TEST-004                       | Not started         | Original acceptance and verification below      |
-| TASK-008 | Benchmark and bound scan efficiency                             | BUG-007, TASK-003/005                             | Not started         | Original acceptance and verification below      |
-| TASK-009 | Preserve manual overrides across re-analysis                    | TEST-004                                          | Not started         | Original acceptance and verification below      |
-| TASK-010 | Make feedback/canonical state changes consistent                | TEST-001/003                                      | Not started         | Original acceptance and verification below      |
-| TASK-011 | Prevent lost updates from simultaneous user/scan actions        | TEST-002/003, TASK-009                            | Not started         | Original acceptance and verification below      |
-| BUG-002  | Stop repeated successful-null scan polling                      | none                                              | Not started         | Original acceptance and verification below      |
-| BUG-005  | Remove false “Retries queued” guarantees                        | TASK-005, EDGE-006                                | Not started         | Original acceptance and verification below      |
-| BUG-006  | Give empty terminal scans an actual terminal view               | none                                              | Not started         | Original acceptance and verification below      |
-| BUG-009  | Do not present failed DB reads as “no changes”                  | TEST-003                                          | Not started         | Original acceptance and verification below      |
-| EDGE-010 | Overlapping polls, refresh, navigation and hanging fetch        | BUG-002                                           | Not started         | Original acceptance and verification below      |
-| EDGE-011 | Expired sessions during long flows                              | TEST-003/006                                      | Not started         | Original acceptance and verification below      |
-| TASK-012 | Verify the complete authenticated journey                       | TASK-001, TEST-003, disposable account access     | Not started         | Original acceptance and verification below      |
-| TASK-013 | Responsive, keyboard, RTL and accessibility acceptance          | TASK-012                                          | Not started         | Original acceptance and verification below      |
-| TASK-014 | Apply the requested scan/workspace UX polish narrowly           | DEC-004, BUG-002/005/006, TASK-012/013            | Not started         | Original acceptance and verification below      |
-| SEC-001  | Prove two-user database isolation                               | none                                              | Not started         | Original acceptance and verification below      |
-| SEC-002  | Verify deletion, retention and token revocation end to end      | EDGE-003, TEST-001                                | Not started         | Original acceptance and verification below      |
-| SEC-003  | Keep secrets and personal data out of browser/logs              | none                                              | Not started         | Original acceptance and verification below      |
-| SEC-004  | Address leaked-password protection advisor warning              | DEC-005                                           | Not started         | Original acceptance and verification below      |
-| SEC-005  | Exercise malicious email/output and unsafe links                | TEST-004                                          | Not started         | Original acceptance and verification below      |
-| SEC-006  | Verify mutation authorization, abuse bounds and CSRF posture    | TEST-003                                          | Not started         | Original acceptance and verification below      |
-| SEC-007  | Finish source-security coverage and operational threat review   | SEC-001/003/006                                   | Not started         | Original acceptance and verification below      |
-| SEC-008  | Bound MIME ingestion and make HTML conversion linear            | none                                              | Not started         | Original acceptance and verification below      |
-| SEC-009  | Keep abuse budgets and in-flight bounds across cancellation     | BUG-007, explicit retry UX decision               | Not started         | Original acceptance and verification below      |
-| SEC-010  | Enforce thread ownership for direct feedback INSERT             | TEST-001, OPS-005 before deployment               | Not started         | Original acceptance and verification below      |
-| TEST-001 | Add real database/RLS and migration tests                       | approved disposable database access               | Not started         | Original acceptance and verification below      |
-| TEST-002 | Add actual DB lease/checkpoint concurrency tests                | TEST-001, BUG-001/004/007                         | Not started         | Original acceptance and verification below      |
-| TEST-003 | Add API contract and negative-authorization matrix              | TEST-001                                          | Not started         | Original acceptance and verification below      |
-| TEST-004 | Add provider contracts and real opt-in evaluation               | TASK-001, DEC-003                                 | Not started         | Original acceptance and verification below      |
-| TEST-005 | Add disposable Gmail integration verification                   | explicit test Gmail access/consent                | Not started         | Original acceptance and verification below      |
-| TEST-006 | Add repeatable authenticated browser/component regressions      | BUG-002, TASK-012                                 | Not started         | Original acceptance and verification below      |
-| TEST-007 | Add interruption and recovery fault-injection matrix            | BUG-007, TASK-003/004, TEST-002                   | Not started         | Original acceptance and verification below      |
-| TEST-008 | Add privacy/security regression suite                           | TEST-001/003, SEC-002/003/005/006                 | Not started         | Original acceptance and verification below      |
-| TEST-009 | Record exact-SHA deployment smoke and live readiness            | OPS-001/002/003/005/006, core P1 gates            | Not started         | Original acceptance and verification below      |
-| DOC-001  | Resolve contradictory agent layout guidance                     | DEC-001                                           | Not started         | Original acceptance and verification below      |
-| DOC-002  | Reconcile scan timing, modes, provider and completion semantics | EDGE-006, DEC-002/003/006                         | Not started         | Original acceptance and verification below      |
-| DOC-003  | Maintain owner/deployment/privacy runbooks                      | OPS-002/003/005/006, SEC-002, DEC-005             | Not started         | Original acceptance and verification below      |
-| DOC-004  | Reconcile rename, license and old task artifacts                | DEC-005                                           | Not started         | Original acceptance and verification below      |
-| TASK-015 | Make only justified repository organization changes             | DEC-001, stable core P1 work                      | Not started         | Original acceptance and verification below      |
-| OPS-001  | Explain and repair the current preview ERROR                    | accessible build logs, BUG-001                    | Not started         | Original acceptance and verification below      |
-| OPS-002  | Verify environment and Google OAuth configuration               | approved console access                           | Not started         | Original acceptance and verification below      |
-| OPS-003  | Resolve daily scheduler timing/throughput and recovery SLA      | DEC-002                                           | Not started         | Original acceptance and verification below      |
-| OPS-004  | Reconcile PRs, automated approvals and dependency updates       | BUG-001, target-branch decision                   | Not started         | Original acceptance and verification below      |
-| OPS-005  | Rehearse migrations, schema drift and rollback safely           | TEST-001, approved disposable environment         | Not started         | Original acceptance and verification below      |
-| OPS-006  | Prove monitoring and redacted failure alert delivery            | TASK-005, SEC-003                                 | Not started         | Original acceptance and verification below      |
-| OPS-007  | Review database performance warnings and upgrade advisory       | TEST-001/002, OPS-005                             | Not started         | Original acceptance and verification below      |
-| OPS-008  | Produce release go/no-go and rollback handoff                   | TEST-009, unresolved P1/security decisions closed | Not started         | Original acceptance and verification below      |
-| DEC-001  | Authoritative repository layout and instruction hierarchy       | none                                              | Not started         | Original acceptance and verification below      |
-| DEC-002  | Scheduling, continuation and retry service level                | E-05/16/19 evidence                               | Not started         | Original acceptance and verification below      |
-| DEC-003  | Provider order, failover and data destination consent           | TASK-001                                          | Not started         | Original acceptance and verification below      |
-| DEC-004  | Selected circular progress design and UX acceptance             | none                                              | Not started         | Original acceptance and verification below      |
-| DEC-005  | Launch scope, identity/branding, license and dashboard options  | none                                              | Not started         | Original acceptance and verification below      |
-| DEC-006  | Manual lookback, external Gmail changes and non-MVP boundaries  | E-01/02/08                                        | Not started         | Original acceptance and verification below      |
+| ID       | Task                                                            | Depends on                                        | Status                                           | Acceptance / verification                                                 |
+| -------- | --------------------------------------------------------------- | ------------------------------------------------- | ------------------------------------------------ | ------------------------------------------------------------------------- |
+| TASK-001 | Diagnose the two all-failure live scans                         | none                                              | Not started                                      | Original acceptance and verification below                                |
+| TASK-002 | Complete and reconcile historical context inventory             | none                                              | Not started                                      | Original acceptance and verification below                                |
+| BUG-001  | Repair the checkpoint regression test harness                   | none                                              | Complete locally                                 | 35/35 targeted; 459/459 full suite                                        |
+| BUG-003  | Do not disconnect Gmail on transient refresh failure            | none                                              | Complete locally                                 | 27/27 targeted; typecheck PASS                                            |
+| BUG-004  | Release admitted leases when scan preparation fails             | BUG-001                                           | Complete locally                                 | 57/57 targeted; typecheck PASS                                            |
+| BUG-007  | Bound Gmail calls and retries by the slice deadline             | BUG-001                                           | Implemented locally; gate pending                | 537 tests/build/typecheck pass; TEST-007 real termination remains         |
+| BUG-008  | Distinguish failed analysis from normal FYI                     | TASK-001                                          | Not started                                      | Original acceptance and verification below                                |
+| TASK-003 | Finish verification of the existing checkpoint/pool patch       | BUG-001, BUG-007                                  | Not started                                      | Original acceptance and verification below                                |
+| TASK-004 | Make continuation/retry independent of an open browser          | BUG-004, BUG-007, DEC-002                         | Not started                                      | Original acceptance and verification below                                |
+| TASK-005 | Record redacted per-thread failure reasons and retry policy     | TASK-001, DEC-002                                 | Not started                                      | Original acceptance and verification below                                |
+| EDGE-001 | Crash between writes and durable checkpoint                     | BUG-001, TASK-003                                 | Not started                                      | Original acceptance and verification below                                |
+| EDGE-002 | Simultaneous tabs, cron, manual scan and continuation           | BUG-004                                           | Not started                                      | Original acceptance and verification below                                |
+| EDGE-003 | Cancellation/deletion while a worker is in flight               | TASK-003, TEST-001                                | Not started                                      | Original acceptance and verification below                                |
+| EDGE-004 | Discovery pagination interrupted before discovery_complete      | BUG-007                                           | Not started                                      | Original acceptance and verification below                                |
+| EDGE-005 | New inbound arrives during scan/history recovery                | TASK-003                                          | Not started                                      | Original acceptance and verification below                                |
+| EDGE-006 | Stale timestamps and misleading job/scan status combinations    | TASK-004/005                                      | Not started                                      | Original acceptance and verification below                                |
+| EDGE-007 | Deleted/stale managed labels and legacy rename                  | TEST-005                                          | Not started                                      | Original acceptance and verification below                                |
+| EDGE-008 | MIME, aliases, attachments, multilingual and long threads       | TEST-004/005                                      | Not started                                      | Original acceptance and verification below                                |
+| EDGE-009 | Deletions, Trash and label-only history events                  | DEC-006                                           | Not started                                      | Original acceptance and verification below                                |
+| TASK-006 | Establish a representative classification quality gate          | TASK-001                                          | Not started                                      | Original acceptance and verification below                                |
+| TASK-007 | Add optional bounded runtime failover only after decision       | TASK-001, DEC-003, TEST-004                       | Not started                                      | Original acceptance and verification below                                |
+| TASK-008 | Benchmark and bound scan efficiency                             | BUG-007, TASK-003/005                             | Not started                                      | Original acceptance and verification below                                |
+| TASK-009 | Preserve manual overrides across re-analysis                    | TEST-004                                          | Not started                                      | Original acceptance and verification below                                |
+| TASK-010 | Make feedback/canonical state changes consistent                | TEST-001/003                                      | Not started                                      | Original acceptance and verification below                                |
+| TASK-011 | Prevent lost updates from simultaneous user/scan actions        | TEST-002/003, TASK-009                            | Not started                                      | Original acceptance and verification below                                |
+| BUG-002  | Stop repeated successful-null scan polling                      | none                                              | Complete locally                                 | Cursor C01 independently accepted; 50 owned tests pass                    |
+| BUG-005  | Remove false “Retries queued” guarantees                        | TASK-005, EDGE-006                                | UI copy accepted; backend not started            | Cursor C04 complete only; TASK-005 retry policy remains                   |
+| BUG-006  | Give empty terminal scans an actual terminal view               | none                                              | Complete locally                                 | Cursor C03 independently accepted; empty terminal view covered            |
+| BUG-009  | Do not present failed DB reads as “no changes”                  | TEST-003                                          | Not started                                      | Original acceptance and verification below                                |
+| EDGE-010 | Overlapping polls, refresh, navigation and hanging fetch        | BUG-002                                           | Local fixes accepted; external pending           | Cursor C02 review fixes and 50 tests accepted; authenticated gates remain |
+| EDGE-011 | Expired sessions during long flows                              | TEST-003/006                                      | Not started                                      | Original acceptance and verification below                                |
+| TASK-012 | Verify the complete authenticated journey                       | TASK-001, TEST-003, disposable account access     | Not started                                      | Original acceptance and verification below                                |
+| TASK-013 | Responsive, keyboard, RTL and accessibility acceptance          | TASK-012                                          | Scan-component subset verified; rest not started | Cursor C05 local assertions; real viewport/full-product checks pending    |
+| TASK-014 | Apply the requested scan/workspace UX polish narrowly           | DEC-004, BUG-002/005/006, TASK-012/013            | Not started                                      | Original acceptance and verification below                                |
+| SEC-001  | Prove two-user database isolation                               | none                                              | Not started                                      | Original acceptance and verification below                                |
+| SEC-002  | Verify deletion, retention and token revocation end to end      | EDGE-003, TEST-001                                | Not started                                      | Original acceptance and verification below                                |
+| SEC-003  | Keep secrets and personal data out of browser/logs              | none                                              | Not started                                      | Original acceptance and verification below                                |
+| SEC-004  | Address leaked-password protection advisor warning              | DEC-005                                           | Not started                                      | Original acceptance and verification below                                |
+| SEC-005  | Exercise malicious email/output and unsafe links                | TEST-004                                          | Not started                                      | Original acceptance and verification below                                |
+| SEC-006  | Verify mutation authorization, abuse bounds and CSRF posture    | TEST-003                                          | Not started                                      | Original acceptance and verification below                                |
+| SEC-007  | Finish source-security coverage and operational threat review   | SEC-001/003/006                                   | Not started                                      | Original acceptance and verification below                                |
+| SEC-008  | Bound MIME ingestion and make HTML conversion linear            | none                                              | Not started                                      | Original acceptance and verification below                                |
+| SEC-009  | Keep abuse budgets and in-flight bounds across cancellation     | BUG-007, explicit retry UX decision               | Not started                                      | Original acceptance and verification below                                |
+| SEC-010  | Enforce thread ownership for direct feedback INSERT             | TEST-001, OPS-005 before deployment               | Not started                                      | Original acceptance and verification below                                |
+| TEST-001 | Add real database/RLS and migration tests                       | approved disposable database access               | Not started                                      | Original acceptance and verification below                                |
+| TEST-002 | Add actual DB lease/checkpoint concurrency tests                | TEST-001, BUG-001/004/007                         | Not started                                      | Original acceptance and verification below                                |
+| TEST-003 | Add API contract and negative-authorization matrix              | TEST-001                                          | Not started                                      | Original acceptance and verification below                                |
+| TEST-004 | Add provider contracts and real opt-in evaluation               | TASK-001, DEC-003                                 | Not started                                      | Original acceptance and verification below                                |
+| TEST-005 | Add disposable Gmail integration verification                   | explicit test Gmail access/consent                | Not started                                      | Original acceptance and verification below                                |
+| TEST-006 | Add repeatable authenticated browser/component regressions      | BUG-002, TASK-012                                 | Component subset verified; external pending      | 50 owned tests pass; authenticated browser journey not verified           |
+| TEST-007 | Add interruption and recovery fault-injection matrix            | BUG-007, TASK-003/004, TEST-002                   | Not started                                      | Original acceptance and verification below                                |
+| TEST-008 | Add privacy/security regression suite                           | TEST-001/003, SEC-002/003/005/006                 | Not started                                      | Original acceptance and verification below                                |
+| TEST-009 | Record exact-SHA deployment smoke and live readiness            | OPS-001/002/003/005/006, core P1 gates            | Not started                                      | Original acceptance and verification below                                |
+| DOC-001  | Resolve contradictory agent layout guidance                     | DEC-001                                           | Not started                                      | Original acceptance and verification below                                |
+| DOC-002  | Reconcile scan timing, modes, provider and completion semantics | EDGE-006, DEC-002/003/006                         | Not started                                      | Original acceptance and verification below                                |
+| DOC-003  | Maintain owner/deployment/privacy runbooks                      | OPS-002/003/005/006, SEC-002, DEC-005             | Not started                                      | Original acceptance and verification below                                |
+| DOC-004  | Reconcile rename, license and old task artifacts                | DEC-005                                           | Not started                                      | Original acceptance and verification below                                |
+| TASK-015 | Make only justified repository organization changes             | DEC-001, stable core P1 work                      | Not started                                      | Original acceptance and verification below                                |
+| OPS-001  | Explain and repair the current preview ERROR                    | accessible build logs, BUG-001                    | Not started                                      | Original acceptance and verification below                                |
+| OPS-002  | Verify environment and Google OAuth configuration               | approved console access                           | Not started                                      | Original acceptance and verification below                                |
+| OPS-003  | Resolve daily scheduler timing/throughput and recovery SLA      | DEC-002                                           | Not started                                      | Original acceptance and verification below                                |
+| OPS-004  | Reconcile PRs, automated approvals and dependency updates       | BUG-001, target-branch decision                   | Not started                                      | Original acceptance and verification below                                |
+| OPS-005  | Rehearse migrations, schema drift and rollback safely           | TEST-001, approved disposable environment         | Not started                                      | Original acceptance and verification below                                |
+| OPS-006  | Prove monitoring and redacted failure alert delivery            | TASK-005, SEC-003                                 | Not started                                      | Original acceptance and verification below                                |
+| OPS-007  | Review database performance warnings and upgrade advisory       | TEST-001/002, OPS-005                             | Not started                                      | Original acceptance and verification below                                |
+| OPS-008  | Produce release go/no-go and rollback handoff                   | TEST-009, unresolved P1/security decisions closed | Not started                                      | Original acceptance and verification below                                |
+| DEC-001  | Authoritative repository layout and instruction hierarchy       | none                                              | Not started                                      | Original acceptance and verification below                                |
+| DEC-002  | Scheduling, continuation and retry service level                | E-05/16/19 evidence                               | Not started                                      | Original acceptance and verification below                                |
+| DEC-003  | Provider order, failover and data destination consent           | TASK-001                                          | Not started                                      | Original acceptance and verification below                                |
+| DEC-004  | Selected circular progress design and UX acceptance             | none                                              | Not started                                      | Original acceptance and verification below                                |
+| DEC-005  | Launch scope, identity/branding, license and dashboard options  | none                                              | Not started                                      | Original acceptance and verification below                                |
+| DEC-006  | Manual lookback, external Gmail changes and non-MVP boundaries  | E-01/02/08                                        | Not started                                      | Original acceptance and verification below                                |
 
 ## Routing table
 
@@ -234,7 +234,7 @@ Use the least costly capable profile. Current implementation is performed by Cod
 - **Acceptance:** never-resolving Gmail/refresh calls and repeated 429/503 finish within the slice headroom; no skipped prefix, duplicate labels, or false success; recovery remains possible.
 - **Tests/verification:** fake-clock deadline tests at each boundary; `npm test -- src/lib/gmail/retry.test.ts src/lib/scans/process-scan.test.ts src/lib/scans/continue.test.ts`; TEST-007 termination simulation, then build/integration.
 
-- **Execution status:** In progress with Codex. Request/retry/quota helpers added; compatibility tests 5/5 passed. Still implement negative deadline tests, SDK/OAuth option propagation, shared invocation budget and safe interruption checkpoints before claiming completion. No Cursor edits to these backend files.
+- **Execution status:** Implemented and locally verified, not fully closed. Shared request/refresh/retry/quota/provider deadlines and safe continuation tested; 537 full tests, integration 17, eval 2, typecheck/lint/build pass. TEST-007 real process-kill/database termination gate remains unverified; see root change report. No production success claim.
 
 ### BUG-008 — Distinguish failed analysis from normal FYI
 
@@ -454,7 +454,7 @@ Use the least costly capable profile. Current implementation is performed by Cod
 - **Acceptance:** three null snapshots stop/recover as intended; valid data resets the count; no duplicate timers or updates after unmount.
 - **Tests/verification:** component fake-timer cases for 200/null, malformed JSON, failed fetch, recovery and unmount; `npm test -- <new-component-test-path>` after adding test; TEST-006.
 
-- **Execution status:** Not started. Retain the original steps, affected systems, acceptance, verification, dependencies and risks above.
+- **Execution status:** Complete locally. Cursor C01 independently reviewed and accepted; matching/reset/null/malformed and terminal regressions pass within the 50-test owned subset.
 
 ### BUG-005 — Remove false “Retries queued” guarantees
 
@@ -465,7 +465,7 @@ Use the least costly capable profile. Current implementation is performed by Cod
 - **Acceptance:** queued language is used only for an actual admitted/scheduled retry; zero-success scans do not imply completion; copy never relies on PARTIAL alone.
 - **Tests/verification:** progress/component tests across partial+queued/not-queued/retry-exhausted/all-failed; TEST-006/009.
 
-- **Execution status:** Not started. Retain the original steps, affected systems, acceptance, verification, dependencies and risks above.
+- **Execution status:** UI-only copy completed and accepted through Cursor C04. Backend retry-stage/provider/attempt policy and scheduling proof remain not started; retain original dependencies.
 
 ### BUG-006 — Give empty terminal scans an actual terminal view
 
@@ -476,7 +476,7 @@ Use the least costly capable profile. Current implementation is performed by Cod
 - **Acceptance:** zero-thread SUCCESS is determinate and completed, RUNNING discovery remains indeterminate; cancel/error does not look successful.
 - **Tests/verification:** `npm test -- src/lib/scans/progress.test.ts`; component zero-result regression.
 
-- **Execution status:** Not started. Retain the original steps, affected systems, acceptance, verification, dependencies and risks above.
+- **Execution status:** Complete locally. Cursor C03 independently accepted: zero-total SUCCESS/PARTIAL/FAILED terminal views and ARIA assertions pass.
 
 ### BUG-009 — Do not present failed DB reads as “no changes”
 
@@ -498,7 +498,7 @@ Use the least costly capable profile. Current implementation is performed by Cod
 - **Acceptance:** no stale response regresses progress or fires duplicate resume; hangs end with safe retry; cancellation UI remains truthful; timer/request cleanup is complete.
 - **Tests/verification:** fake timers/deferred-response component tests plus TEST-006 slow-network/tab-refresh scenarios.
 
-- **Execution status:** Not started. Retain the original steps, affected systems, acceptance, verification, dependencies and risks above.
+- **Execution status:** Local fixes accepted after Cursor review corrections, not live browser certification. Owned tests 50/50 cover bounded serial requests, Strict Mode, start/cancel/resume races and cleanup. Authenticated-session gates remain external.
 
 ### EDGE-011 — Expired sessions during long flows
 
@@ -531,7 +531,7 @@ Use the least costly capable profile. Current implementation is performed by Cod
 - **Acceptance:** primary actions remain reachable, no clipped/overflowing content or trapped focus; state communicated without color alone; audit findings resolved with before/after captures.
 - **Tests/verification:** TEST-006 component/browser accessibility assertions plus manual keyboard/screen-reader/contrast review. Do not claim WCAG certification from screenshots alone.
 
-- **Execution status:** Not started. Retain the original steps, affected systems, acceptance, verification, dependencies and risks above.
+- **Execution status:** Scan-component accessibility subset passes local assertions. Full-product accessibility, real narrow viewport and 200% zoom remain unverified; no site-wide completion claim.
 
 ### TASK-014 — Apply the requested scan/workspace UX polish narrowly
 
@@ -718,7 +718,7 @@ Use the least costly capable profile. Current implementation is performed by Cod
 - **Acceptance:** reproducible browser suite uses no personal credentials, proves essential happy/failure paths, produces screenshots and does not make real Gmail/paid provider calls in ordinary CI.
 - **Tests/verification:** existing `npm test -- <component-paths>` initially; run newly documented E2E script only after it actually exists; manual browser matrix meanwhile.
 
-- **Execution status:** Not started. Retain the original steps, affected systems, acceptance, verification, dependencies and risks above.
+- **Execution status:** Scan-card/progressbar component subset implemented and independently verified (50/50 tests). Complete authenticated browser journey, viewport and live-session tests remain pending.
 
 ### TEST-007 — Add interruption and recovery fault-injection matrix
 

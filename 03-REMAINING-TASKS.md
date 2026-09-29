@@ -1,6 +1,6 @@
 # Remaining master-plan tasks
 
-Current checkpoint, 2026-09-29: the 72-task goal is active and unfinished. PR #92 is merged (migration unapplied); PR #93 is draft/unmerged with green CI and a TASK-005 failure-path review gap. SEC-003 is locally implemented: 33/33 targeted, 570/570 full, 17/17 integration and 2/2 evaluation tests, format/lint/typecheck/build and a synthetic production-build canary check pass. Live telemetry/browser proof remains pending. The old handoff text below is historical.
+Current checkpoint, 2026-09-29: the 72-task goal is active and unfinished. PR #92 is merged (migration unapplied); PR #93 is draft/unmerged with green CI and a TASK-005 failure-path review gap; PR #94 is draft/unmerged with green CI and live privacy proof pending. SEC-003 is locally implemented: 33/33 targeted, 570/570 full, 17/17 integration and 2/2 evaluation tests, format/lint/typecheck/build and a synthetic production-build canary check pass. TASK-002 archival pagination is complete, but older unlisted active chats remain inaccessible. The old handoff text below is historical.
 
 Execution handoff, 2026-09-29. All 72 original IDs remain tracked. BUG-001/002/003/004/006 are complete locally; BUG-007 is implemented and locally checked but its real termination gate remains open. The owner requested a draft-PR checkpoint and paused-goal handoff to another chat. The full plan is not finished.
 
@@ -21,7 +21,7 @@ The task cards below preserve each original acceptance criterion, affected files
 | ID       | Task                                                            | Depends on                                        | Status                                           | Acceptance / verification                                                  |
 | -------- | --------------------------------------------------------------- | ------------------------------------------------- | ------------------------------------------------ | -------------------------------------------------------------------------- |
 | TASK-001 | Diagnose the two all-failure live scans                         | none                                              | Not started                                      | Original acceptance and verification below                                 |
-| TASK-002 | Complete and reconcile historical context inventory             | none                                              | Not started                                      | Original acceptance and verification below                                 |
+| TASK-002 | Complete and reconcile historical context inventory             | none                                              | Archive checked; active-history gap              | 28 archived pages exhausted; older active chats not paginated              |
 | BUG-001  | Repair the checkpoint regression test harness                   | none                                              | Complete locally                                 | 35/35 targeted; 459/459 full suite                                         |
 | BUG-003  | Do not disconnect Gmail on transient refresh failure            | none                                              | Complete locally                                 | 27/27 targeted; typecheck PASS                                             |
 | BUG-004  | Release admitted leases when scan preparation fails             | BUG-001                                           | Complete locally                                 | 57/57 targeted; typecheck PASS                                             |
@@ -194,7 +194,7 @@ Use the least costly capable profile. Current implementation is performed by Cod
 - **Acceptance:** all available relevant chats are reconciled, with unavailable pages explicitly listed; no unrelated project chats or stale bugs added to the backlog.
 - **Tests/verification:** cross-check chat-to-task map against current Git/source; verify unique IDs and links, then `npm run format:check`.
 
-- **Execution status:** Not started. Retain the original steps, affected systems, acceptance, verification, dependencies and risks above.
+- **Execution status:** Supported archived ChatGPT pagination exhausted after 28 pages, with no new Mail Pilot project chat or MailPilot/Gmail-scan title; archived Codex pagination also ended. Available recent project chats match the existing map. Older unlisted active chats cannot be enumerated through the available 50-chat listing. No new task justified; this remains partially verified until a supported export or older-active-history source is available. See `docs/MASTER_PROJECT_PLAN.md` and `02-COULD-NOT-SOLVE.md`.
 
 ### BUG-001 — Repair the checkpoint regression test harness
 

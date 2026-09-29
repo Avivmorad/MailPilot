@@ -1,5 +1,9 @@
 # Changes and verification
 
+## TASK-002 — Historical-chat inventory checkpoint (2026-09-29)
+
+The supported archived-ChatGPT listing was paginated to its terminal cursor (28 pages); no archived Mail Pilot project chat or new MailPilot/Gmail-scan title appeared. Archived Codex listings likewise ended without a new project requirement. The available 50 recent chats contain the same mapped Mail Pilot/local-project chats. Relevant chat summaries were rechecked against the existing requirements map; no task was added or marked complete from an assistant's old claim. `docs/MASTER_PROJECT_PLAN.md` and the remaining/blocker reports now record the exact coverage boundary: older active chats are not paginated by the available listing and remain unverified. This is progress on TASK-002, not exhaustive completion. Actual model: Codex current session; planned Light/Standard inventory work, actual Standard due complete archive pagination.
+
 ## Current checkpoint — SEC-003 (2026-09-29)
 
 The 72-task goal remains active. PR #92 merged to `main` at `f350c93`; its new analysis-attribution SQL migration has **not** been applied or rehearsed in a disposable database. PR #93 (`codex/sec-008-mime-ingestion`, `2439877`) remains draft and unmerged. Its CI/checks passed, but the Cursor review identified the unresolved TASK-005 oversized-thread non-retryable failure path; green CI is not approval or full task acceptance. The Cursor-review heartbeat is active, and C05 still needs an authenticated disposable session/viewport proof. Older handoff statements below are historical.

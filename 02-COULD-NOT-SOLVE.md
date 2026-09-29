@@ -1,5 +1,9 @@
 # Unresolved problems and prerequisites
 
+## TASK-002 history coverage — 2026-09-29
+
+Archived ChatGPT pagination reached `nextCursor: null` after 28 pages, and archived Codex pagination also ended; neither revealed a new MailPilot requirement. The active listing is limited to the most recent 50 chats plus pinned chats and has no older-page cursor. Therefore older unlisted active Mail Pilot conversations cannot be certified as reviewed from the available task tools. An owner-provided export or supported older-active-chat pagination would close this inventory gap; meanwhile keep TASK-002 partial and do not invent requirements from missing history.
+
 ## Current state — 2026-09-29
 
 The goal and 15-minute Cursor-review heartbeat are active; the older paused-handoff text below is historical. PR #92 merged, but its SQL migration is unapplied and still needs a disposable-database rehearsal before the matching app code is deployed. PR #93 is draft, unmerged and green in CI, with a review-identified TASK-005 oversized-thread non-retryable failure-path gap. Neither a green check nor a `COMMENTED` review is human approval. SEC-003 has local synthetic tests and a build-canary check, but no deployed-browser, live analytics or live Sentry privacy proof. The 72-task plan remains unfinished.

@@ -381,6 +381,7 @@ function createMemoryStore(): ScanStorePort & {
         gmailThreadId: input.gmailThreadId,
         subject: input.subject,
         lastAnalyzedMessageId: input.lastAnalyzedMessageId,
+        analysisScanId: input.analysisScanId ?? null,
         promptVersion: input.promptVersion,
         analysis: input.analysis,
       });
@@ -462,6 +463,81 @@ async function runScan(options: {
 }
 
 describe("processInitialScan", () => {
+  it("keeps live message progress separate from the durable checkpoint counters", async () => {
+    const store = createMemoryStore();
+    const update = store.updateScanRun.bind(store);
+    const liveWrites: Parameters<ScanStorePort["updateScanRun"]>[1][] = [];
+    store.updateScanRun = async (id, patch) => {
+      if (
+        patch.threadsChecked !== undefined &&
+        patch.threadCursor === undefined &&
+        patch.status === "RUNNING"
+      ) {
+        liveWrites.push(patch);
+      }
+      return update(id, patch);
+    };
+    await runScan({
+      store,
+      gmail: {
+        getProfileHistoryId: async () => "100",
+        listMessageRefs: async () => [{ id: "m1", threadId: "t1" }],
+        listHistoryChanges: async () => ({ ok: true, refs: [], latestHistoryId: "100" }),
+        fetchThread: async () => [parsedMessage()],
+        loadLabelMap: async () => LABEL_MAP,
+        modifyThreadLabels: async () => undefined,
+      },
+      analyze: async () => ({ ok: true, analysis: validAnalysis() }),
+    });
+    expect(liveWrites.length).toBeGreaterThan(0);
+    for (const patch of liveWrites) {
+      expect(patch.messagesProcessed).toBeUndefined();
+      expect(patch.threadsAnalyzed).toBeUndefined();
+      expect(patch.actionCount).toBeUndefined();
+    }
+    expect(store.scanRuns[0]).toMatchObject({
+      threadCursor: 1,
+      messagesProcessed: 1,
+      threadsAnalyzed: 1,
+    });
+  });
+
+  it("does not admit another batch after its checkpoint update was rejected", async () => {
+    vi.stubEnv("AI_MAX_CONCURRENCY", "1");
+    const store = createMemoryStore();
+    const update = store.updateScanRun.bind(store);
+    store.updateScanRun = async (id, patch) => {
+      if (patch.status === "RUNNING" && patch.threadCursor === 1) return false;
+      return update(id, patch);
+    };
+    const fetchThread = vi.fn(async (id: string) => [
+      parsedMessage({ gmailThreadId: id, gmailMessageId: `m-${id}` }),
+    ]);
+    try {
+      const result = await runScan({
+        store,
+        gmail: {
+          getProfileHistoryId: async () => "100",
+          listMessageRefs: async () => [
+            { id: "m-t1", threadId: "t1" },
+            { id: "m-t2", threadId: "t2" },
+          ],
+          listHistoryChanges: async () => ({ ok: true, refs: [], latestHistoryId: "100" }),
+          fetchThread,
+          loadLabelMap: async () => LABEL_MAP,
+          modifyThreadLabels: async () => undefined,
+        },
+        analyze: async () => ({ ok: true, analysis: validAnalysis() }),
+      });
+      expect(result.status).toBe("FAILED");
+      expect(fetchThread.mock.calls.map(([id]) => id)).toEqual(["t1"]);
+      expect(store.scanRuns[0].threadCursor).toBe(0);
+      expect(store.connection.historyId).toBeNull();
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
   it("does not skip a hung earlier thread when a later worker finished before the deadline", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(0);
@@ -525,6 +601,8 @@ describe("processInitialScan", () => {
       expect(store.scanRuns[0]).toMatchObject({
         threadCursor: 2,
         threadsChecked: 2,
+        threadsAnalyzed: 2,
+        messagesProcessed: 2,
         actionCount: 2,
       });
       expect(modifyThreadLabels.mock.calls.map(([id]) => id)).toEqual(["t2", "t1"]);

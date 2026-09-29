@@ -149,6 +149,20 @@ Commands: `npm test -- src/components/scans/initial-scan-card.test.tsx src/compo
 
 C02 Cursor status → VERIFIED_LOCALLY. Codex review column left CHANGES_REQUESTED pending re-review.
 
+2026-09-29T14:45Z Resume after handoff freeze. Branch `codex/mailpilot-reliability-handoff-20260929` @ `5aee980` (clean worktree; PR #91 already merged to main). No Cursor implementation tasks remain incomplete: C01–C05 stay VERIFIED_LOCALLY; Codex columns C01–C04 ACCEPTED_LOCAL; C05 EXTERNAL_GATE_PENDING unchanged (Cursor does not edit the Codex-review column).
+
+Re-check: `npm test -- src/components/scans/initial-scan-card.test.tsx src/components/scans/scan-progress-bar.test.tsx src/lib/scans/progress.test.ts` — 3 files, 50 passed, 0 failed.
+
+C05 external viewport attempt: Vercel share URL for preview `gmailpilot-lsd8nasl3-avivmoradteam.vercel.app` (SHA `5aee980`) opens `/dashboard` but responds as login (`x-matched-path: /login`, Sign in card). No disposable authenticated MailPilot session and no explicit Gmail test consent (same blocker as `02-COULD-NOT-SOLVE.md` TASK-012/013). Browser MCP tab create/navigate failed repeatedly in this environment (`Browser view not found` / `No browser tab available`), so narrow/mobile and 200% zoom of InitialScanCard/ScanProgressBar were not visually exercised. No owned source files changed this pass.
+
+Next unblocked Cursor work: none in this lane until owner supplies an authorized signed-in session (or Codex assigns new owned tasks). Do not invent app routes or Storybook outside owned files to fake authenticated layout.
+
+2026-09-29T15:15Z Owner asked to check remaining work and open a PR if needed. Source of truth on disk: C01–C05 still VERIFIED_LOCALLY; Codex C01–C04 ACCEPTED_LOCAL; C05 EXTERNAL_GATE_PENDING. No incomplete Cursor-owned implementation. Uncommitted Codex TASK-003 work was present (analysis scan attribution, process-scan counter fixes, migration draft, reports). Cursor owned sources unchanged this pass.
+
+Re-check: targeted Cursor + TASK-003 tests `npm test --` eight files — 121 passed, 0 failed. `npm run typecheck` PASS. `npm run lint` PASS. C05 authenticated narrow/200% viewport still BLOCKED (no disposable signed-in session). Packaging the on-disk TASK-003 changes into a review PR per owner request; not claiming Cursor authored the backend files.
+
+2026-09-29T15:16Z Owner asked to list Cursor tasks and do them all. No incomplete implementation remains in this lane. C01–C05 stay VERIFIED_LOCALLY. Re-check: `npm test -- src/components/scans/initial-scan-card.test.tsx src/components/scans/scan-progress-bar.test.tsx src/lib/scans/progress.test.ts` — 3 files, 50 passed, 0 failed. No owned source files changed. C05 authenticated narrow/200% viewport still BLOCKED (no disposable signed-in session). Uncommitted `src/lib/gmail/parser.test.ts` left untouched (Codex-owned). PR #92 already open for the TASK-003 branch; this handoff still forbids a Cursor commit.
+
 ## Codex review log
 
 2026-09-29: Handoff created from current source evidence. All reviews PENDING. Backend work remains with Codex; frontend work is reserved for Cursor. No code in the Cursor lane was edited by Codex for this handoff.

@@ -221,6 +221,7 @@ function createMemoryStore(
       threads.set(key, {
         id,
         lastAnalyzedMessageId: input.lastAnalyzedMessageId,
+        analysisScanId: input.analysisScanId ?? null,
         promptVersion: input.promptVersion,
         analysis: input.analysis,
       });

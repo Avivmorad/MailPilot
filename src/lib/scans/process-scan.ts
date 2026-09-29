@@ -435,7 +435,9 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
       threadsChecked: checkpoint?.threadCursor ?? 0,
       failedThreadIds: [...(checkpoint?.failedThreadIds ?? [])],
     };
-    await store.updateScanRun(scanId, { status: "RUNNING" });
+    if (!(await store.updateScanRun(scanId, { status: "RUNNING" }))) {
+      return asFailedResult(checkpoint?.discoveryMode ?? "INITIAL");
+    }
     assertGmailBudget(requestBudget);
     let historyBoundary = checkpoint?.historyBoundary ?? null;
     let discoveryMode: ScanDiscoveryMode = checkpoint?.discoveryMode ?? "INITIAL";
@@ -473,7 +475,7 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
       ]);
       cursor = 0;
       await assertJobLease();
-      await store.updateScanRun(scanId, {
+      const discovered = await store.updateScanRun(scanId, {
         status: "RUNNING",
         lookbackDays,
         discoveryMode,
@@ -485,6 +487,7 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
         threadsDiscovered: threadIds.length,
         threadsChecked: 0,
       });
+      if (!discovered) return asFailedResult(discoveryMode);
       durableProgress = {
         ...durableProgress,
         messagesDiscovered,
@@ -501,7 +504,6 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
 
     const persistProgress = () => {
       const checked = threadsChecked;
-      const processed = messagesProcessed;
       progressWrites = progressWrites.then(async () => {
         try {
           if (jobLease) {
@@ -513,7 +515,6 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
           await store.updateScanRun(scanId, {
             status: "RUNNING",
             messagesDiscovered,
-            messagesProcessed: processed,
             threadsDiscovered: threadIds.length,
             threadsChecked: checked,
           });
@@ -617,6 +618,7 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
               const latestAt = receivedAtIso(latest.internalDate);
 
               let analysis = existing ? analysisFromStoredThread(existing) : null;
+              let analysisScanId = existing?.analysisScanId ?? null;
               const unchanged = shouldReuseStoredAnalysis(
                 existing,
                 latest.gmailMessageId,
@@ -661,13 +663,14 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
                     lastAnalyzedMessageId: existing?.lastAnalyzedMessageId ?? null,
                     promptVersion: analysis ? (existing?.promptVersion ?? null) : null,
                     modelName: analysis ? modelName : null,
+                    analysisScanId,
                   });
                   await persistMessages(threadId, chronological);
                   countTowardCursor = true;
                   continue;
                 }
                 analysis = outcome.analysis;
-                threadsAnalyzed += 1;
+                analysisScanId = scanId;
                 emitProductEvent({
                   type: "thread.analyzed",
                   scanId,
@@ -696,7 +699,13 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
                   : (existing?.lastAnalyzedMessageId ?? null),
                 promptVersion: analysis ? analysisKey : null,
                 modelName: analysis ? modelName : null,
+                analysisScanId,
               });
+
+              // Thread upsert commits analysis and attribution in one row.
+              // Replay outside the durable prefix recovers this count without
+              // another provider call or counting a prior scan's cached result.
+              if (analysis && analysisScanId === scanId) threadsAnalyzed += 1;
 
               await persistMessages(threadId, chronological);
 
@@ -783,6 +792,8 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
           threadsChecked,
           failedThreadIds: batchFailures,
         };
+      } else {
+        return asFailedResult(discoveryMode);
       }
       if (threadsChecked < batchEnd) {
         break;
@@ -806,7 +817,7 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
 
     await assertJobLease();
     if (nextCursor < threadIds.length) {
-      await store.updateScanRun(scanId, {
+      const continued = await store.updateScanRun(scanId, {
         ...counters,
         status: "RUNNING",
         threadsDiscovered: threadIds.length,
@@ -819,6 +830,7 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
         lookbackDays,
         discoveryMode,
       });
+      if (!continued) return asFailedResult(discoveryMode);
       emitProductEvent({
         type: "scan.continued",
         scanId,

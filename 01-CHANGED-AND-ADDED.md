@@ -2,6 +2,24 @@
 
 Execution started 2026-09-29. This is a live checkpoint, not a completion claim.
 
+## Resumed execution — TASK-003
+
+The owner explicitly resumed tasks and updates on 2026-09-29 after the PR handoff. The full 72-task plan remains active, not complete. Actual model: Codex current session; recommended profile: frontier coding model, high reasoning / Heavy effort. The existing task and routing tables in `03-REMAINING-TASKS.md` remain authoritative.
+
+- `src/lib/scans/process-scan.ts`: save the current scan's analysis attribution with the validated thread row; recover that count when replay reuses an out-of-prefix analysis. Live progress no longer overwrites durable message counters ahead of the batch checkpoint. Rejected initial/discovery/batch/continuation writes stop execution instead of admitting another batch. The pool's bounded batch barrier is unchanged.
+- `src/lib/scans/types.ts`, `src/lib/scans/store.ts`: add optional `analysisScanId` port metadata and map `analysis_scan_id` in the same thread upsert/read as analysis. This is attribution of persisted validated thread results, not a provider-call/billing counter. Legacy analysis stays unattributed; no guessed backfill.
+- `supabase/migrations/20260929174644_analysis_scan_attribution.sql`: locally drafted forward migration adds nullable attribution with a scan foreign key (`ON DELETE SET NULL`) and a non-null FK index. No grants/RLS policies changed. Apply and test it in an approved disposable database before deploying this application revision. It has NOT been applied anywhere.
+- `supabase/README.md`, `src/lib/scans/errors.ts` / `errors.test.ts`: record required migration order and update missing-schema operator guidance without dropping the existing 0012 prerequisite.
+- `src/lib/scans/process-scan.test.ts`: strengthen out-of-order deadline/resume assertions to include all recovered analysis/message counts; add live-versus-durable counter separation and rejected-checkpoint admission regressions. The strengthened case first FAILED with 1 persisted analysis count instead of 2, then passed after the fix.
+- `src/lib/scans/scan-integration.test.ts`: keep the synthetic store's attribution mapping aligned with production; still not a real SQL test.
+- `src/lib/scans/store-accounting.test.ts`: five tests for one-write attribution/readback, legacy/null cases, persistence failure and static migration safety. These are mocked/static tests, NOT proof of applied SQL or RLS.
+- `src/lib/scans/continue-fallback.test.ts`: new synthetic continuation/fallback timestamp, self-fetch HTTP/network, missing credentials, checkpoint/read-write failure and deleted-checkpoint tests. Ordinary CI makes no live Gmail/provider/DB request.
+- Verification checkpoint: 68/68 targeted scan/store/error/pool/continuation/integration tests PASS; typecheck PASS; lint PASS. One intermediate missing-schema message assertion failed because the new guidance omitted 0012; the guidance was corrected and the test passes. Extra fallback tests and broader final gates are recorded in the next checkpoint after completion.
+- Supabase skill guidance informed the same-row upsert and explicit database verification gate; Postgres guidance informed the nullable FK/index. The Supabase CLI was not found, so the migration was authored with the required local patch workflow instead of installing tooling or applying schema to a live project. [Supabase upsert reference](https://supabase.com/docs/reference/javascript/upsert) checked; Markdown changelog fetch rejected its content type, HTML changelog available.
+- Remaining TASK-003 gates: disposable SQL upgrade/fresh-schema proof, actual hard-kill/write-boundary recovery and ownership fencing (TEST-001/002/007, EDGE-001). Current behavior cannot reconstruct attribution for analyses saved before this migration; those stay unknown rather than fabricated. No commit, push, deployment or live database mutation in this resumed checkpoint.
+
+The concurrent Cursor activity-log update is preserved. Cursor reports no new source changes and the same authenticated viewport/session blocker. Its statement that PR #91 merged is not independently verified in this checkpoint.
+
 ## Scope and preservation
 
 The master plan has 72 tasks. Existing source changes in eight scan files predate this execution and are preserved; they are not claimed as newly authored here. The preceding audit added `docs/MASTER_PROJECT_PLAN.md` without changing application code. Current source branch: `avivnurs327/dia-5-inbox-workspace-ui`, initial HEAD `14d65e0404d5ee6ec24ce5b4146f94703103efa6`.

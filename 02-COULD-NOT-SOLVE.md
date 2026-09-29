@@ -2,6 +2,15 @@
 
 Handoff checkpoint, 2026-09-29. The full plan is not finished. The owner requested commit/push, a draft PR and then goal pause for another chat. These remain carried-forward blockers, not live-success claims. The Cursor-review heartbeat is PAUSED.
 
+## Resumed execution prerequisites — 2026-09-29
+
+The owner has now explicitly resumed implementation and progress updates. The earlier paused handoff below is historical; the full plan is active and unfinished.
+
+- TASK-003 now has a reproduced local counter-loss fix with 68 targeted tests passing, plus typecheck/lint. Its new `20260929174644_analysis_scan_attribution.sql` is drafted only. There is still no approved disposable SQL environment: actual migration syntax/application, upgrade/fresh-schema behavior, RLS/FK behavior, hard process kill and distributed fencing are NOT verified. Apply this migration before the corresponding application deployment, after rehearsing it in an approved test database; do not deploy these changes first.
+- `Get-Command supabase -ErrorAction SilentlyContinue` found no CLI; a local dependency search found no Supabase executable. No tooling was installed. The fallback was an explicitly documented local migration draft, not any production schema operation.
+- Attributions for previously persisted analysis remain unknown; old counters cannot honestly be reconstructed from provider logs that are unavailable. New counters represent validated analysis persisted by this scan, not total billed provider attempts.
+- Cursor's latest log still lacks a disposable authenticated session/explicit Gmail consent and reports browser tool failures. Its PR-merged claim is preserved but not newly established by this checkpoint. No external-success claim is inferred from the log.
+
 | Tasks                                      | Problem / exact evidence                                                                                                                                                                                                                         | Needed from owner / safest next step                                                                                                                             |
 | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | TASK-001, OPS-001                          | Both latest scans analyzed zero threads; root cause remains unproved. Vercel runtime log query returned HTTP 400 `ExceedsBillingLimitError`; build-log connector reported tool not found. CLI read attempt hit cache `EPERM` / network `EACCES`. | Obtain accessible redacted build/runtime logs through existing console or a scoped read-only CLI attempt. Do not guess quota, pay for logs, or alter production. |

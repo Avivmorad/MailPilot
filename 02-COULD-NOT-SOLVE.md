@@ -1,6 +1,6 @@
 # Unresolved problems and prerequisites
 
-Cross-branch checkpoint, 2026-09-29: draft PRs #93, #94 and #95 now have successful GitHub CI and Dependency Review on their current heads, but no human approval or merge. #93 still requires a non-retryable oversized-thread policy (TASK-005); #94 needs deployed-browser/live telemetry privacy proof; #95 needs real Gmail/database/termination proof. Older active project chats remain unavailable beyond the capped recent list, and Cursor C05 still lacks an authenticated viewport check. These are not resolved by the green checks below.
+Cross-branch checkpoint, 2026-09-29: draft PRs #93 and #94 have successful GitHub CI and Dependency Review on their current heads; #95 had both pass on code commit `9aef52c`, but its subsequent documentation-only head still requires fresh CI confirmation. No human approval or merge exists. #93 still requires a non-retryable oversized-thread policy (TASK-005); #94 needs deployed-browser/live telemetry privacy proof; #95 needs real Gmail/database/termination proof. Older active project chats remain unavailable beyond the capped recent list, and Cursor C05 still lacks an authenticated viewport check. These are not resolved by the green checks below.
 
 ## EDGE-004 remaining proof — 2026-09-29
 

@@ -2,7 +2,7 @@
 
 ## Cross-branch review checkpoint (2026-09-29)
 
-Draft PRs [#93](https://github.com/Avivmorad/MailPilot/pull/93) (SEC-008), [#94](https://github.com/Avivmorad/MailPilot/pull/94) (SEC-003 and available-history TASK-002 inventory), and [#95](https://github.com/Avivmorad/MailPilot/pull/95) (EDGE-004) remain separate and unmerged. On their current heads `2439877`, `aa35c46`, and `9aef52c`, GitHub CI and Dependency Review completed successfully; CodeRabbit, Snyk and Vercel statuses also report success. Cursor's C01–C04 remain independently accepted locally; C05 still needs an authenticated mobile/200% zoom check. None of these check results is live Gmail, database or privacy proof, and none is a human approval.
+Draft PRs [#93](https://github.com/Avivmorad/MailPilot/pull/93) (SEC-008), [#94](https://github.com/Avivmorad/MailPilot/pull/94) (SEC-003 and available-history TASK-002 inventory), and [#95](https://github.com/Avivmorad/MailPilot/pull/95) (EDGE-004) remain separate and unmerged. GitHub CI and Dependency Review completed successfully on #93 `2439877`, #94 `aa35c46`, and #95's code commit `9aef52c`; CodeRabbit, Snyk and Vercel statuses also reported success there. The subsequent documentation-only head of #95 requires its own CI check and is not claimed green here. Cursor's C01–C04 remain independently accepted locally; C05 still needs an authenticated mobile/200% zoom check. None of these checks is live Gmail, database or privacy proof, or human approval.
 
 ## EDGE-004 — Discovery pagination restart checkpoint (2026-09-29)
 

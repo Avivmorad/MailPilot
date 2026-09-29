@@ -1,6 +1,6 @@
 # Remaining master-plan tasks
 
-Cross-branch checkpoint, 2026-09-29: EDGE-004 is locally verified in draft PR #95 (48 targeted, 572 full tests, seven local gates). Draft PR #93 carries the SEC-008 local fix; draft PR #94 carries SEC-003 and the available-history TASK-002 inventory. GitHub CI and Dependency Review passed on all three current heads, but none is merged or approved; branch-local source remains separate. Live Gmail/database/termination, privacy and oversized-thread retry gates remain open. See the root change and blocker reports.
+Cross-branch checkpoint, 2026-09-29: EDGE-004 is locally verified in draft PR #95 (48 targeted, 572 full tests, seven local gates). Draft PR #93 carries the SEC-008 local fix; draft PR #94 carries SEC-003 and the available-history TASK-002 inventory. GitHub CI and Dependency Review passed on #93/#94 current heads and #95's code commit `9aef52c`; #95's later docs-only head requires a fresh check. None is merged or approved; branch-local source remains separate. Live Gmail/database/termination, privacy and oversized-thread retry gates remain open. See the root change and blocker reports.
 
 Execution handoff, 2026-09-29. All 72 original IDs remain tracked. BUG-001/002/003/004/006 are complete locally; BUG-007 is implemented and locally checked but its real termination gate remains open. The owner requested a draft-PR checkpoint and paused-goal handoff to another chat. The full plan is not finished.
 

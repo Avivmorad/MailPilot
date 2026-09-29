@@ -1,6 +1,6 @@
 import type { gmail_v1 } from "googleapis";
 
-import { parseGmailMessage, type ParsedGmailMessage } from "@/lib/gmail/parser";
+import { parseGmailMessage, parseGmailThread, type ParsedGmailMessage } from "@/lib/gmail/parser";
 import { GMAIL_UNITS } from "@/lib/gmail/quota";
 import { withGmailRetry } from "@/lib/gmail/retry";
 import type { GmailRequestBudget } from "@/lib/gmail/request-budget";
@@ -86,7 +86,7 @@ export async function fetchAndParseThread(
     { ...budget, units: GMAIL_UNITS.threadsGet },
   );
   const messages = res.data.messages ?? [];
-  return messages.map((message) => parseGmailMessage(message));
+  return parseGmailThread(messages);
 }
 
 export async function loadThreadContextFromGmail(

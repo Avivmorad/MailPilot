@@ -4,6 +4,8 @@ Execution handoff, 2026-09-29. All 72 original IDs remain tracked. BUG-001/002/0
 
 Resumed 2026-09-29 by explicit owner request to continue tasks and updates. TASK-003 local counter-accounting work is implemented with targeted checks; real SQL/migration/hard-kill gates remain open. No deployment, live database change or full-plan completion is claimed.
 
+PR #92 merged the local TASK-003 implementation into `main`; this does not close its database/hard-kill gates. SEC-008's parser bounds are now implemented on a separate branch, but permanent oversized-message retry behavior remains unresolved under TASK-005 and no live Gmail path was verified.
+
 ## Execution assumptions
 
 The owner subsequently authorized a separate Cursor lane. `cursorTasks.md` reserves BUG-002, EDGE-010, BUG-006 and the UI-copy portion of BUG-005, plus owned-component TEST-006/TASK-013 verification for Cursor. Codex continues backend work and independently reviews that lane. The original full-task acceptance gates remain; component-only work does not close authenticated/live journey requirements.
@@ -59,7 +61,7 @@ The task cards below preserve each original acceptance criterion, affected files
 | SEC-005  | Exercise malicious email/output and unsafe links                | TEST-004                                          | Not started                                      | Original acceptance and verification below                                 |
 | SEC-006  | Verify mutation authorization, abuse bounds and CSRF posture    | TEST-003                                          | Not started                                      | Original acceptance and verification below                                 |
 | SEC-007  | Finish source-security coverage and operational threat review   | SEC-001/003/006                                   | Not started                                      | Original acceptance and verification below                                 |
-| SEC-008  | Bound MIME ingestion and make HTML conversion linear            | none                                              | Not started                                      | Original acceptance and verification below                                 |
+| SEC-008  | Bound MIME ingestion and make HTML conversion linear            | none                                              | Implemented locally; recovery gate pending       | 37 targeted, 588 full tests/build; oversized retry policy pending          |
 | SEC-009  | Keep abuse budgets and in-flight bounds across cancellation     | BUG-007, explicit retry UX decision               | Not started                                      | Original acceptance and verification below                                 |
 | SEC-010  | Enforce thread ownership for direct feedback INSERT             | TEST-001, OPS-005 before deployment               | Not started                                      | Original acceptance and verification below                                 |
 | TEST-001 | Add real database/RLS and migration tests                       | approved disposable database access               | Not started                                      | Original acceptance and verification below                                 |
@@ -632,7 +634,7 @@ Use the least costly capable profile. Current implementation is performed by Cod
 - **Acceptance:** sender-controlled mail cannot drive disproportionate CPU; limits apply before parsing; ordinary HTML/MIME fixtures remain correct; no new parser dependency unless needed and approved.
 - **Tests/verification:** adversarial mixed-case raw-text tags and increasing input-size tests, large/deep MIME limits; `npm test -- src/lib/gmail/parser.test.ts src/lib/gmail/messages.test.ts src/lib/gmail/thread-context.test.ts`; bounded synthetic benchmark and full gates. No malicious mail sent to production.
 
-- **Execution status:** Not started. Retain the original steps, affected systems, acceptance, verification, dependencies and risks above.
+- **Execution status:** Parser/body, MIME-shape, full-thread and metadata limits implemented with explicit sanitized rejection; direct full-HTML conversion avoids repeated whole-input case folding. Adversarial/ordinary targeted tests PASS 37/37; two metadata tests reproduced a reviewer-confirmed bypass before the fix. Final-source format/lint/typecheck, 588 unit tests, 17 integration simulations, 2 scorecard tests and build PASS. The independent reviewer also confirmed that an unchanged oversized thread can be retried indefinitely as a generic failed thread, keeping later scans PARTIAL. Resolve this via TASK-005's visible non-retryable failure policy without silently classifying truncated text; then recheck the SEC-008 scan-path acceptance. Live Gmail and SDK response materialization remain unverified.
 
 ### SEC-009 — Keep abuse budgets and in-flight bounds across cancellation
 

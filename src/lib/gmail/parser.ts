@@ -31,8 +31,52 @@ const HTML_MIME = /^text\/html/i;
 const BLOCK_TAGS = new Set(["p", "div", "tr", "li", "blockquote"]);
 const RAW_TEXT_TAGS = new Set(["script", "style", "noscript"]);
 
+export const MIME_PARSE_LIMITS = {
+  decodedBodyBytes: 1024 * 1024,
+  parts: 256,
+  depth: 32,
+  threadMessages: 1000,
+  threadParts: 4096,
+  threadDecodedBodyBytes: 8 * 1024 * 1024,
+  metadataBytes: 64 * 1024,
+  metadataFields: 512,
+  threadMetadataBytes: 4 * 1024 * 1024,
+  threadMetadataFields: 64 * 1024,
+} as const;
+
+export class GmailMimeLimitError extends Error {
+  constructor(
+    readonly reason:
+      | "body_bytes"
+      | "encoded_body"
+      | "html_chars"
+      | "parts"
+      | "depth"
+      | "thread_messages"
+      | "thread_parts"
+      | "metadata_bytes"
+      | "metadata_fields"
+      | "thread_metadata_bytes"
+      | "thread_metadata_fields",
+  ) {
+    super(`Email content exceeded safe parsing limits (${reason}).`);
+    this.name = "GmailMimeLimitError";
+  }
+}
+
+function decodeBodyBytes(data: string, remainingBytes: number): Buffer {
+  // Check the encoded representation before allocating a decoded buffer. Do not
+  // trust MIME size metadata or silently classify a truncated body.
+  if (data.length > Math.ceil(remainingBytes / 3) * 4) {
+    throw new GmailMimeLimitError("encoded_body");
+  }
+  const decoded = Buffer.from(data, "base64url");
+  if (decoded.length > remainingBytes) throw new GmailMimeLimitError("body_bytes");
+  return decoded;
+}
+
 export function decodeBase64Url(data: string): string {
-  return Buffer.from(data, "base64url").toString("utf8");
+  return decodeBodyBytes(data, MIME_PARSE_LIMITS.decodedBodyBytes).toString("utf8");
 }
 
 export function normalizeWhitespace(value: string): string {
@@ -45,6 +89,11 @@ export function normalizeWhitespace(value: string): string {
 }
 
 export function htmlToText(html: string): string {
+  if (html.length > MIME_PARSE_LIMITS.decodedBodyBytes) throw new GmailMimeLimitError("html_chars");
+  // ASCII folding preserves offsets (Unicode lowercasing can expand characters).
+  // Construct this bounded representation once, not once per raw-text block.
+  const lowerHtml = html.replace(/[A-Z]/g, (char) => String.fromCharCode(char.charCodeAt(0) + 32));
+  const absentRawClosings = new Set<string>();
   const text: string[] = [];
   let ignoredTag: string | null = null;
   let index = 0;
@@ -66,8 +115,13 @@ export function htmlToText(html: string): string {
 
   while (index < html.length) {
     if (ignoredTag) {
-      const closeStart = html.toLowerCase().indexOf(`</${ignoredTag}`, index);
+      const closeStart = absentRawClosings.has(ignoredTag)
+        ? -1
+        : findRawClosing(lowerHtml, ignoredTag, index);
       if (closeStart === -1) {
+        // At most one failed suffix search per raw-tag kind. Later positions
+        // cannot contain a closing tag absent from this already-searched suffix.
+        absentRawClosings.add(ignoredTag);
         // Malformed newsletters sometimes omit </style> or </script>; resume parsing
         // instead of dropping the rest of the message.
         ignoredTag = null;
@@ -76,6 +130,7 @@ export function htmlToText(html: string): string {
 
       const closeTagEnd = findTagEnd(html, closeStart);
       if (closeTagEnd === -1) {
+        absentRawClosings.add(ignoredTag);
         ignoredTag = null;
         continue;
       }
@@ -120,11 +175,24 @@ export function htmlToText(html: string): string {
       continue;
     }
 
-    pushText(html[index]);
-    index += 1;
+    const nextTag = html.indexOf("<", index);
+    const textEnd = nextTag === -1 ? html.length : nextTag;
+    pushText(html.slice(index, textEnd));
+    index = textEnd;
   }
 
   return normalizeWhitespace(decodeHtmlEntities(text.join("")));
+}
+
+function findRawClosing(lowerHtml: string, tag: string, start: number): number {
+  const needle = `</${tag}`;
+  let found = lowerHtml.indexOf(needle, start);
+  while (found !== -1) {
+    const next = lowerHtml[found + needle.length];
+    if (next === undefined || /[\s/>]/.test(next)) return found;
+    found = lowerHtml.indexOf(needle, found + needle.length);
+  }
+  return -1;
 }
 
 function decodeHtmlEntities(value: string): string {
@@ -217,17 +285,77 @@ function isAttachmentPart(part: gmail_v1.Schema$MessagePart): boolean {
   return Boolean(part.body?.attachmentId);
 }
 
+interface ParseBudget {
+  decodedBytes: number;
+  parts: number;
+  metadataBytes: number;
+  metadataFields: number;
+}
+
+function accountMetadata(
+  value: string | null | undefined,
+  budget: ParseBudget,
+  thread?: ParseBudget,
+) {
+  if (value == null) return;
+  budget.metadataFields += 1;
+  if (budget.metadataFields > MIME_PARSE_LIMITS.metadataFields)
+    throw new GmailMimeLimitError("metadata_fields");
+  if (thread) {
+    thread.metadataFields += 1;
+    if (thread.metadataFields > MIME_PARSE_LIMITS.threadMetadataFields)
+      throw new GmailMimeLimitError("thread_metadata_fields");
+  }
+  const remaining = Math.min(
+    MIME_PARSE_LIMITS.metadataBytes - budget.metadataBytes,
+    thread
+      ? MIME_PARSE_LIMITS.threadMetadataBytes - thread.metadataBytes
+      : Number.POSITIVE_INFINITY,
+  );
+  // UTF-8 byte length is at least the UTF-16 code-unit length; reject very
+  // large values before measuring or normalizing their full contents.
+  if (value.length > remaining) throw new GmailMimeLimitError("metadata_bytes");
+  const bytes = Buffer.byteLength(value, "utf8");
+  if (bytes > remaining)
+    throw new GmailMimeLimitError(
+      thread && bytes > MIME_PARSE_LIMITS.threadMetadataBytes - thread.metadataBytes
+        ? "thread_metadata_bytes"
+        : "metadata_bytes",
+    );
+  budget.metadataBytes += bytes;
+  if (thread) thread.metadataBytes += bytes;
+}
+
 function walkParts(
   part: gmail_v1.Schema$MessagePart | undefined,
   acc: { plains: string[]; htmls: string[]; attachments: AttachmentMetadata[] },
+  budget: ParseBudget,
+  depth = 0,
+  threadBudget?: ParseBudget,
 ): void {
   if (!part) {
     return;
   }
+  if (depth > MIME_PARSE_LIMITS.depth) throw new GmailMimeLimitError("depth");
+  budget.parts += 1;
+  if (budget.parts > MIME_PARSE_LIMITS.parts) throw new GmailMimeLimitError("parts");
+  if (threadBudget) {
+    threadBudget.parts += 1;
+    if (threadBudget.parts > MIME_PARSE_LIMITS.threadParts)
+      throw new GmailMimeLimitError("thread_parts");
+  }
+  accountMetadata(part.partId, budget, threadBudget);
+  accountMetadata(part.mimeType, budget, threadBudget);
+  accountMetadata(part.filename, budget, threadBudget);
+  accountMetadata(part.body?.attachmentId, budget, threadBudget);
+  for (const header of part.headers ?? []) {
+    accountMetadata(header.name, budget, threadBudget);
+    accountMetadata(header.value, budget, threadBudget);
+  }
 
   if (part.parts && part.parts.length > 0) {
     for (const child of part.parts) {
-      walkParts(child, acc);
+      walkParts(child, acc, budget, depth + 1, threadBudget);
     }
     return;
   }
@@ -244,13 +372,17 @@ function walkParts(
     return;
   }
 
-  if (TEXT_MIME.test(mimeType) && data) {
-    acc.plains.push(decodeBase64Url(data));
-    return;
-  }
-
-  if (HTML_MIME.test(mimeType) && data) {
-    acc.htmls.push(decodeBase64Url(data));
+  if ((TEXT_MIME.test(mimeType) || HTML_MIME.test(mimeType)) && data) {
+    const remainingBytes = Math.min(
+      MIME_PARSE_LIMITS.decodedBodyBytes - budget.decodedBytes,
+      threadBudget
+        ? MIME_PARSE_LIMITS.threadDecodedBodyBytes - threadBudget.decodedBytes
+        : Number.POSITIVE_INFINITY,
+    );
+    const decoded = decodeBodyBytes(data, remainingBytes);
+    budget.decodedBytes += decoded.length;
+    if (threadBudget) threadBudget.decodedBytes += decoded.length;
+    (TEXT_MIME.test(mimeType) ? acc.plains : acc.htmls).push(decoded.toString("utf8"));
     return;
   }
 
@@ -268,6 +400,26 @@ function walkParts(
  * only filename/mimeType/size metadata is kept.
  */
 export function parseGmailMessage(message: gmail_v1.Schema$Message): ParsedGmailMessage {
+  return parseMessage(message);
+}
+
+/** All returned messages remain available within the shared ingestion budget. */
+export function parseGmailThread(messages: gmail_v1.Schema$Message[]): ParsedGmailMessage[] {
+  if (messages.length > MIME_PARSE_LIMITS.threadMessages)
+    throw new GmailMimeLimitError("thread_messages");
+  const threadBudget: ParseBudget = {
+    decodedBytes: 0,
+    parts: 0,
+    metadataBytes: 0,
+    metadataFields: 0,
+  };
+  return messages.map((message) => parseMessage(message, threadBudget));
+}
+
+function parseMessage(
+  message: gmail_v1.Schema$Message,
+  threadBudget?: ParseBudget,
+): ParsedGmailMessage {
   const payload = message.payload;
   const headers = payload?.headers;
   const acc = {
@@ -275,7 +427,14 @@ export function parseGmailMessage(message: gmail_v1.Schema$Message): ParsedGmail
     htmls: [] as string[],
     attachments: [] as AttachmentMetadata[],
   };
-  walkParts(payload, acc);
+  const budget: ParseBudget = { decodedBytes: 0, parts: 0, metadataBytes: 0, metadataFields: 0 };
+  accountMetadata(message.id, budget, threadBudget);
+  accountMetadata(message.threadId, budget, threadBudget);
+  accountMetadata(message.historyId, budget, threadBudget);
+  accountMetadata(message.internalDate, budget, threadBudget);
+  accountMetadata(message.snippet, budget, threadBudget);
+  for (const label of message.labelIds ?? []) accountMetadata(label, budget, threadBudget);
+  walkParts(payload, acc, budget, 0, threadBudget);
 
   let plainText = acc.plains.map(normalizeWhitespace).filter(Boolean).join("\n\n");
   if (!plainText && acc.htmls.length > 0) {

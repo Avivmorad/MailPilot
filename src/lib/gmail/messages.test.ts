@@ -3,12 +3,30 @@ import { describe, expect, it } from "vitest";
 import type { gmail_v1 } from "googleapis";
 
 import { fetchAndParseThread, loadThreadContextFromGmail } from "@/lib/gmail/messages";
+import { GmailMimeLimitError, MIME_PARSE_LIMITS } from "@/lib/gmail/parser";
 
 function b64(value: string): string {
   return Buffer.from(value, "utf8").toString("base64url");
 }
 
 describe("fetchAndParseThread", () => {
+  it("rejects excessive thread messages instead of returning a partial or empty success", async () => {
+    const gmail = {
+      users: {
+        threads: {
+          get: async () => ({
+            data: {
+              messages: Array.from({ length: MIME_PARSE_LIMITS.threadMessages + 1 }, () => ({})),
+            },
+          }),
+        },
+      },
+    } as unknown as gmail_v1.Gmail;
+    await expect(fetchAndParseThread(gmail, "synthetic-thread")).rejects.toThrow(
+      GmailMimeLimitError,
+    );
+  });
+
   it("parses every message returned by threads.get", async () => {
     const gmail = {
       users: {

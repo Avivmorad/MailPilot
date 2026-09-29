@@ -1,5 +1,9 @@
 # Unresolved problems and prerequisites
 
+## EDGE-004 remaining proof — 2026-09-29
+
+Synthetic tests demonstrate that an interrupted second Gmail page does not commit incomplete discovery and that resume can rediscover safely. They do not prove a real process hard-kill, actual Gmail pagination/quota behavior, or a real Supabase checkpoint write. Those need an approved disposable Gmail account and database under TEST-005/007. Legitimately enormous page walks still restart at page one after a slice deadline; no measured workload has yet justified a partial-page checkpoint migration. If a disposable benchmark shows repeated deadline starvation, add durable page-token/checkpoint state with an upgrade/fresh-schema and RLS rehearsal before deployment. Do not silently truncate discovery.
+
 Handoff checkpoint, 2026-09-29. The full plan is not finished. The owner requested commit/push, a draft PR and then goal pause for another chat. These remain carried-forward blockers, not live-success claims. The Cursor-review heartbeat is PAUSED.
 
 ## Resumed execution prerequisites — 2026-09-29

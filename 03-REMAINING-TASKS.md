@@ -1,5 +1,7 @@
 # Remaining master-plan tasks
 
+Current EDGE-004 checkpoint, 2026-09-29: local pagination-cycle and interrupted-second-page protections pass 48 targeted and 572 full tests; all seven local gates pass. Real Gmail/database/termination verification remains open; see the root change and blocker reports. This branch is separate from draft PRs #93/#94 and does not merge them.
+
 Execution handoff, 2026-09-29. All 72 original IDs remain tracked. BUG-001/002/003/004/006 are complete locally; BUG-007 is implemented and locally checked but its real termination gate remains open. The owner requested a draft-PR checkpoint and paused-goal handoff to another chat. The full plan is not finished.
 
 Resumed 2026-09-29 by explicit owner request to continue tasks and updates. TASK-003 local counter-accounting work is implemented with targeted checks; real SQL/migration/hard-kill gates remain open. No deployment, live database change or full-plan completion is claimed.
@@ -31,7 +33,7 @@ The task cards below preserve each original acceptance criterion, affected files
 | EDGE-001 | Crash between writes and durable checkpoint                     | BUG-001, TASK-003                                 | Not started                                      | Original acceptance and verification below                                 |
 | EDGE-002 | Simultaneous tabs, cron, manual scan and continuation           | BUG-004                                           | Not started                                      | Original acceptance and verification below                                 |
 | EDGE-003 | Cancellation/deletion while a worker is in flight               | TASK-003, TEST-001                                | Not started                                      | Original acceptance and verification below                                 |
-| EDGE-004 | Discovery pagination interrupted before discovery_complete      | BUG-007                                           | Not started                                      | Original acceptance and verification below                                 |
+| EDGE-004 | Discovery pagination interrupted before discovery_complete      | BUG-007                                           | Local fix verified; live gate pending            | 48 targeted/572 full and seven gates; real Gmail/DB/kill pending           |
 | EDGE-005 | New inbound arrives during scan/history recovery                | TASK-003                                          | Not started                                      | Original acceptance and verification below                                 |
 | EDGE-006 | Stale timestamps and misleading job/scan status combinations    | TASK-004/005                                      | Not started                                      | Original acceptance and verification below                                 |
 | EDGE-007 | Deleted/stale managed labels and legacy rename                  | TEST-005                                          | Not started                                      | Original acceptance and verification below                                 |
@@ -324,7 +326,7 @@ Use the least costly capable profile. Current implementation is performed by Cod
 - **Acceptance:** bounded discovery can resume or safely rediscover without missing/duplicating work; persisted boundary precedes new mail correctly.
 - **Tests/verification:** targeted process/history/recovery/checkpoint tests; TEST-005/007.
 
-- **Execution status:** Not started. Retain the original steps, affected systems, acceptance, verification, dependencies and risks above.
+- **Execution status:** Repeated page-token cycles now fail safely; tests cover empty/duplicate pages, later-page quota deadline and interruption after page one followed by safe rediscovery and deduplicated processing. 48/48 targeted and 572/572 full tests pass; all seven local gates pass. Real Gmail pagination, hard-kill/database checkpoint behavior and a measured very-large-inbox starvation benchmark remain TEST-005/007 gates; no partial-page migration was added without that evidence.
 
 ### EDGE-005 — New inbound arrives during scan/history recovery
 

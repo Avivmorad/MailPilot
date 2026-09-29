@@ -1,5 +1,9 @@
 # Changes and verification
 
+## EDGE-004 — Discovery pagination restart checkpoint (2026-09-29)
+
+Isolated branch `codex/edge-004-discovery-restart` is based on `origin/main`, separate from draft PRs #93 (MIME) and #94 (privacy/TASK-002). `src/lib/gmail/messages.ts` and `src/lib/gmail/history-list.ts` reject a repeated page token before issuing another request, preventing an API token cycle from consuming the entire scan slice. The error is a fixed safe string, not a Gmail payload. `messages.test.ts` and `history-list.test.ts` cover duplicate/empty pages, token cycles and a later-page 429 exceeding the deadline; the two cycle tests failed before the source fix and pass afterward. `process-scan.test.ts` now interrupts a real two-page listing after page one, verifies no partial discovery checkpoint/history advance, then resumes and processes two unique threads despite duplicate refs. Targeted tests pass 48/48. Final local gates pass: format check, lint, typecheck, `npm test` (572/572 across 102 files), integration (17/17), evaluation (2/2), and production build; `git diff --check` also passes. No migration, live database or Gmail account was changed. The Supabase guidance preserved the existing durable discovery boundary and kept real-DB verification open.
+
 Execution started 2026-09-29. This is a live checkpoint, not a completion claim.
 
 ## Resumed execution — TASK-003

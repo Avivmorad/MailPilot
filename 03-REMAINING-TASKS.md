@@ -4,7 +4,7 @@ Execution handoff, 2026-09-29. All 72 original IDs remain tracked. BUG-001/002/0
 
 Resumed 2026-09-29 by explicit owner request to continue tasks and updates. TASK-003 local counter-accounting work is implemented with targeted checks; real SQL/migration/hard-kill gates remain open. No deployment, live database change or full-plan completion is claimed.
 
-PR #92 merged the local TASK-003 implementation into `main`; this does not close its database/hard-kill gates. SEC-008's parser bounds are now implemented on a separate branch, but permanent oversized-message retry behavior remains unresolved under TASK-005 and no live Gmail path was verified.
+PR #92 merged the local TASK-003 implementation into `main`; this does not close its database/hard-kill gates. SEC-008's parser bounds are implemented on draft PR #93, but permanent oversized-message retry behavior remains unresolved under TASK-005 and no live Gmail path was verified.
 
 ## Execution assumptions
 

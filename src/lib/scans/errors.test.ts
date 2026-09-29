@@ -64,5 +64,6 @@ describe("scanUserMessage", () => {
 describe("SCAN_SCHEMA_MISSING_MESSAGE", () => {
   it("points operators at the full migration series", () => {
     expect(SCAN_SCHEMA_MISSING_MESSAGE).toContain("0012_scan_chunk_resume.sql");
+    expect(SCAN_SCHEMA_MISSING_MESSAGE).toContain("20260929174644_analysis_scan_attribution.sql");
   });
 });

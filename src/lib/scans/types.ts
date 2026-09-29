@@ -46,6 +46,8 @@ export function countersFromAnalyses(
 export interface StoredThreadRow {
   id: string;
   lastAnalyzedMessageId: string | null;
+  /** Saved with analysis so checkpoint replay can recover its count. */
+  analysisScanId?: string | null;
   promptVersion: string | null;
   analysis: ThreadAnalysis | null;
 }
@@ -162,6 +164,7 @@ export interface ScanStorePort {
     lastAnalyzedMessageId: string | null;
     promptVersion: string | null;
     modelName: string | null;
+    analysisScanId?: string | null;
   }): Promise<string>;
   getThread(connectionId: string, gmailThreadId: string): Promise<StoredThreadRow | null>;
   upsertMessage(input: {

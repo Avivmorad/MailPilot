@@ -330,6 +330,7 @@ export function createSupabaseScanStore(): ScanStorePort {
             prompt_version: input.promptVersion,
             model_name: input.modelName,
             last_analyzed_message_id: input.lastAnalyzedMessageId,
+            analysis_scan_id: analysis ? (input.analysisScanId ?? null) : null,
             last_analyzed_at: analysis ? new Date().toISOString() : null,
           },
           { onConflict: "gmail_connection_id,gmail_thread_id" },
@@ -346,7 +347,7 @@ export function createSupabaseScanStore(): ScanStorePort {
       const { data, error } = await db
         .from("email_threads")
         .select(
-          "id, last_analyzed_message_id, prompt_version, summary, importance, importance_reason, status, requires_action, requires_reply, action_type, action_summary, action_reason, waiting_for, waiting_since, urgency, deadline, deadline_text, category, confidence, short_display_title",
+          "id, last_analyzed_message_id, analysis_scan_id, prompt_version, summary, importance, importance_reason, status, requires_action, requires_reply, action_type, action_summary, action_reason, waiting_for, waiting_since, urgency, deadline, deadline_text, category, confidence, short_display_title",
         )
         .eq("gmail_connection_id", connectionId)
         .eq("gmail_thread_id", gmailThreadId)
@@ -360,6 +361,7 @@ export function createSupabaseScanStore(): ScanStorePort {
       const row: StoredThreadRow = {
         id: data.id as string,
         lastAnalyzedMessageId: (data.last_analyzed_message_id as string | null) ?? null,
+        analysisScanId: (data.analysis_scan_id as string | null) ?? null,
         promptVersion: (data.prompt_version as string | null) ?? null,
         analysis: analysisFromRow(data as Record<string, unknown>),
       };

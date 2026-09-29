@@ -16,6 +16,7 @@ Database schema and migrations for MailPilot.
   - `0010_gmail_mailbox_uniqueness.sql` — one active Gmail inbox per MailPilot user.
   - `0011_check_constraints.sql` — status, confidence, and counter checks.
   - `0012_scan_chunk_resume.sql` — scan thread cursor so large lookbacks resume across Hobby invocations.
+  - `20260929174644_analysis_scan_attribution.sql` — durable analysis attribution for resumed scan counters. Apply before deploying the corresponding application changes; existing analysis remains unattributed. This forward migration is drafted locally, not applied or database-verified.
 - Row Level Security is required on every user-accessible table (`user_id = auth.uid()`).
   Scan writes use the service role.
 

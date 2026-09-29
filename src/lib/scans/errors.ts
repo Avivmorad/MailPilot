@@ -69,4 +69,4 @@ export function isMissingScanSchemaError(error: unknown): boolean {
 }
 
 export const SCAN_SCHEMA_MISSING_MESSAGE =
-  "Apply supabase/migrations in order through 0012_scan_chunk_resume.sql in the Supabase SQL Editor, then try Scan now again.";
+  "Apply supabase/migrations in order through 0012_scan_chunk_resume.sql and 20260929174644_analysis_scan_attribution.sql in the Supabase SQL Editor, then try Scan now again.";

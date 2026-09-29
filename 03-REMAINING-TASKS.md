@@ -1,6 +1,6 @@
 # Remaining master-plan tasks
 
-Current EDGE-004 checkpoint, 2026-09-29: local pagination-cycle and interrupted-second-page protections pass 48 targeted and 572 full tests; all seven local gates pass. Real Gmail/database/termination verification remains open; see the root change and blocker reports. This branch is separate from draft PRs #93/#94 and does not merge them.
+Cross-branch checkpoint, 2026-09-29: EDGE-004 is locally verified in draft PR #95 (48 targeted, 572 full tests, seven local gates). Draft PR #93 carries the SEC-008 local fix; draft PR #94 carries SEC-003 and the available-history TASK-002 inventory. GitHub CI and Dependency Review passed on all three current heads, but none is merged or approved; branch-local source remains separate. Live Gmail/database/termination, privacy and oversized-thread retry gates remain open. See the root change and blocker reports.
 
 Execution handoff, 2026-09-29. All 72 original IDs remain tracked. BUG-001/002/003/004/006 are complete locally; BUG-007 is implemented and locally checked but its real termination gate remains open. The owner requested a draft-PR checkpoint and paused-goal handoff to another chat. The full plan is not finished.
 
@@ -21,7 +21,7 @@ The task cards below preserve each original acceptance criterion, affected files
 | ID       | Task                                                            | Depends on                                        | Status                                           | Acceptance / verification                                                  |
 | -------- | --------------------------------------------------------------- | ------------------------------------------------- | ------------------------------------------------ | -------------------------------------------------------------------------- |
 | TASK-001 | Diagnose the two all-failure live scans                         | none                                              | Not started                                      | Original acceptance and verification below                                 |
-| TASK-002 | Complete and reconcile historical context inventory             | none                                              | Not started                                      | Original acceptance and verification below                                 |
+| TASK-002 | Complete and reconcile historical context inventory             | none                                              | Available history inventoried; gap remains       | PR #94: 28 archived ChatGPT pages; older active list unavailable           |
 | BUG-001  | Repair the checkpoint regression test harness                   | none                                              | Complete locally                                 | 35/35 targeted; 459/459 full suite                                         |
 | BUG-003  | Do not disconnect Gmail on transient refresh failure            | none                                              | Complete locally                                 | 27/27 targeted; typecheck PASS                                             |
 | BUG-004  | Release admitted leases when scan preparation fails             | BUG-001                                           | Complete locally                                 | 57/57 targeted; typecheck PASS                                             |
@@ -56,12 +56,12 @@ The task cards below preserve each original acceptance criterion, affected files
 | TASK-014 | Apply the requested scan/workspace UX polish narrowly           | DEC-004, BUG-002/005/006, TASK-012/013            | Not started                                      | Original acceptance and verification below                                 |
 | SEC-001  | Prove two-user database isolation                               | none                                              | Not started                                      | Original acceptance and verification below                                 |
 | SEC-002  | Verify deletion, retention and token revocation end to end      | EDGE-003, TEST-001                                | Not started                                      | Original acceptance and verification below                                 |
-| SEC-003  | Keep secrets and personal data out of browser/logs              | none                                              | Not started                                      | Original acceptance and verification below                                 |
+| SEC-003  | Keep secrets and personal data out of browser/logs              | none                                              | Local fix in draft PR #94; live gate pending     | 33 targeted/570 full; seven local gates and PR CI pass                     |
 | SEC-004  | Address leaked-password protection advisor warning              | DEC-005                                           | Not started                                      | Original acceptance and verification below                                 |
 | SEC-005  | Exercise malicious email/output and unsafe links                | TEST-004                                          | Not started                                      | Original acceptance and verification below                                 |
 | SEC-006  | Verify mutation authorization, abuse bounds and CSRF posture    | TEST-003                                          | Not started                                      | Original acceptance and verification below                                 |
 | SEC-007  | Finish source-security coverage and operational threat review   | SEC-001/003/006                                   | Not started                                      | Original acceptance and verification below                                 |
-| SEC-008  | Bound MIME ingestion and make HTML conversion linear            | none                                              | Not started                                      | Original acceptance and verification below                                 |
+| SEC-008  | Bound MIME ingestion and make HTML conversion linear            | none                                              | Local fix in draft PR #93; policy gate pending   | 37 targeted/588 full; CI pass; oversized retry policy open                 |
 | SEC-009  | Keep abuse budgets and in-flight bounds across cancellation     | BUG-007, explicit retry UX decision               | Not started                                      | Original acceptance and verification below                                 |
 | SEC-010  | Enforce thread ownership for direct feedback INSERT             | TEST-001, OPS-005 before deployment               | Not started                                      | Original acceptance and verification below                                 |
 | TEST-001 | Add real database/RLS and migration tests                       | approved disposable database access               | Not started                                      | Original acceptance and verification below                                 |
@@ -186,6 +186,8 @@ Use the least costly capable profile. Current implementation is performed by Cod
 - **Execution status:** Not started. Retain the original steps, affected systems, acceptance, verification, dependencies and risks above.
 
 ### TASK-002 — Complete and reconcile historical context inventory
+
+- **Execution status:** Available archive pagination completed in draft PR #94: 28 archived ChatGPT pages to the terminal cursor, plus the accessible Codex archive and recent/project chat lists. No new requirement was justified. The recent active list is capped at 50 with no older-page access, so this is not an exhaustive all-time active-chat claim. PR #94 is unmerged; reconcile any subsequently supplied older active history before closing this task.
 
 - **P2 · EPIC-001 · owner: agent + project owner · status: partial · dependencies: none.**
 - **Problem/why:** visible chat lists are bounded, not exhaustive; old promises can be lost or duplicated.
@@ -572,6 +574,8 @@ Use the least costly capable profile. Current implementation is performed by Cod
 
 ### SEC-003 — Keep secrets and personal data out of browser/logs
 
+- **Execution status:** Local Sentry/event allowlist, client-import boundary and synthetic bundle-canary tests are in draft PR #94. Targeted 33/33, full 570/570 and seven local gates passed; GitHub CI and Dependency Review passed on `aa35c46`. Actual deployed-browser, live Sentry and analytics privacy checks remain open. No merge or production verification claimed.
+
 - **P1 · EPIC-004 · owner: agent · status: needs verification · dependencies: none.**
 - **Problem/why:** source guards/redaction exist but browser bundle, error paths and provider response logging need regression coverage.
 - **Evidence/files:** E-12; server-only admin/env/encryption, Sentry privacy and event allowlists; E-09 provider payloads.
@@ -626,6 +630,8 @@ Use the least costly capable profile. Current implementation is performed by Cod
 - **Execution status:** Not started. Retain the original steps, affected systems, acceptance, verification, dependencies and risks above.
 
 ### SEC-008 — Bound MIME ingestion and make HTML conversion linear
+
+- **Execution status:** Local MIME/text/depth/metadata bounds and linear HTML handling are in draft PR #93. Targeted 37/37, full 588/588 and seven local gates passed; GitHub CI and Dependency Review passed on `2439877`. A permanently oversized thread still needs TASK-005's visible non-retryable policy before merge. No live Gmail/SDK-size proof claimed.
 
 - **P1 · EPIC-004 · owner: agent · status: open · dependencies: none. Security severity: medium; source confidence: high.**
 - **Problem/why:** an external sender's HTML-only message with many script/style/noscript tags repeatedly lowercases the whole HTML inside htmlToText. This is quadratic synchronous CPU/allocation work before later AI context caps, which cannot interrupt the parser.

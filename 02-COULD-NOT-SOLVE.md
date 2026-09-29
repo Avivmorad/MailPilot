@@ -1,5 +1,7 @@
 # Unresolved problems and prerequisites
 
+Cross-branch checkpoint, 2026-09-29: draft PRs #93, #94 and #95 now have successful GitHub CI and Dependency Review on their current heads, but no human approval or merge. #93 still requires a non-retryable oversized-thread policy (TASK-005); #94 needs deployed-browser/live telemetry privacy proof; #95 needs real Gmail/database/termination proof. Older active project chats remain unavailable beyond the capped recent list, and Cursor C05 still lacks an authenticated viewport check. These are not resolved by the green checks below.
+
 ## EDGE-004 remaining proof — 2026-09-29
 
 Synthetic tests demonstrate that an interrupted second Gmail page does not commit incomplete discovery and that resume can rediscover safely. They do not prove a real process hard-kill, actual Gmail pagination/quota behavior, or a real Supabase checkpoint write. Those need an approved disposable Gmail account and database under TEST-005/007. Legitimately enormous page walks still restart at page one after a slice deadline; no measured workload has yet justified a partial-page checkpoint migration. If a disposable benchmark shows repeated deadline starvation, add durable page-token/checkpoint state with an upgrade/fresh-schema and RLS rehearsal before deployment. Do not silently truncate discovery.

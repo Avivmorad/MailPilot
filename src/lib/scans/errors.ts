@@ -1,6 +1,7 @@
 export const SCAN_IN_PROGRESS = "SCAN_IN_PROGRESS";
 
 export const SCAN_USER_MESSAGES = {
+  gmail_unavailable: "Gmail is temporarily unavailable. Try again in a few minutes.",
   reauth_required:
     "Gmail access expired. Reconnect Gmail to continue scanning. Your existing summaries were kept.",
   gmail_quota:

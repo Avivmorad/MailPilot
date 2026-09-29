@@ -172,9 +172,21 @@ export async function acquireScanJob(input: {
       now,
     });
     if (input.scanId) {
-      const marked = await markScanJobRunning(job.id, input.scanId, input.workerId);
-      if (!marked) {
-        throw new Error(SCAN_SLICE_IN_PROGRESS);
+      try {
+        const marked = await markScanJobRunning(job.id, input.scanId, input.workerId);
+        if (!marked) {
+          throw new Error(SCAN_SLICE_IN_PROGRESS);
+        }
+      } catch (error) {
+        try {
+          await finishScanJob(job.id, "FAILED", "scan_preparation_failed", input.workerId);
+        } catch (cleanupError) {
+          throw new AggregateError(
+            [error, cleanupError],
+            "Scan admission and lease cleanup failed",
+          );
+        }
+        throw error;
       }
     }
     return job.id;

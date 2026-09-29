@@ -6,7 +6,11 @@ import { persistDigestAfterScan } from "@/lib/digest/build-digest";
 import { emitProductEvent } from "@/lib/observability/events";
 import { captureSafeException } from "@/lib/observability/sentry-report";
 import { createGmailApiForConnection } from "@/lib/gmail/client";
-import { DISPATCH_LEASE_SECONDS, SCAN_CONTINUE_RETRY_MS } from "@/lib/scans/dispatch-budget";
+import {
+  DISPATCH_LEASE_SECONDS,
+  SCAN_CONTINUE_RETRY_MS,
+  SCAN_WORK_BUDGET_MS,
+} from "@/lib/scans/dispatch-budget";
 import { createGmailScanPort } from "@/lib/scans/gmail-port";
 import {
   admitScanSlice,
@@ -22,6 +26,8 @@ import { EMPTY_SCAN_COUNTERS, type ScanRunResult } from "@/lib/scans/types";
 export const continueScanRequestSchema = z.object({
   scanId: z.string().uuid(),
 });
+
+export const SCAN_CONTINUE_TIMEOUT_MS = 10_000;
 
 export function scanAppBaseUrl(
   source: Record<string, string | undefined> = process.env,
@@ -53,6 +59,7 @@ export async function scheduleScanContinuation(
         "content-type": "application/json",
       },
       body: JSON.stringify({ scanId }),
+      signal: AbortSignal.timeout(SCAN_CONTINUE_TIMEOUT_MS),
     });
     return response.ok;
   } catch {
@@ -66,7 +73,13 @@ export async function scheduleContinueFallback(
 ): Promise<void> {
   const db = createAdminClient();
   const retryAt = new Date(now.getTime() + SCAN_CONTINUE_RETRY_MS).toISOString();
-  await db.from("gmail_connections").update({ next_scan_at: retryAt }).eq("id", connectionId);
+  const { error } = await db
+    .from("gmail_connections")
+    .update({ next_scan_at: retryAt })
+    .eq("id", connectionId);
+  if (error) {
+    throw new Error("Failed to schedule scan continuation fallback");
+  }
 }
 
 export async function chainIfContinued(value: unknown): Promise<void> {
@@ -89,6 +102,7 @@ export async function chainIfContinued(value: unknown): Promise<void> {
 }
 
 export async function continueScanRun(scanId: string): Promise<ScanRunResult> {
+  const requestBudget = { deadlineAt: Date.now() + SCAN_WORK_BUDGET_MS };
   const store = createSupabaseScanStore();
   const status = await store.getScanStatus(scanId);
   const checkpoint = await store.getScanCheckpoint(scanId);
@@ -127,16 +141,16 @@ export async function continueScanRun(scanId: string): Promise<ScanRunResult> {
     throw error;
   }
 
-  const api = await createGmailApiForConnection(checkpoint.connectionId);
-  const prepared = await resumeGmailScan({
-    scanId,
-    gmailEmail: api.gmailEmail,
-    gmail: createGmailScanPort(api.gmail, checkpoint.connectionId),
-    store,
-    provider: createEmailTriageProvider(),
-    modelName: getTriageModelName(),
-  });
   try {
+    const api = await createGmailApiForConnection(checkpoint.connectionId, requestBudget);
+    const prepared = await resumeGmailScan({
+      scanId,
+      gmailEmail: api.gmailEmail,
+      gmail: createGmailScanPort(api.gmail, checkpoint.connectionId, requestBudget),
+      store,
+      provider: createEmailTriageProvider(),
+      modelName: getTriageModelName(),
+    });
     const result = await executeGmailScan({
       ...prepared,
       jobLease: { jobId, workerId },

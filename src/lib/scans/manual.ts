@@ -18,7 +18,7 @@ import {
   scanUserMessage,
 } from "@/lib/scans/errors";
 import { scanHasRemainingWork } from "@/lib/scans/checkpoint";
-import { DISPATCH_LEASE_SECONDS } from "@/lib/scans/dispatch-budget";
+import { DISPATCH_LEASE_SECONDS, SCAN_WORK_BUDGET_MS } from "@/lib/scans/dispatch-budget";
 import {
   acquireScanJob,
   admitScanSlice,
@@ -81,6 +81,7 @@ export async function beginManualInitialScan(
   triggerType: "INITIAL" | "MANUAL";
   execute: () => Promise<ScanRunResult>;
 }> {
+  const requestBudget = { deadlineAt: Date.now() + SCAN_WORK_BUDGET_MS };
   if (!isGmailConfigured()) {
     throw new ScanRequestError(503, "gmail_not_configured", "Gmail OAuth is not configured.");
   }
@@ -95,7 +96,7 @@ export async function beginManualInitialScan(
     gmailEmail: string;
   };
   try {
-    connection = await createGmailApiForUser(userId);
+    connection = await createGmailApiForUser(userId, requestBudget);
   } catch (error) {
     if (error instanceof GmailConnectError) {
       throw new ScanRequestError(409, error.reason, scanUserMessage(error.reason, error.message));
@@ -121,14 +122,19 @@ export async function beginManualInitialScan(
       workerId,
       leaseExpiresAt,
     }).catch(remapJobAdmissionError);
-    const prepared = await resumeGmailScan({
-      scanId: checkpoint.scanId,
-      gmailEmail: connection.gmailEmail,
-      gmail: createGmailScanPort(connection.gmail, connection.connectionId),
-      store,
-      provider: createEmailTriageProvider(),
-      modelName: getTriageModelName(),
-    });
+    let prepared: Awaited<ReturnType<typeof resumeGmailScan>>;
+    try {
+      prepared = await resumeGmailScan({
+        scanId: checkpoint.scanId,
+        gmailEmail: connection.gmailEmail,
+        gmail: createGmailScanPort(connection.gmail, connection.connectionId, requestBudget),
+        store,
+        provider: createEmailTriageProvider(),
+        modelName: getTriageModelName(),
+      });
+    } catch (error) {
+      return failManualScanPreparation(jobId, workerId, error);
+    }
     return {
       scanId: prepared.scanId,
       triggerType: checkpoint.triggerType === "INITIAL" ? "INITIAL" : "MANUAL",
@@ -165,31 +171,28 @@ export async function beginManualInitialScan(
     leaseExpiresAt,
   }).catch(remapJobAdmissionError);
 
-  const prepared = await openGmailScan({
-    userId,
-    connectionId: connection.connectionId,
-    gmailEmail: connection.gmailEmail,
-    lookbackDays,
-    triggerType,
-    // Manual Scan now always honors the chosen lookback window (content-hash
-    // still skips unchanged threads). Scheduled scans stay incremental.
-    forceLookback: true,
-    gmail: createGmailScanPort(connection.gmail, connection.connectionId),
-    store,
-    provider: createEmailTriageProvider(),
-    modelName: getTriageModelName(),
-  }).catch(async (error) => {
-    await finishScanJob(
-      jobId,
-      "FAILED",
-      error instanceof Error ? error.message : "scan_failed",
-      workerId,
-    ).catch(() => undefined);
-    remapScanStartError(error);
-  });
-  const marked = await markScanJobRunning(jobId, prepared.scanId, workerId);
-  if (!marked) {
-    throw new ScanRequestError(409, "scan_in_progress", scanUserMessage("scan_in_progress"));
+  let prepared: Awaited<ReturnType<typeof openGmailScan>>;
+  try {
+    prepared = await openGmailScan({
+      userId,
+      connectionId: connection.connectionId,
+      gmailEmail: connection.gmailEmail,
+      lookbackDays,
+      triggerType,
+      // Manual Scan now always honors the chosen lookback window (content-hash
+      // still skips unchanged threads). Scheduled scans stay incremental.
+      forceLookback: true,
+      gmail: createGmailScanPort(connection.gmail, connection.connectionId, requestBudget),
+      store,
+      provider: createEmailTriageProvider(),
+      modelName: getTriageModelName(),
+    });
+    const marked = await markScanJobRunning(jobId, prepared.scanId, workerId);
+    if (!marked) {
+      throw new ScanRequestError(409, "scan_in_progress", scanUserMessage("scan_in_progress"));
+    }
+  } catch (error) {
+    return failManualScanPreparation(jobId, workerId, error);
   }
 
   return {
@@ -204,6 +207,21 @@ export async function beginManualInitialScan(
         prepared,
       }),
   };
+}
+
+async function failManualScanPreparation(
+  jobId: string,
+  workerId: string,
+  error: unknown,
+): Promise<never> {
+  try {
+    // The worker predicate prevents cleanup from releasing a successor's lease.
+    // Keep an existing checkpoint RUNNING so a later slice can resume it.
+    await finishScanJob(jobId, "FAILED", "scan_preparation_failed", workerId);
+  } catch (cleanupError) {
+    throw new AggregateError([error, cleanupError], "Scan preparation and lease cleanup failed");
+  }
+  return remapScanStartError(error);
 }
 
 async function runAdmittedScanSlice(input: {

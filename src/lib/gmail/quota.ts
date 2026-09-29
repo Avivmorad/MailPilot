@@ -1,3 +1,9 @@
+import {
+  assertGmailBudget,
+  waitForGmailBudget,
+  type GmailRequestBudget,
+} from "@/lib/gmail/request-budget";
+
 const WINDOW_MS = 60_000;
 const DEFAULT_LIMIT = 12_000;
 
@@ -36,7 +42,7 @@ export class GmailMinuteQuota {
    */
   async acquire(
     units: number,
-    options: {
+    options: GmailRequestBudget & {
       now?: () => number;
       sleep?: (ms: number) => Promise<void>;
     } = {},
@@ -45,11 +51,10 @@ export class GmailMinuteQuota {
       return;
     }
     const nowFn = options.now ?? Date.now;
-    const sleep =
-      options.sleep ?? ((ms: number) => new Promise((resolve) => setTimeout(resolve, ms)));
     const cap = Math.max(units, this.limit);
 
     for (;;) {
+      assertGmailBudget(options);
       const now = nowFn();
       this.prune(now);
       const used = this.events.reduce((sum, event) => sum + event.units, 0);
@@ -59,7 +64,7 @@ export class GmailMinuteQuota {
       }
       const oldest = this.events[0];
       const waitMs = oldest ? Math.max(50, oldest.at + this.windowMs - now + 25) : this.windowMs;
-      await sleep(waitMs);
+      await waitForGmailBudget(waitMs, options, options.sleep);
     }
   }
 

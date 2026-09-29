@@ -20,6 +20,7 @@ type Filter =
 const mockState = {
   jobs: [] as JobRow[],
   nextId: 1,
+  nextMark: null as "error" | "missing" | "successor" | null,
 };
 
 function columnValue(row: JobRow, column: string): unknown {
@@ -117,6 +118,20 @@ function createBuilder() {
       return { data: { id: row.id, attempt: row.attempt }, error: null };
     }
 
+    if (action === "update" && patch?.status === "RUNNING" && mockState.nextMark) {
+      const failure = mockState.nextMark;
+      mockState.nextMark = null;
+      if (failure === "error") {
+        return { data: null, error: { message: "synthetic mark failure" } };
+      }
+      if (failure === "successor") {
+        const job = mockState.jobs[0];
+        job.locked_by = "successor-worker";
+        job.status = "RUNNING";
+        job.scan_run_id = "scan-1";
+      }
+      return { data: null, error: null };
+    }
     const matched = mockState.jobs.filter((job) => matches(job, filters));
     if (action === "update" && patch) {
       for (const job of matched) {
@@ -186,6 +201,7 @@ describe("scan slice admission", () => {
   beforeEach(() => {
     mockState.jobs = [];
     mockState.nextId = 1;
+    mockState.nextMark = null;
   });
 
   it("creates a job when no active slice holds the connection", async () => {
@@ -204,6 +220,41 @@ describe("scan slice admission", () => {
       scan_run_id: "scan-1",
       locked_by: "continue:scan-1:abc",
     });
+  });
+
+  it.each(["error", "missing"] as const)(
+    "releases a just-created job when attaching its checkpoint returns %s",
+    async (failure) => {
+      const { admitScanSlice } = await import("@/lib/scans/jobs");
+      mockState.nextMark = failure;
+      await expect(
+        admitScanSlice({
+          connectionId: "conn-1",
+          scanId: "scan-1",
+          workerId: "original-worker",
+          leaseExpiresAt: leaseLive,
+          now: t0,
+        }),
+      ).rejects.toThrow(
+        failure === "error" ? "Failed to mark scan job running" : "scan_slice_in_progress",
+      );
+      expect(mockState.jobs[0]).toMatchObject({ status: "FAILED", locked_by: null });
+    },
+  );
+
+  it("does not release a successor's lease when attaching the checkpoint loses ownership", async () => {
+    const { admitScanSlice } = await import("@/lib/scans/jobs");
+    mockState.nextMark = "successor";
+    await expect(
+      admitScanSlice({
+        connectionId: "conn-1",
+        scanId: "scan-1",
+        workerId: "original-worker",
+        leaseExpiresAt: leaseLive,
+        now: t0,
+      }),
+    ).rejects.toThrow("scan_slice_in_progress");
+    expect(mockState.jobs[0]).toMatchObject({ status: "RUNNING", locked_by: "successor-worker" });
   });
 
   it("adopts the handed-off job for the same scan id", async () => {

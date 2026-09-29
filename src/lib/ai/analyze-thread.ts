@@ -6,7 +6,14 @@ export type { ThreadAnalysisInput } from "@/lib/ai/types";
 export { threadAnalysisInputFromContext } from "@/lib/ai/types";
 
 export interface EmailTriageProvider {
-  analyzeThread(input: ThreadAnalysisInput): Promise<ThreadAnalysis>;
+  analyzeThread(
+    input: ThreadAnalysisInput,
+    options?: TriageRequestOptions,
+  ): Promise<ThreadAnalysis>;
+}
+
+export interface TriageRequestOptions {
+  signal?: AbortSignal;
 }
 
 export class ThreadTriageError extends Error {
@@ -29,10 +36,11 @@ export type TriageOutcome = { ok: true; analysis: ThreadAnalysis } | { ok: false
 export async function analyzeThread(
   input: ThreadAnalysisInput,
   provider: EmailTriageProvider,
+  options: TriageRequestOptions = {},
 ): Promise<ThreadAnalysis> {
   let raw: ThreadAnalysis;
   try {
-    raw = await provider.analyzeThread(input);
+    raw = await provider.analyzeThread(input, options);
   } catch (error) {
     throw new ThreadTriageError("provider", "Email triage provider failed", error);
   }
@@ -65,9 +73,10 @@ export async function analyzeThread(
 export async function tryAnalyzeThread(
   input: ThreadAnalysisInput,
   provider: EmailTriageProvider,
+  options: TriageRequestOptions = {},
 ): Promise<TriageOutcome> {
   try {
-    const analysis = await analyzeThread(input, provider);
+    const analysis = await analyzeThread(input, provider, options);
     return { ok: true, analysis };
   } catch (error) {
     return { ok: false, error: error instanceof Error ? error : new Error("triage failed") };

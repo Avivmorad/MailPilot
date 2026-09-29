@@ -96,7 +96,8 @@ describe("scanProgressView", () => {
       }),
     ).toEqual({
       percent: 95,
-      label: "Checked 20 of 20 conversations (partially completed, retries queued)",
+      label:
+        "Checked 20 of 20 conversations. Some could not be processed. Run Scan now again to try those.",
       indeterminate: false,
     });
   });
@@ -157,6 +158,43 @@ describe("scanProgressView", () => {
     ).toEqual({
       percent: 7,
       label: "Paused: Gmail reconnect required after 2 of 30 conversations.",
+      indeterminate: false,
+    });
+  });
+
+  it("reports an empty successful scan as complete", () => {
+    expect(
+      scanProgressView({ threadsDiscovered: 0, threadsChecked: 0, status: "SUCCESS" }),
+    ).toEqual({
+      percent: 100,
+      label: "No conversations in this window.",
+      indeterminate: false,
+    });
+  });
+
+  it("does not claim a zero-thread partial scan succeeded or queued retries", () => {
+    const view = scanProgressView({
+      threadsDiscovered: 0,
+      threadsChecked: 0,
+      status: "PARTIAL",
+      errorCode: "partial_thread_failures",
+    });
+    expect(view.indeterminate).toBe(false);
+    expect(view.percent).toBe(0);
+    expect(view.label).not.toMatch(/retries queued/i);
+    expect(view.label).toMatch(/Run Scan now again/i);
+  });
+
+  it("keeps a zero-thread failure determinate", () => {
+    const view = scanProgressView({
+      threadsDiscovered: 0,
+      threadsChecked: 0,
+      status: "FAILED",
+      errorCode: "cancelled",
+    });
+    expect(view).toEqual({
+      percent: 0,
+      label: "Scan stopped before conversations were checked.",
       indeterminate: false,
     });
   });

@@ -4,6 +4,7 @@ import type { HistoryListResult } from "@/lib/gmail/history";
 import type { MailPilotLogicalLabel } from "@/lib/gmail/constants";
 import type { ParsedGmailMessage } from "@/lib/gmail/parser";
 import type { InitialLookbackDays } from "@/lib/scans/lookback";
+import type { GmailRequestBudget } from "@/lib/gmail/request-budget";
 
 export interface ScanCounters {
   messagesDiscovered: number;
@@ -67,6 +68,8 @@ export interface ConnectionScanState {
 }
 
 export interface ScanGmailPort {
+  /** Shared by preparation and execution; never restart the invocation clock. */
+  requestBudget?: GmailRequestBudget;
   listMessageRefs(query: string): Promise<Array<{ id: string; threadId: string }>>;
   listHistoryChanges(startHistoryId: string): Promise<HistoryListResult>;
   fetchThread(threadId: string): Promise<ParsedGmailMessage[]>;

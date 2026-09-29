@@ -7,10 +7,12 @@ import {
 } from "@/lib/gmail/history";
 import { GMAIL_UNITS } from "@/lib/gmail/quota";
 import { withGmailRetry } from "@/lib/gmail/retry";
+import type { GmailRequestBudget } from "@/lib/gmail/request-budget";
 
 export async function listHistoryChanges(
   gmail: gmail_v1.Gmail,
   startHistoryId: string,
+  budget: GmailRequestBudget = {},
 ): Promise<HistoryListResult> {
   const records: Array<{ messagesAdded?: gmail_v1.Schema$History["messagesAdded"] }> = [];
   let pageToken: string | undefined;
@@ -18,15 +20,18 @@ export async function listHistoryChanges(
   try {
     do {
       const res: { data: gmail_v1.Schema$ListHistoryResponse } = await withGmailRetry(
-        () =>
-          gmail.users.history.list({
-            userId: "me",
-            startHistoryId,
-            historyTypes: ["messageAdded"],
-            maxResults: 100,
-            pageToken,
-          }),
-        { units: GMAIL_UNITS.historyList },
+        (options) =>
+          gmail.users.history.list(
+            {
+              userId: "me",
+              startHistoryId,
+              historyTypes: ["messageAdded"],
+              maxResults: 100,
+              pageToken,
+            },
+            options,
+          ),
+        { ...budget, units: GMAIL_UNITS.historyList },
       );
       latestHistoryId = res.data.historyId ?? latestHistoryId;
       for (const item of res.data.history ?? []) {

@@ -3,6 +3,7 @@ import type { gmail_v1 } from "googleapis";
 import { normalizeEmail } from "@/lib/gmail/addresses";
 import { GMAIL_UNITS } from "@/lib/gmail/quota";
 import { withGmailRetry } from "@/lib/gmail/retry";
+import type { GmailRequestBudget } from "@/lib/gmail/request-budget";
 
 const MAX_USER_EMAILS = 25;
 
@@ -37,10 +38,17 @@ export function sendAsEmailsFromList(
   return emails;
 }
 
-export async function listSendAsEmails(gmail: gmail_v1.Gmail): Promise<string[]> {
-  const res = await withGmailRetry(() => gmail.users.settings.sendAs.list({ userId: "me" }), {
-    units: GMAIL_UNITS.sendAsList,
-  });
+export async function listSendAsEmails(
+  gmail: gmail_v1.Gmail,
+  budget: GmailRequestBudget = {},
+): Promise<string[]> {
+  const res = await withGmailRetry(
+    (options) => gmail.users.settings.sendAs.list({ userId: "me" }, options),
+    {
+      ...budget,
+      units: GMAIL_UNITS.sendAsList,
+    },
+  );
   return sendAsEmailsFromList(res.data);
 }
 

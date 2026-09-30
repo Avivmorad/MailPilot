@@ -31,6 +31,7 @@ import {
   processInitialScan,
   resumeGmailScan,
   shouldReuseStoredAnalysis,
+  triageFailureCode,
 } from "@/lib/scans/process-scan";
 import { mergePendingFailedThreadIds } from "@/lib/scans/thread-failures";
 import type {
@@ -1803,6 +1804,24 @@ describe("openGmailScan admission", () => {
     };
     await expect(admit(store)).rejects.toThrow("settings unavailable");
     expect(store.scanRuns).toHaveLength(0);
+  });
+});
+
+describe("triageFailureCode", () => {
+  it("records provider HTTP status and timeouts without the message text", () => {
+    expect(
+      triageFailureCode(Object.assign(new Error("NVIDIA triage request failed"), { status: 410 })),
+    ).toBe("http_410");
+    expect(
+      triageFailureCode({
+        code: "provider",
+        message: "Email triage provider failed",
+        cause: { code: "provider", message: "NVIDIA triage request timed out" },
+      }),
+    ).toBe("provider_timeout");
+    expect(triageFailureCode(new Error("Failed to upsert email thread: check constraint"))).toBe(
+      "failed_to_upsert_email_thread",
+    );
   });
 });
 

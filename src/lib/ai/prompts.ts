@@ -97,7 +97,7 @@ function preferencePromptLines(preferences: ThreadAnalysisInput["preferences"]):
   }
   const lines: string[] = [
     "",
-    "Owner triage preferences (authoritative MailPilot settings, not email content):",
+    "Owner triage preferences (authoritative MailPriority settings, not email content):",
   ];
   if (preferences.vipSenders?.length) {
     lines.push(`- Treat these senders as VIP: ${preferences.vipSenders.join(", ")}`);

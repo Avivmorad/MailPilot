@@ -67,6 +67,11 @@ const nvidiaEnvSchema = z.object({
   ),
 });
 
+const telegramEnvSchema = z.object({
+  TELEGRAM_BOT_TOKEN: z.string().min(1),
+  TELEGRAM_CHAT_ID: z.string().min(1),
+});
+
 const serverEnvSchema = gmailEnvSchema
   .extend({
     CRON_SECRET: z.string().min(1),
@@ -104,6 +109,7 @@ export type SupabaseAdminEnv = z.infer<typeof supabaseAdminSchema>;
 export type GmailEnv = z.infer<typeof gmailEnvSchema>;
 export type GeminiEnv = z.infer<typeof geminiEnvSchema>;
 export type NvidiaEnv = z.infer<typeof nvidiaEnvSchema>;
+export type TelegramEnv = z.infer<typeof telegramEnvSchema>;
 export type ServerEnv = z.infer<typeof serverEnvSchema>;
 
 function formatIssues(error: z.ZodError): string {
@@ -164,6 +170,16 @@ export function isGeminiConfigured(source: Record<string, unknown> = process.env
 
 export function isNvidiaConfigured(source: Record<string, unknown> = process.env): boolean {
   return typeof source.NVIDIA_API_KEY === "string" && source.NVIDIA_API_KEY.trim().length > 0;
+}
+
+export function parseTelegramEnv(source: Record<string, unknown> = process.env): TelegramEnv {
+  const parsed = telegramEnvSchema.safeParse(source);
+  if (!parsed.success) throwInvalid("Telegram", parsed.error);
+  return parsed.data;
+}
+
+export function isTelegramConfigured(source: Record<string, unknown> = process.env): boolean {
+  return telegramEnvSchema.safeParse(source).success;
 }
 
 /** NVIDIA Build is the primary triage provider when its API key is set. */

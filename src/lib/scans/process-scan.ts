@@ -16,6 +16,7 @@ import { isGmailAuthError, isGmailQuotaError } from "@/lib/gmail/retry";
 import {
   assertGmailBudget,
   GmailDeadlineError,
+  GmailRequestTimeoutError,
   withGmailRequest,
 } from "@/lib/gmail/request-budget";
 import { isAiUnavailableError, SCAN_IN_PROGRESS, scanUserMessage } from "@/lib/scans/errors";
@@ -98,6 +99,81 @@ function mailpilotIdsOnMessage(
 ): string[] {
   const ours = new Set(labelMap.values());
   return labelIds.filter((id) => ours.has(id));
+}
+
+export function triageFailureCode(error: unknown): string {
+  if (error instanceof GmailRequestTimeoutError) {
+    return "request_timeout";
+  }
+  if (error instanceof GmailDeadlineError) {
+    return "slice_deadline";
+  }
+  const status = nestedNumberField(error, "status");
+  if (status) {
+    return `http_${status}`;
+  }
+  if (nestedMessageMatches(error, /timed out/i)) {
+    return "provider_timeout";
+  }
+  const code = deepestTriageCode(error);
+  if (code) {
+    return code;
+  }
+  if (error instanceof Error && /^[A-Za-z]+$/.test(error.name)) {
+    const head = error.message.split(":")[0]?.trim() ?? "";
+    const slug = head
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_|_$/g, "")
+      .slice(0, 60);
+    if (slug && slug !== "error") {
+      return slug;
+    }
+    return error.name;
+  }
+  return "unknown";
+}
+
+function deepestTriageCode(error: unknown): string | undefined {
+  let found: string | undefined;
+  let current: unknown = error;
+  for (let depth = 0; current && typeof current === "object" && depth < 5; depth += 1) {
+    const record = current as Record<string, unknown>;
+    if (record.code === "schema" || record.code === "invariants" || record.code === "provider") {
+      found = record.code;
+    }
+    current = record.cause;
+  }
+  return found;
+}
+
+function nestedNumberField(error: unknown, key: string, depth = 0): number | undefined {
+  if (!error || typeof error !== "object" || depth > 4) {
+    return undefined;
+  }
+  const record = error as Record<string, unknown>;
+  const response = record.response;
+  if (response && typeof response === "object") {
+    const responseStatus = (response as { status?: unknown }).status;
+    if (typeof responseStatus === "number") {
+      return responseStatus;
+    }
+  }
+  if (typeof record[key] === "number") {
+    return record[key];
+  }
+  return nestedNumberField(record.cause, key, depth + 1);
+}
+
+function nestedMessageMatches(error: unknown, pattern: RegExp, depth = 0): boolean {
+  if (!error || typeof error !== "object" || depth > 4) {
+    return false;
+  }
+  const record = error as Record<string, unknown>;
+  if (typeof record.message === "string" && pattern.test(record.message)) {
+    return true;
+  }
+  return nestedMessageMatches(record.cause, pattern, depth + 1);
 }
 
 export function shouldReuseStoredAnalysis(
@@ -650,6 +726,11 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
                   return;
                 }
                 if (!outcome.ok) {
+                  emitProductEvent({
+                    type: "thread.analysis_failed",
+                    scanId,
+                    errorCode: triageFailureCode(outcome.error),
+                  });
                   failedGmailThreadIds.push(gmailThreadId);
                   const threadId = await store.upsertThread({
                     userId,
@@ -756,6 +837,11 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
                 stopAdmission = true;
                 throw error;
               }
+              emitProductEvent({
+                type: "thread.analysis_failed",
+                scanId,
+                errorCode: triageFailureCode(error),
+              });
               failedGmailThreadIds.push(gmailThreadId);
               countTowardCursor = true;
             } finally {

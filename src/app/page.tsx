@@ -111,7 +111,7 @@ export default function Home() {
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-4">
           <Link
             href="/"
-            aria-label="MailPilot home"
+            aria-label="MailPriority home"
             className="focus-visible:ring-ring rounded-lg focus-visible:ring-3 focus-visible:outline-none"
           >
             <Logo />
@@ -142,7 +142,7 @@ export default function Home() {
                 Your inbox, <span className="text-primary">under control.</span>
               </h1>
               <p className="text-muted-foreground mt-6 max-w-lg text-lg leading-relaxed text-pretty">
-                MailPilot turns busy email threads into a short list of Actions, what you&apos;re
+                MailPriority turns busy email threads into a short list of Actions, what you&apos;re
                 waiting on, and what you only need to know.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
@@ -200,7 +200,7 @@ export default function Home() {
                 How a morning inbox looks
               </h2>
               <p className="text-muted-foreground mt-2">
-                After a scan, MailPilot does not dump 32 emails into one list. It keeps tasks,
+                After a scan, MailPriority does not dump 32 emails into one list. It keeps tasks,
                 pending, and FYI apart.
               </p>
             </div>
@@ -288,7 +288,7 @@ export default function Home() {
             >
               Terms
             </Link>
-            <span>MailPilot. Not affiliated with Google.</span>
+            <span>MailPriority. Not affiliated with Google.</span>
           </span>
         </div>
       </footer>

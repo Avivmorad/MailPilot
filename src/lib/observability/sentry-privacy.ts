@@ -151,7 +151,7 @@ export function sanitizeSentryEvent(event: Event): Event | null {
         ? event.timestamp
         : undefined,
     platform: "javascript",
-    message: event.message || event.logentry ? "MailPilot error" : undefined,
+    message: event.message || event.logentry ? "MailPriority error" : undefined,
     exception: event.exception
       ? {
           values: event.exception.values?.length ? [{ type: "Error", value: "[redacted]" }] : [],

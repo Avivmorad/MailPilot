@@ -55,7 +55,9 @@ export function StudioWorkspace() {
         <Logo />
         <p className="text-muted-foreground hidden text-sm md:block">
           Monday, Sep 28
-          <span className="text-foreground mx-2 font-medium">{countLane(items, "open")} open</span>
+          <span className="text-foreground mx-2 font-medium">
+            {countLane(items, "open")} {countLane(items, "open") === 1 ? "action" : "actions"}
+          </span>
           since the last scan
         </p>
         <div className="ml-auto flex items-center gap-2">

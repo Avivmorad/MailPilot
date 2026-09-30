@@ -535,7 +535,7 @@ export function InitialScanCard({
         <CardTitle>{incremental ? "Scan inbox" : "Initial scan"}</CardTitle>
         <CardDescription>
           {busy
-            ? "Checking conversations in the background. You can keep using MailPilot."
+            ? "Checking conversations in the background. You can keep using MailPriority."
             : "Choose how far back to read. Unchanged threads are skipped."}
         </CardDescription>
       </CardHeader>

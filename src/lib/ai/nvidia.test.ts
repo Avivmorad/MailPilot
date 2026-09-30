@@ -1,6 +1,6 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { NvidiaEmailTriageProvider } from "@/lib/ai/nvidia";
+import { generateWithNvidia, NvidiaEmailTriageProvider } from "@/lib/ai/nvidia";
 import type { ThreadAnalysis } from "@/lib/ai/schemas";
 import type { ThreadAnalysisInput } from "@/lib/ai/types";
 
@@ -39,6 +39,60 @@ const validPayload: ThreadAnalysis = {
   confidence: 0.8,
   short_display_title: "Reply requested",
 };
+
+describe("generateWithNvidia", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  async function captureRequest(model: string): Promise<Record<string, unknown>> {
+    let body: Record<string, unknown> = {};
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (_url: string, init: RequestInit) => {
+        body = JSON.parse(String(init.body)) as Record<string, unknown>;
+        return Response.json({
+          choices: [
+            {
+              message: {
+                content: '{"status":"action_required"}',
+                reasoning_content: "thinking out loud",
+              },
+            },
+          ],
+        });
+      }),
+    );
+
+    const content = await generateWithNvidia({
+      apiKey: "nvapi-test",
+      baseUrl: "https://integrate.api.nvidia.com/v1/",
+      model,
+      systemInstruction: "system",
+      userPrompt: "user",
+      responseJsonSchema: { type: "object" },
+      signal: new AbortController().signal,
+    });
+    expect(content).toBe('{"status":"action_required"}');
+    return body;
+  }
+
+  it("gives gpt-oss a full token budget and low reasoning effort", async () => {
+    const body = await captureRequest("openai/gpt-oss-20b");
+    expect(body).toMatchObject({
+      model: "openai/gpt-oss-20b",
+      max_tokens: 4096,
+      reasoning_effort: "low",
+      response_format: { type: "json_object" },
+    });
+  });
+
+  it("does not send reasoning_effort for other NVIDIA models", async () => {
+    const body = await captureRequest("nvidia/custom");
+    expect(body).toMatchObject({ model: "nvidia/custom", max_tokens: 4096 });
+    expect(body).not.toHaveProperty("reasoning_effort");
+  });
+});
 
 describe("NvidiaEmailTriageProvider", () => {
   it("parses a JSON chat completion into a thread analysis", async () => {

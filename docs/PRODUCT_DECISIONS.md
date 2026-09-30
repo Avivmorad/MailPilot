@@ -124,7 +124,9 @@ Implementation:
 
 - Env: `NVIDIA_API_KEY`, `NVIDIA_MODEL` (default `openai/gpt-oss-20b`;
   `meta/llama-3.3-70b-instruct` returned HTTP 410 after its 2026-08-26 end of life),
-  optional `NVIDIA_BASE_URL`. Fallback: `GEMINI_API_KEY`, `GEMINI_MODEL` (default
+  optional `NVIDIA_BASE_URL`. gpt-oss requests use `reasoning_effort: low` and
+  `max_tokens: 4096` so the reasoning trace does not consume the completion
+  budget before the JSON object. Fallback: `GEMINI_API_KEY`, `GEMINI_MODEL` (default
   in `.env.example`: `gemini-3.1-flash-lite`). Do not hard-code either model in
   source. Full server env accepts NVIDIA alone, Gemini alone, or both.
 - Provider classes: `NvidiaEmailTriageProvider` and `GeminiEmailTriageProvider`

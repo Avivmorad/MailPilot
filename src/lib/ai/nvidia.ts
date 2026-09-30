@@ -14,6 +14,12 @@ import { getNvidiaEnv, type NvidiaEnv } from "@/lib/config/env";
 
 const MAX_ATTEMPTS = 2;
 export const NVIDIA_REQUEST_TIMEOUT_MS = 25_000;
+/** NVIDIA's gpt-oss chat API allows at most 4096 completion tokens. */
+const NVIDIA_MAX_OUTPUT_TOKENS = 4096;
+
+function isGptOssModel(model: string): boolean {
+  return model.toLowerCase().includes("gpt-oss");
+}
 
 export type NvidiaGenerateFn = (params: {
   apiKey: string;
@@ -65,7 +71,11 @@ export async function generateWithNvidia(params: Parameters<NvidiaGenerateFn>[0]
     body: JSON.stringify({
       model: params.model,
       temperature: 0,
-      max_tokens: 2048,
+      // gpt-oss spends this budget on reasoning_content first. The hosted API
+      // defaults to medium effort, which can exhaust a smaller cap and return
+      // an empty message.content. Low effort keeps the JSON in content.
+      max_tokens: NVIDIA_MAX_OUTPUT_TOKENS,
+      ...(isGptOssModel(params.model) ? { reasoning_effort: "low" } : {}),
       response_format: { type: "json_object" },
       messages: [
         {

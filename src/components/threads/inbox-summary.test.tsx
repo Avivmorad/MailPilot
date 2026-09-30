@@ -31,7 +31,7 @@ describe("InboxSummary", () => {
       />,
     );
 
-    expect(screen.getByText(/leftover For You/i)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Needs action" })).toBeInTheDocument();
+    expect(screen.getByText(/useful updates/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Actions" })).toBeInTheDocument();
   });
 });

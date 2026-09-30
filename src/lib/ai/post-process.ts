@@ -270,7 +270,7 @@ export function assertThreadAnalysisInvariants(analysis: ThreadAnalysis): void {
       analysis.status === "resolved") &&
     analysis.requires_action
   ) {
-    throw new Error("Invariant A: Summary/Ignored require requires_action=false");
+    throw new Error("Invariant A: For You/Ignored require requires_action=false");
   }
 }
 

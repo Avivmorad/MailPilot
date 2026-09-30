@@ -66,7 +66,7 @@ describe("formatDashboardChangeLine", () => {
         staleWaiting: 0,
         overdueOpen: 0,
       }),
-    ).toBe("Since last scan: 3 new actions, 2 completed, 1 reopened.");
+    ).toBe("Since last scan: 3 new actions, 2 closed, 1 reopened.");
   });
 
   it("returns a quiet empty state when a scan exists but nothing moved", () => {

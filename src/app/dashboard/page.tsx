@@ -46,7 +46,7 @@ function dashboardDescription({
   if (latestStatus === "RUNNING") {
     return "A scan is running. You can keep working while it classifies mail.";
   }
-  return "Actions, what is pending, and what happened.";
+  return "Actions, Pending, and For You.";
 }
 
 function nextStep({
@@ -89,9 +89,9 @@ function nextStep({
   }
   return {
     title: "Inbox is clear",
-    body: "No actions. Check Mail summary for leftover For You mail, or Pending if you already acted.",
+    body: "No actions. Check For You for useful updates, or Pending if you already acted.",
     href: "/mail?tab=summary",
-    label: "Open Mail summary",
+    label: "View For You",
   };
 }
 

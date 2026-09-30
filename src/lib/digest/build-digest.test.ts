@@ -130,7 +130,7 @@ describe("buildDigestSummaryText", () => {
         ignoredCount: 0,
       }),
     ).toBe(
-      "Processed 1 email in this period. 1 thread needs action, 0 pending, 0 For You, and 0 ignored. 1 was marked important.",
+      "Processed 1 email in this period. 1 in Actions, 0 pending, 0 For You, and 0 ignored. 1 was marked important.",
     );
   });
 });

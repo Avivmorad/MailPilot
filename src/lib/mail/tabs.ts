@@ -3,10 +3,10 @@ import { z } from "zod";
 import type { ActionStatus } from "@/lib/actions/reconcile-action";
 
 export const MAIL_TABS = [
-  { id: "summary", label: "Summary" },
+  { id: "summary", label: "For You" },
   { id: "open", label: "Actions" },
   { id: "waiting", label: "Pending" },
-  { id: "completed", label: "Completed" },
+  { id: "completed", label: "Closed" },
   { id: "snoozed", label: "Snoozed" },
   { id: "ignored", label: "Ignored" },
 ] as const;
@@ -74,8 +74,8 @@ export function mailTabEmptyCopy(tab: MailTab): { title: string; description: st
       };
     case "completed":
       return {
-        title: "No completed tasks yet.",
-        description: "Mark an action done and it will land here.",
+        title: "Nothing closed yet.",
+        description: "Mark an action closed and it will land here.",
       };
     case "snoozed":
       return {
@@ -89,7 +89,7 @@ export function mailTabEmptyCopy(tab: MailTab): { title: string; description: st
       };
     case "summary":
       return {
-        title: "No leftover For You mail yet",
+        title: "Nothing for you yet",
         description:
           "Run a scan to see useful updates. Receipts, OTPs, and marketing are in Ignored.",
       };

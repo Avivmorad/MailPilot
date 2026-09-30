@@ -69,7 +69,7 @@ export function ActionControls({
             aria-busy={busy}
             onClick={() => void patch({ op: "complete" })}
           >
-            Done
+            Closed
           </Button>
         ) : null}
         {showUndo ? (

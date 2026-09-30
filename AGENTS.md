@@ -20,7 +20,7 @@ invent different behavior without a documented reason.
 Login, Connect Gmail, MIME/thread parser, NVIDIA Build triage when configured (otherwise Gemini), dashboard Scan now
 (lookback 1–4 days, 1–3 weeks, or 1 month, default 7 days), Mail tabs, History
 API incremental sync, daily scheduled scans (default 08:00 Asia/Jerusalem), and
-in-app digests. Failed AI does not apply Gmail labels. Open tasks are grouped by
+in-app digests. Failed AI does not apply Gmail labels. Actions are grouped by
 category (Finance, Security, Career, and the rest of the taxonomy in
 PRODUCT_DECISIONS) and kept separate from the inbox summary; OTP and login-FYI
 notices are not open tasks.

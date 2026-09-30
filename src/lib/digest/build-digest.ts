@@ -115,7 +115,7 @@ export function buildDigestSummaryText(counts: DigestPeriodCounts): string {
   const emails = counts.totalMessages === 1 ? "email" : "emails";
   return [
     `Processed ${counts.totalMessages} ${emails} in this period.`,
-    `${counts.actionCount} thread${counts.actionCount === 1 ? " needs" : "s need"} action,`,
+    `${counts.actionCount} in Actions,`,
     `${counts.waitingCount} pending,`,
     `${counts.informationalCount} For You,`,
     `and ${counts.ignoredCount} ignored.`,

@@ -29,7 +29,7 @@ MailPriority connects one Gmail inbox, scans threads over a chosen window, class
 - **Incremental sync** via the Gmail History API after the first successful scan
 - **Daily scheduled scan** (default user time 08:00 Asia/Jerusalem). The dispatcher claims due connections (`next_scan_at`). On Vercel Hobby, `vercel.json` runs that dispatcher once per day (`0 6 * * *` UTC). In-app retry delays therefore wait until the next daily tick.
 - **Resumable scans** across Vercel Hobby time slices so large lookbacks finish
-- **Mail tabs:** Summary, Actions, Pending, Completed, Snoozed, Ignored. Actions are grouped by category.
+- **Mail tabs:** For You, Actions, Pending, Closed, Snoozed, Ignored. Actions are grouped by category. Status chips for ignored mail say Ignore.
 - **Gmail labels:** `MailPilot/Important`, `MailPilot/Action Required`, `MailPilot/Low Priority`, `MailPilot/Processed`
 - **In-app digest** after each successful or partial scan (email digest is not in the MVP)
 - **Privacy:** no long-term storage of full email bodies; failed AI does not apply labels; users can delete analysis data or the account

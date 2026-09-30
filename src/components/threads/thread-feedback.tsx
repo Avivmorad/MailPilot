@@ -10,8 +10,8 @@ const LABELS: Record<(typeof FEEDBACK_KINDS)[number], string> = {
   wrong: "This classification is wrong",
   important: "Important",
   not_important: "Not important",
-  action: "Needs action",
-  no_action: "No action — Summary",
+  action: "Actions",
+  no_action: "No action — For You",
   waiting: "Pending",
   not_waiting: "Not pending",
 };
@@ -41,7 +41,7 @@ export function ThreadFeedback({ threadId }: { threadId: string }) {
       setMessage(
         payload.applied
           ? "Updated. This thread now follows your correction."
-          : "Saved for evaluation. Choose Needs action, Pending, or No action to move the thread.",
+          : "Saved for evaluation. Choose Actions, Pending, or No action to move the thread.",
       );
       if (payload.applied) {
         router.refresh();

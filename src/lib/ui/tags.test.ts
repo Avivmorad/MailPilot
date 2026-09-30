@@ -4,7 +4,7 @@ import { tagColorClasses, tagHint, tagLabel, isVisibleTag } from "@/lib/ui/tags"
 
 describe("tagLabel", () => {
   it("uses product copy for status and category", () => {
-    expect(tagLabel("status", "action_required")).toBe("Needs action");
+    expect(tagLabel("status", "action_required")).toBe("Actions");
     expect(tagLabel("category", "projects_development")).toBe("Projects & Development");
     expect(tagLabel("category", "account")).toBe("Security");
     expect(tagLabel("action", "follow_up")).toBe("Follow up");

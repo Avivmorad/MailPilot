@@ -1,6 +1,6 @@
 # Supabase
 
-Database schema and migrations for MailPilot.
+Database schema and migrations for MailPriority (this repository is MailPilot).
 
 - `migrations/` — SQL migrations, committed to the repository. Added from Phase 1 onward.
   - `0001_profiles.sql` — app profiles.

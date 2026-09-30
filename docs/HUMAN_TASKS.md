@@ -13,8 +13,8 @@ On [gmailpilot.vercel.app](https://gmailpilot.vercel.app):
 
 - [ ] Mail tabs separate Open, Summary, and Ignored, and Gmail shows `MailPilot/*` labels.
 - [ ] A second Scan now is incremental: no duplicate threads or actions.
-- [x] Revoke Gmail access in Google Account settings, then reconnect from MailPilot.
-- [x] Disconnect Gmail from MailPilot.
+- [x] Revoke Gmail access in Google Account settings, then reconnect from MailPriority.
+- [x] Disconnect Gmail from MailPriority.
 
 ## Google sign-in (Continue with Google)
 
@@ -22,7 +22,7 @@ Connect Gmail stays a separate step. Do not remove the Gmail redirect URI above.
 
 - [x] Add authorized redirect URI `https://kssolktnbxjppyqmodck.supabase.co/auth/v1/callback` on the existing Google web client.
 - [ ] In Supabase **mailpilot-dev** → Authentication → Providers → Google: enable it and paste that web client id and secret (dashboard only).
-- [ ] Authentication → URL Configuration: Site URL is the production MailPilot URL. Redirect URLs include `http://localhost:3000/auth/confirm`, `http://localhost:3000/**`, and `https://gmailpilot.vercel.app/auth/confirm`.
+- [ ] Authentication → URL Configuration: Site URL is `https://gmailpilot.vercel.app`. Redirect URLs include `http://localhost:3000/auth/confirm`, `http://localhost:3000/**`, and `https://gmailpilot.vercel.app/auth/confirm`.
 - [x] Sign out → Continue with Google → land signed in → Gmail still disconnected until Connect Gmail.
 - [x] If that Google email already has a password user, confirm Supabase did not create a second user. Check Authentication → Users.
 

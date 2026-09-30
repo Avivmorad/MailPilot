@@ -200,7 +200,7 @@ export default function Home() {
                 How a morning inbox looks
               </h2>
               <p className="text-muted-foreground mt-2">
-After a scan, MailPriority does not dump 32 emails into one list. It keeps tasks,
+                After a scan, MailPriority does not dump 32 emails into one list. It keeps tasks,
                 pending, and For You apart.
               </p>
             </div>

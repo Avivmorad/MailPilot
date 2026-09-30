@@ -1,12 +1,14 @@
-# MailPilot
+# MailPriority
 
 Gmail inbox triage that answers three questions: **what happened, what do I need to do, and what’s pending?**
+
+The GitHub repository and Gmail label prefix stay **MailPilot** (`MailPilot/`). The public app is [gmailpilot.vercel.app](https://gmailpilot.vercel.app).
 
 ## Live Demo
 
 **App:** [gmailpilot.vercel.app](https://gmailpilot.vercel.app)
 
-The landing page is public. Inbox features need a MailPilot account and a separate Gmail connection. Google OAuth may be limited to configured test users while the integration is in Testing. For a code review without mailbox access, start with Architecture, AI Evaluation, and the test suites below.
+The landing page is public. Inbox features need a MailPriority account and a separate Gmail connection. Google OAuth may be limited to configured test users while the integration is in Testing. For a code review without mailbox access, start with Architecture, AI Evaluation, and the test suites below.
 
 ## Project Status
 
@@ -19,15 +21,15 @@ The landing page is public. Inbox features need a MailPilot account and a separa
 | Unmerged work           | No functionality that exists only in a branch or pull request is counted as shipped.                                                                                                                                                                                                                                   |
 | License                 | No code license has been selected. **Owner decision required.**                                                                                                                                                                                                                                                        |
 
-## What MailPilot Does
+## What MailPriority Does
 
-MailPilot connects one Gmail inbox, scans threads over a chosen window, classifies them with structured JSON (NVIDIA Build when `NVIDIA_API_KEY` is set, otherwise Gemini), validates that JSON with Zod, applies `MailPilot/*` labels, and shows an inbox summary, open tasks, a pending list, and an in-app digest. It never auto-sends, deletes, or archives mail.
+MailPriority connects one Gmail inbox, scans threads over a chosen window, classifies them with structured JSON (NVIDIA Build when `NVIDIA_API_KEY` is set, otherwise Gemini), validates that JSON with Zod, applies `MailPilot/*` labels, and shows an inbox summary, Actions, a Pending list, and an in-app digest. It never auto-sends, deletes, or archives mail.
 
 - **Scan now** with lookback of 1–4 days, 1–3 weeks, or 1 month (default 7 days)
 - **Incremental sync** via the Gmail History API after the first successful scan
 - **Daily scheduled scan** (default user time 08:00 Asia/Jerusalem). The dispatcher claims due connections (`next_scan_at`). On Vercel Hobby, `vercel.json` runs that dispatcher once per day (`0 6 * * *` UTC). In-app retry delays therefore wait until the next daily tick.
 - **Resumable scans** across Vercel Hobby time slices so large lookbacks finish
-- **Mail tabs:** Summary, Open, Pending, Completed, Snoozed, Ignored. Open tasks are grouped by category.
+- **Mail tabs:** Summary, Actions, Pending, Completed, Snoozed, Ignored. Actions are grouped by category.
 - **Gmail labels:** `MailPilot/Important`, `MailPilot/Action Required`, `MailPilot/Low Priority`, `MailPilot/Processed`
 - **In-app digest** after each successful or partial scan (email digest is not in the MVP)
 - **Privacy:** no long-term storage of full email bodies; failed AI does not apply labels; users can delete analysis data or the account
@@ -60,7 +62,7 @@ Explore [`src/lib/ai/`](src/lib/ai/), [`src/lib/scans/`](src/lib/scans/), and [`
 
 ```text
 Browser (Next.js App Router)
-  ├─ Supabase Auth          MailPilot account (no Gmail scopes)
+  ├─ Supabase Auth          MailPriority account (no Gmail scopes)
   └─ App UI                 dashboard, Mail tabs, settings, onboarding
 
 Server (Vercel)
@@ -142,15 +144,15 @@ The landing page runs without secrets. Features that need configuration fail fas
 
 Use the **same** OAuth 2.0 Web application client for both. They are not interchangeable callbacks.
 
-**1. Continue with Google (MailPilot account)** — Supabase Auth, no Gmail scopes.
+**1. Continue with Google (MailPriority account)** — Supabase Auth, no Gmail scopes.
 
 1. Keep the existing Gmail redirect URI on the Web client (do not remove it).
 2. Add authorized redirect URI `https://<your-project-ref>.supabase.co/auth/v1/callback`.
 3. In Supabase (Authentication → Providers → Google) enable Google and enter the Web client ID and secret. Never commit the secret.
-4. Authentication → URL Configuration: Site URL = production MailPilot URL. Redirect URLs must include `http://localhost:3000/auth/confirm`, `http://localhost:3000/**`, and `https://<production-domain>/auth/confirm`. Without the localhost entries, Continue with Google from local falls back to the production Site URL.
+4. Authentication → URL Configuration: Site URL = `https://gmailpilot.vercel.app`. Redirect URLs must include `http://localhost:3000/auth/confirm`, `http://localhost:3000/**`, and `https://gmailpilot.vercel.app/auth/confirm`. Without the localhost entries, Continue with Google from local falls back to the production Site URL.
 5. Sign-in returns to `/auth/confirm` (PKCE), then `/onboarding`. Gmail stays disconnected until Connect Gmail.
 
-**2. Connect Gmail (mailbox access)** — MailPilot server OAuth with `gmail.modify`.
+**2. Connect Gmail (mailbox access)** — server OAuth with `gmail.modify`.
 
 1. Enable the Gmail API and configure the OAuth consent screen (External + Testing is fine). Add your Gmail as a test user.
 2. Authorized redirect URI must be exactly `http://localhost:3000/api/gmail/callback` (and the production URL in Vercel).
@@ -192,9 +194,10 @@ Apply SQL in the Supabase SQL Editor, in this order:
 7. `supabase/migrations/0007_scan_scheduling.sql`
 8. `supabase/migrations/0008_scan_admission.sql` — one RUNNING scan per Gmail connection
 9. `supabase/migrations/0009_function_hardening.sql` — signup trigger not callable via the Data API
-10. `supabase/migrations/0010_gmail_mailbox_uniqueness.sql` — one Gmail inbox cannot be connected to two MailPilot users at once
+10. `supabase/migrations/0010_gmail_mailbox_uniqueness.sql` — one Gmail inbox cannot be connected to two MailPriority users at once
 11. `supabase/migrations/0011_check_constraints.sql` — status, confidence, and counter checks
 12. `supabase/migrations/0012_scan_chunk_resume.sql` — resume large scans across 5-minute function slices
+13. `supabase/migrations/20260929174644_analysis_scan_attribution.sql` — attribute each saved analysis to the scan that wrote it. Apply this before deploying the matching app code. Existing analysis stays unattributed. It is not recorded as applied on `mailpilot-dev` yet.
 
 RLS is required on user-accessible tables (`user_id = auth.uid()`).
 

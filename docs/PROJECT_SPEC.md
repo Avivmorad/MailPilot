@@ -1,15 +1,16 @@
 # MailPilot — Full Project Specification
 
 > **Archived working name:** this document was originally titled “Inbox Triage AI”.
-> The product name is **MailPilot**. Do not use the working name in UI, README, or
-> new documentation.
+> The user-facing product name is **MailPriority**. This repository and the Gmail
+> label prefix remain **MailPilot** (`MailPilot/`). Do not use the working name in
+> UI, README, or new documentation.
 >
 > This file remains the historical source of truth for contracts and phases.
 > Build according to the stages and contracts here; do not invent different
 > behavior without a documented reason.
 >
 > Owner overlay: [`PRODUCT_DECISIONS.md`](PRODUCT_DECISIONS.md) wins where it
-> differs — including the product name **MailPilot**, NVIDIA Build when
+> differs — including the product name **MailPriority**, NVIDIA Build when
 > configured (otherwise Gemini) instead of OpenAI,
 > `MailPilot/` Gmail labels, and **in-app digests only** in the MVP (email
 > digest delivery is a later extension; see overlay and spec §72).

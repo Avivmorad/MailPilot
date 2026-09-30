@@ -7,8 +7,13 @@ must follow these.
 
 ## Naming
 
-- **Product name:** MailPilot. The original specification used the working name
-  “Inbox Triage AI”; that name is archived. New docs and UI copy must say MailPilot.
+- **Product name:** MailPriority. The app title, logo, privacy page, and terms use this
+  name. The GitHub repository and npm package remain `MailPilot`.
+- **Gmail labels:** the prefix stays **`MailPilot/`** (see the label table below). Do not
+  rename those labels to MailPriority.
+- **Public URL:** [https://gmailpilot.vercel.app](https://gmailpilot.vercel.app)
+- The original specification used the working name “Inbox Triage AI”; that name is
+  archived. Do not use it in UI or new docs.
 - **Pending tab:** User-facing copy for the `waiting` / `WAITING` state is **Pending** (Mail tabs,
   dashboard counts, digest, feedback). Database values, Gmail analysis `status`, and `?tab=waiting`
   stay `waiting` / `WAITING`. The spec’s “Waiting List” is this same list.
@@ -78,7 +83,7 @@ Rules:
   `logical_name -> gmail_label_id` mapping (spec §6/§16.3), and never modifies user labels
   outside the `MailPilot/` namespace.
 - A Gmail inbox (`gmail_email` / Google account id) may be **actively connected to only one
-  MailPilot user**. Connecting the same mailbox from a second signup is rejected until the
+  MailPriority user**. Connecting the same mailbox from a second signup is rejected until the
   first account disconnects it. Apply `0010_gmail_mailbox_uniqueness.sql`.
 
 > Note: this is a simplified product-facing label set. The spec's richer state model
@@ -222,8 +227,8 @@ alone must not cause an actionable request to be ignored. OTP, magic links, and
 ## App-account emails (Supabase Auth)
 
 Signup / magic-link / password-reset mail is sent by **Supabase Auth**, not Gmail and not
-MailPilot. Default From is “Supabase Auth” (`noreply@mail.app.supabase.io`) with generic
-English templates. Clicking the link still confirms the **MailPilot app account**. Do not
+MailPriority. Default From is “Supabase Auth” (`noreply@mail.app.supabase.io`) with generic
+English templates. Clicking the link still confirms the **MailPriority app account**. Do not
 confuse this with **Connect Gmail** (Google OAuth to scan the mailbox).
 
 **Continue with Google** is also app authentication (Supabase Auth `signInWithOAuth`, no
@@ -234,5 +239,5 @@ steps: [`HUMAN_TASKS.md`](HUMAN_TASKS.md).
   password). Keep `{{ .ConfirmationURL }}`.
 - **From / sender (“source”):** **Set up custom SMTP to edit the source.** Without a
   domain + Custom SMTP (Resend, SendGrid, Google Workspace, etc.), Gmail will keep showing
-  Supabase Auth. Sender name MailPilot + a domain address only after SMTP is configured.
+  Supabase Auth. Sender name MailPriority + a domain address only after SMTP is configured.
   Not required for an internal launch; templates alone change subject and body immediately.

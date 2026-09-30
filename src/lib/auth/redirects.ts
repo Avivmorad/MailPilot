@@ -20,7 +20,6 @@ export const SAFE_AUTH_NEXT_PATHS = [
   "/digests",
   "/settings",
   "/actions",
-  "/studio",
 ] as const;
 
 export type SafeAuthNextPath = (typeof SAFE_AUTH_NEXT_PATHS)[number];

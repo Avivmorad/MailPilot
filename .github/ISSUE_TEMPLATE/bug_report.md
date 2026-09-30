@@ -1,6 +1,6 @@
 ---
 name: Bug report
-about: Something in MailPilot is broken or incorrect
+about: Something in MailPriority is broken or incorrect
 title: ""
 labels: bug
 ---
@@ -15,7 +15,7 @@ labels: bug
 2.
 3.
 
-**Environment** (browser / OS / local vs https://mail-pilot-avivmoradteam.vercel.app)
+**Environment** (browser / OS / local vs https://gmailpilot.vercel.app)
 
 **Notes**
 

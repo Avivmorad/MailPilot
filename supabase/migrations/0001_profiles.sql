@@ -1,5 +1,5 @@
 -- Phase 1: profiles table, Row Level Security, and auto-provisioning.
--- See docs/PROJECT_SPEC.md §16.1 and §17.
+-- See docs/ARCHITECTURE.md (data model / RLS).
 
 create extension if not exists "pgcrypto";
 

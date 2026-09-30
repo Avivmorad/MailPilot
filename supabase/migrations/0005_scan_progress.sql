@@ -1,5 +1,5 @@
 -- Scan progress: unique conversations found vs finished during a RUNNING scan.
--- Used by the dashboard status bar. See docs/PRODUCT_DECISIONS.md.
+-- Used by the dashboard status bar. See docs/PRODUCT.md / docs/ARCHITECTURE.md.
 
 alter table public.scan_runs
   add column if not exists threads_discovered integer not null default 0;

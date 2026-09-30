@@ -1,5 +1,5 @@
 -- Phase 8: connection leases, scan_jobs, and atomic claim for the global dispatcher.
--- See docs/PROJECT_SPEC.md §8–9 / §16.9 and docs/PRODUCT_DECISIONS.md.
+-- See docs/ARCHITECTURE.md (scan modes / dispatcher).
 
 alter table public.gmail_connections
   add column if not exists locked_at timestamptz,

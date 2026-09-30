@@ -13,7 +13,7 @@ export const GMAIL_CONNECTION_STATUSES = [
 export type GmailConnectionStatus = (typeof GMAIL_CONNECTION_STATUSES)[number];
 
 /**
- * Product-facing MailPilot labels (docs/PRODUCT_DECISIONS.md).
+ * Product-facing MailPilot labels (docs/PRODUCT.md).
  * Created on first connect if missing; mapping stored in gmail_labels.
  */
 export const MAILPILOT_LABELS = [

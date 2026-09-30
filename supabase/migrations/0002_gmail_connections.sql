@@ -1,5 +1,5 @@
 -- Phase 2: Gmail OAuth connections and managed MailPilot labels.
--- See docs/PROJECT_SPEC.md §16.2–16.3 and docs/PRODUCT_DECISIONS.md.
+-- See docs/ARCHITECTURE.md and docs/PRODUCT.md (Gmail labels).
 
 create table if not exists public.gmail_connections (
   id uuid primary key default gen_random_uuid(),

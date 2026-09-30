@@ -1,5 +1,5 @@
 -- Phase 5: initial scan tables (settings, threads, messages, actions, scan_runs).
--- See docs/PROJECT_SPEC.md §16.4–16.8 and docs/PRODUCT_DECISIONS.md.
+-- See docs/ARCHITECTURE.md and docs/PRODUCT.md.
 
 create table if not exists public.user_triage_settings (
   id uuid primary key default gen_random_uuid(),

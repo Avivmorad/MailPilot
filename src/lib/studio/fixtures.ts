@@ -49,7 +49,7 @@ export const STUDIO_ITEMS: StudioItem[] = [
     dueLabel: "Today",
     urgency: "high",
     nextStep: "Confirm the Windows sign-in from San Francisco, or secure the account.",
-    why: "Unrecognized device sign-ins stay in Open until you decide.",
+    why: "Unrecognized device sign-ins stay in Actions until you decide.",
     messages: [
       {
         at: "Sep 27, 9:14 AM",
@@ -103,7 +103,7 @@ export const STUDIO_ITEMS: StudioItem[] = [
     when: "Yesterday",
     urgency: "low",
     nextStep: "No action until they pick a time.",
-    why: "Your reply is sent. This stays Pending, not Open.",
+    why: "Your reply is sent. This stays Pending, not Actions.",
     messages: [{ at: "Sep 27, 1:03 PM", text: "Thanks — I'll send times that work." }],
   },
   {

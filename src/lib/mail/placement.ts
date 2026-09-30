@@ -4,11 +4,11 @@ import type { FeedbackKind } from "@/lib/threads/apply-feedback";
 const EMAIL_RE = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi;
 
 export const PLACEMENT_RULE: Record<MailTab, string> = {
-  open: "This is in Open because it still needs a next step from you.",
+  open: "This is in Actions because it still needs a next step from you.",
   waiting: "This is in Pending because you already acted.",
   completed: "This is in Completed because you marked the task done.",
   snoozed: "This is in Snoozed until the reminder date.",
-  summary: "This is in Summary because it is leftover FYI, not an open task.",
+  summary: "This is in Summary because it is leftover FYI, not an action.",
   ignored: "This is in Ignored because it is noise or a notice, not a task.",
 };
 

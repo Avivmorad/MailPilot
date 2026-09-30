@@ -16,8 +16,8 @@ const questions = [
   },
   {
     icon: ListChecks,
-    title: "What needs me?",
-    body: "Open tasks with a next step — reply, review, pay — ranked by urgency and deadline.",
+    title: "Actions",
+    body: "Actions with a next step — reply, review, pay — ranked by urgency and deadline.",
   },
   {
     icon: Clock3,
@@ -35,7 +35,7 @@ const features = [
   {
     icon: ListChecks,
     title: "One action per thread",
-    body: "Six emails about one task become a single action item that moves Open → Pending → Completed as the conversation evolves.",
+    body: "Six emails about one task become a single action item that moves Actions → Pending → Completed as the conversation evolves.",
   },
   {
     icon: Tag,
@@ -61,7 +61,7 @@ const features = [
 
 const previewColumns = [
   {
-    tab: "Open",
+    tab: "Actions",
     accent: "border-l-orange-500",
     hint: "Needs a next step from you",
     items: [
@@ -142,8 +142,8 @@ export default function Home() {
                 Your inbox, <span className="text-primary">under control.</span>
               </h1>
               <p className="text-muted-foreground mt-6 max-w-lg text-lg leading-relaxed text-pretty">
-                MailPilot turns busy email threads into a short list of what needs you, what
-                you&apos;re waiting on, and what you only need to know.
+                MailPilot turns busy email threads into a short list of Actions, what you&apos;re
+                waiting on, and what you only need to know.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
                 <a href="/login" className={buttonVariants({ size: "lg" })}>
@@ -164,7 +164,7 @@ export default function Home() {
               </div>
               <div className="border-border bg-muted/40 grid grid-cols-3 border-b">
                 {[
-                  ["02", "Needs you"],
+                  ["02", "Actions"],
                   ["01", "Waiting"],
                   ["01", "FYI"],
                 ].map(([count, label]) => (

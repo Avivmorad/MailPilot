@@ -46,7 +46,7 @@ export default async function DigestsPage() {
     <AppChrome user={user} current="digests" width="narrow">
       <PageHeader
         title="Digests"
-        description="In-app history of period counts and top open tasks after each successful scan. Email delivery is not in the MVP."
+        description="In-app history of period counts and top actions after each successful scan. Email delivery is not in the MVP."
       />
       {loadFailed ? (
         <EmptyState
@@ -86,7 +86,7 @@ export default async function DigestsPage() {
         </div>
       )}
       <p className="text-muted-foreground text-sm">
-        Open tasks live under{" "}
+        Actions live under{" "}
         <Link href="/mail?tab=open" className="text-primary font-medium hover:underline">
           Mail
         </Link>

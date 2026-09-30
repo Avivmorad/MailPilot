@@ -46,7 +46,7 @@ function dashboardDescription({
   if (latestStatus === "RUNNING") {
     return "A scan is running. You can keep working while it classifies mail.";
   }
-  return "What needs you, what is pending, and what happened.";
+  return "Actions, what is pending, and what happened.";
 }
 
 function nextStep({
@@ -74,22 +74,22 @@ function nextStep({
   if (processed === 0) {
     return {
       title: "Run your first scan",
-      body: "Choose a lookback window and classify recent mail. Open tasks will land here.",
+      body: "Choose a lookback window and classify recent mail. Actions will land here.",
       href: "#scan",
       label: "Scan now",
     };
   }
   if (openCount > 0) {
     return {
-      title: `${openCount} open task${openCount === 1 ? "" : "s"}`,
-      body: "Work through Needs your attention, or open the full list in Mail.",
+      title: `${openCount} action${openCount === 1 ? "" : "s"}`,
+      body: "Work through Actions, or open the full list in Mail.",
       href: "/mail?tab=open",
       label: "Work through them",
     };
   }
   return {
     title: "Inbox is clear",
-    body: "No open tasks. Check Mail summary for leftover FYI, or Pending if you already acted.",
+    body: "No actions. Check Mail summary for leftover FYI, or Pending if you already acted.",
     href: "/mail?tab=summary",
     label: "Open Mail summary",
   };
@@ -192,7 +192,7 @@ export default async function DashboardPage({
       });
   const stats = [
     {
-      label: "Open tasks",
+      label: "Actions",
       value: connected && !actionsLoadError ? String(openCount) : "—",
       href: "/mail?tab=open",
       icon: ListChecks,
@@ -281,12 +281,12 @@ export default async function DashboardPage({
         <div className="flex flex-wrap items-end justify-between gap-2">
           <div>
             <h2 className="text-foreground text-lg font-semibold tracking-tight">
-              Needs your attention
+              Actions
             </h2>
             <p className="text-muted-foreground text-sm">
               {overdueOpen > 0
                 ? "Overdue and urgent first. Full list lives in Mail."
-                : "Top open tasks. Full list lives in Mail."}
+                : "Top actions. Full list lives in Mail."}
             </p>
           </div>
           {openCount > 0 ? (
@@ -301,7 +301,7 @@ export default async function DashboardPage({
         {actionsLoadError ? (
           <EmptyState
             variant="error"
-            title="Could not load open tasks"
+            title="Could not load actions"
             description="We had trouble reaching the database. Reload to try again. Your mailbox data is safe."
             action={
               <Link
@@ -320,7 +320,7 @@ export default async function DashboardPage({
           </div>
         ) : (
           <EmptyState
-            title="Nothing currently needs your action."
+            title="No actions right now."
             description={
               connected
                 ? "When a thread still needs a next step, it will show up here."

@@ -26,7 +26,7 @@ export const dynamic = "force-dynamic";
 function tabDescription(tab: ReturnType<typeof parseMailTab>): string {
   switch (tab) {
     case "summary":
-      return "Leftover useful FYI only. Receipts, OTPs, and marketing live in Ignored. Security events live in Open.";
+      return "Leftover useful FYI only. Receipts, OTPs, and marketing live in Ignored. Security events live in Actions.";
     case "open":
       return "Mail that still needs a next step, grouped by category.";
     case "waiting":
@@ -34,7 +34,7 @@ function tabDescription(tab: ReturnType<typeof parseMailTab>): string {
     case "completed":
       return "Tasks you marked complete.";
     case "snoozed":
-      return "Tasks you postponed. They return to Open when the snooze ends.";
+      return "Tasks you postponed. They return to Actions when the snooze ends.";
     case "ignored":
       return "Threads classified as ignore — noise, OTPs, and mail that is not a task.";
   }
@@ -122,7 +122,7 @@ export default async function MailPage({
       {queryError ? (
         <EmptyState
           variant="error"
-          title={`Could not load ${tab === "open" ? "open tasks" : tab === "waiting" ? "pending tasks" : tab === "summary" ? "summary threads" : tab === "ignored" ? "ignored mail" : "tasks"}`}
+          title={`Could not load ${tab === "open" ? "actions" : tab === "waiting" ? "pending tasks" : tab === "summary" ? "summary threads" : tab === "ignored" ? "ignored mail" : "tasks"}`}
           description="We had trouble reaching the database. Reload to try again. Your mailbox data is safe."
           action={
             <Link

@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 
 const LANES: { id: StudioLane | "focus"; label: string; hint: string }[] = [
   { id: "focus", label: "Today", hint: "Due soon" },
-  { id: "open", label: "Open", hint: "Your move" },
+  { id: "open", label: "Actions", hint: "Your move" },
   { id: "pending", label: "Pending", hint: "Their move" },
   { id: "fyi", label: "FYI", hint: "No task" },
 ];

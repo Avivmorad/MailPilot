@@ -291,7 +291,7 @@ export async function saveThreadFeedback(
     const title =
       (typeof thread.short_display_title === "string" && thread.short_display_title.trim()) ||
       (typeof thread.summary === "string" && thread.summary.trim()) ||
-      "Open task";
+      "Action";
     if (action) {
       const { error: actionError } = await db
         .from("action_items")

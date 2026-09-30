@@ -32,7 +32,7 @@ describe("mail tabs", () => {
   });
 
   it("uses spec empty-state copy for Open and Pending", () => {
-    expect(mailTabEmptyCopy("open").title).toBe("Nothing currently needs your action.");
+    expect(mailTabEmptyCopy("open").title).toBe("No actions right now.");
     expect(mailTabEmptyCopy("waiting").title).toBe("Nothing is pending a reply.");
   });
 });

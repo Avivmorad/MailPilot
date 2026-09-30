@@ -20,5 +20,5 @@ Database schema and migrations for MailPriority (this repository is MailPilot).
 - Row Level Security is required on every user-accessible table (`user_id = auth.uid()`).
   Scan writes use the service role.
 
-See [`../docs/PROJECT_SPEC.md`](../docs/PROJECT_SPEC.md) §16–18 for the schema, RLS, and
-encryption requirements.
+See [`../docs/ARCHITECTURE.md`](../docs/ARCHITECTURE.md) for the schema overview, RLS,
+and encryption requirements. SQL in this folder is authoritative.

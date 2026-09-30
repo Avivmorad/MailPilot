@@ -1,4 +1,4 @@
--- Phase 9: in-app digest reports. See docs/PROJECT_SPEC.md §16.10 / §63 Phase 9.
+-- Phase 9: in-app digest reports. See docs/PRODUCT.md / docs/ARCHITECTURE.md.
 -- top_actions is a snapshot of unique open-task cards for the period (not in the spec table).
 
 create table if not exists public.digest_reports (

@@ -6,36 +6,23 @@ Operating guidance for AI agents and developers working in this repository.
 
 The user-facing product name is **MailPriority**. The repository, package, and
 Gmail label prefix remain **MailPilot** (`MailPilot/`). The public app is
-[gmailpilot.vercel.app](https://gmailpilot.vercel.app). The original spec used
-the working name “Inbox Triage AI”; that name is archived (see the banner in
-[`docs/PROJECT_SPEC.md`](docs/PROJECT_SPEC.md)).
+[gmailpilot.vercel.app](https://gmailpilot.vercel.app).
 
-The full product and technical specification lives at [`docs/PROJECT_SPEC.md`](docs/PROJECT_SPEC.md).
-Owner-level product decisions that refine it live at
-[`docs/PRODUCT_DECISIONS.md`](docs/PRODUCT_DECISIONS.md) — where the two differ, the decisions
-overlay wins. Treat both as the source of truth. Implement phase-by-phase (see spec §63); do not
-invent different behavior without a documented reason.
+Authoritative docs (do not invent different behavior without updating them):
 
-**Current status:** Phases 0–9 MVP features are implemented in this repository.
-Login, Connect Gmail, MIME/thread parser, NVIDIA Build triage when configured (otherwise Gemini), dashboard Scan now
-(lookback 1–4 days, 1–3 weeks, or 1 month, default 7 days), Mail tabs, History
-API incremental sync, daily scheduled scans (default 08:00 Asia/Jerusalem), and
-in-app digests. Failed AI does not apply Gmail labels. Actions are grouped by
-category (Finance, Security, Career, and the rest of the taxonomy in
-PRODUCT_DECISIONS) and kept separate from the inbox summary; OTP and login-FYI
-notices are not open tasks.
-Phase 8 dispatcher: `GET`/`POST` `/api/cron/scan-dispatcher` claims due
-connections (`next_scan_at`), 270s job lease, one connection per Hobby run
-(`maxDuration` 300). Schema for scheduling through chunk resume lives in
-`supabase/migrations/0007`–`0012` (one RUNNING scan per connection; signup
-triggers not Data-API callable; one Gmail inbox cannot be connected to two
-MailPriority users at once; status /
-confidence / counter checks; large lookbacks continue across ~240s slices).
-Phase 9: in-app digest after each successful/partial scan; email digest is a
-later extension. Also shipped: triage settings, reconnect/`REAUTH_REQUIRED`,
-privacy deletion, onboarding, structured observability, skip-to-content /
-labeled nav, eval scorecard gates, and GitHub Actions CI.
-Owner console / live-environment steps remain in [`docs/HUMAN_TASKS.md`](docs/HUMAN_TASKS.md).
+| Doc                                            | Role                                      |
+| ---------------------------------------------- | ----------------------------------------- |
+| [`docs/PRODUCT.md`](docs/PRODUCT.md)           | Product behavior, tabs, labels, placement |
+| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Pipeline, AI, schema, security, APIs      |
+| [`docs/SETUP.md`](docs/SETUP.md)               | Env, OAuth, migrations, cron, checks      |
+| [`docs/OWNER_TASKS.md`](docs/OWNER_TASKS.md)   | Owner console / live verification only    |
+
+Historical specification (archived, not source of truth):
+[`docs/archive/PROJECT_SPEC.md`](docs/archive/PROJECT_SPEC.md).
+
+**Current status:** MVP Phases 0–9 are implemented on `main` (auth, Connect
+Gmail, triage, Mail tabs, incremental sync, scheduled scans, in-app digests,
+privacy, eval/CI). Email digest delivery is a later extension.
 
 ## Repository rules
 

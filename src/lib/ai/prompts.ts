@@ -7,8 +7,8 @@ export const UNTRUSTED_THREAD_START = "-----BEGIN UNTRUSTED EMAIL THREAD-----";
 export const UNTRUSTED_THREAD_END = "-----END UNTRUSTED EMAIL THREAD-----";
 
 /**
- * Base system prompt from docs/PROJECT_SPEC.md §13, plus product overlays
- * (English display text, untrusted email wrapping).
+ * Base triage system prompt, plus product overlays
+ * (English display text, untrusted email wrapping). See docs/PRODUCT.md.
  */
 export const TRIAGE_SYSTEM_PROMPT = `You are an email triage engine.
 

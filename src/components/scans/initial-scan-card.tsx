@@ -257,6 +257,9 @@ export function InitialScanCard({
       }
       resumeInFlight = true;
       resumedScanIds.current.add(scanId);
+      setMessage("No recent progress; trying to resume this scan…");
+      setError(false);
+      setErrorCode(null);
       const deadline = deadlineSignal(stop.signal, POLL_DEADLINE_MS);
       try {
         const response = await fetch("/api/scans", {
@@ -276,6 +279,7 @@ export function InitialScanCard({
         if (!response.ok) {
           const failed = readFailure(payload);
           if (failed.error === "scan_in_progress") {
+            setMessage("Scan is still running. Waiting for the next progress update…");
             return;
           }
           stopWatching(

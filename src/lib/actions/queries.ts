@@ -3,6 +3,7 @@ import { compareOpenActions } from "@/lib/actions/sort";
 import type { ActionStatus } from "@/lib/actions/reconcile-action";
 import { gmailThreadUrl } from "@/lib/gmail/deep-link";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { displayActionTitle, usableDisplayText } from "@/lib/ui/display-text";
 
 export interface ActionListItem {
   id: string;
@@ -56,24 +57,24 @@ export function mapActionListItem(
   const thread = row.email_threads as ThreadJoin | ThreadJoin[] | null;
   const joined = Array.isArray(thread) ? thread[0] : thread;
   const gmailThreadId = joined?.gmail_thread_id ?? "";
-  const description = (row.description as string | null) ?? null;
-  const actionSummary = joined?.action_summary ?? description;
-  const shortTitle = joined?.short_display_title?.trim() || null;
+  const description = usableDisplayText(row.description as string | null);
+  const actionSummary = usableDisplayText(joined?.action_summary) ?? description;
+  const shortTitle = usableDisplayText(joined?.short_display_title);
   return {
     id: String(row.id),
     threadId: String(row.thread_id),
     status: row.status as ActionStatus,
-    title: shortTitle || String(row.title),
+    title: displayActionTitle(shortTitle, row.title as string | null, actionSummary, description),
     description,
     actionSummary,
-    actionReason: joined?.action_reason ?? null,
+    actionReason: usableDisplayText(joined?.action_reason),
     waitingFor: (row.waiting_for as string | null) ?? null,
     snoozedUntil: typeof row.snoozed_until === "string" ? row.snoozed_until : null,
     deadline: (row.deadline as string | null) ?? null,
     urgency: (row.urgency as string | null) ?? null,
     latestMessageAt: joined?.latest_message_at ?? null,
     importance: joined?.importance ?? null,
-    summary: joined?.summary ?? null,
+    summary: usableDisplayText(joined?.summary),
     sender: senderFromParticipants(joined?.participants),
     gmailUrl: gmailThreadUrl(gmailEmail, gmailThreadId),
     category: joined?.category ?? null,

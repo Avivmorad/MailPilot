@@ -53,7 +53,13 @@ function extractJsonText(content: string): string {
   return fenced?.[1]?.trim() || trimmed;
 }
 
+/** gpt-oss defaults to medium reasoning on NVIDIA Integrate; low is enough for triage JSON. */
+export function nvidiaReasoningEffortForModel(model: string): "low" | undefined {
+  return model.toLowerCase().includes("gpt-oss") ? "low" : undefined;
+}
+
 export async function generateWithNvidia(params: Parameters<NvidiaGenerateFn>[0]): Promise<string> {
+  const reasoningEffort = nvidiaReasoningEffortForModel(params.model);
   const response = await fetch(`${params.baseUrl.replace(/\/$/, "")}/chat/completions`, {
     method: "POST",
     headers: {
@@ -66,6 +72,7 @@ export async function generateWithNvidia(params: Parameters<NvidiaGenerateFn>[0]
       model: params.model,
       temperature: 0,
       max_tokens: 2048,
+      ...(reasoningEffort ? { reasoning_effort: reasoningEffort } : {}),
       response_format: { type: "json_object" },
       messages: [
         {

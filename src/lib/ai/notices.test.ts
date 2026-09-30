@@ -6,13 +6,16 @@ import {
   isAssignedToSomeoneElseNotice,
   isAutomatedActionRequestNotice,
   isAutomatedNoiseNotice,
+  isCodeOrSocialFyiNotice,
   isConfirmedMeetingChangeNotice,
   isDeliveryActionNotice,
   isDocumentShareNotice,
   isEphemeralAuthNotice,
+  isExplicitNextStepNotice,
   isLoginFyiNotice,
   isMeetingTimeChoiceNotice,
   isNonTaskNotice,
+  isPaymentActionNotice,
   isReceiptOrRoutineNotice,
   isRoutineTrackingNotice,
   isSecurityEventNotice,
@@ -76,6 +79,41 @@ describe("isAutomatedNoiseNotice", () => {
     expect(isAutomatedNoiseNotice(["20% off this weekend. Unsubscribe below."])).toBe(true);
     expect(isAutomatedNoiseNotice(["New jobs matching your profile"])).toBe(true);
   });
+
+  it("treats Slack digests and mailing-list blasts as ignore", () => {
+    expect(
+      isAutomatedNoiseNotice([
+        "You have 14 unread Slack messages. Catch up on unread messages in your workspace. This email is a digest.",
+      ]),
+    ).toBe(true);
+    expect(
+      isAutomatedNoiseNotice([
+        "A new RFC was posted to the mailing list. Unsubscribe at the bottom if you no longer want these emails.",
+      ]),
+    ).toBe(true);
+  });
+});
+
+describe("isCodeOrSocialFyiNotice", () => {
+  it("treats passive GitHub and social connection mail as FYI", () => {
+    expect(
+      isCodeOrSocialFyiNotice([
+        "[mailpilot] New issue comment",
+        "someone commented on issue #12. View it on GitHub.",
+      ]),
+    ).toBe(true);
+    expect(
+      isCodeOrSocialFyiNotice([
+        "You have 3 new connection requests",
+        "3 people want to connect with you. See who they are and grow your network.",
+      ]),
+    ).toBe(true);
+  });
+
+  it("does not demote GitHub security or review CTAs", () => {
+    expect(isCodeOrSocialFyiNotice(["Your GitHub personal access token expired"])).toBe(false);
+    expect(isCodeOrSocialFyiNotice(["Ada commented on Spec: please update section 2"])).toBe(false);
+  });
 });
 
 describe("isReceiptOrRoutineNotice", () => {
@@ -85,6 +123,7 @@ describe("isReceiptOrRoutineNotice", () => {
       false,
     );
     expect(isReceiptOrRoutineNotice(["התשלום התקבל. קבלה על תשלום מצורפת."])).toBe(true);
+    expect(isReceiptOrRoutineNotice(["We have received your payment of 1,250."])).toBe(true);
   });
 });
 
@@ -99,6 +138,36 @@ describe("isDocumentShareNotice", () => {
     expect(isDocumentShareNotice(["Ada shared a document with you. Please review and sign."])).toBe(
       false,
     );
+  });
+});
+
+describe("payment and explicit next steps", () => {
+  it("treats unpaid invoices as payment actions and paid receipts as not", () => {
+    expect(
+      isPaymentActionNotice([
+        "Please find invoice #4821 for 1,250 attached. Payment is due by September 15.",
+      ]),
+    ).toBe(true);
+    expect(isPaymentActionNotice(["יתרה לתשלום 980. אנא שלם בהקדם."])).toBe(true);
+    expect(isPaymentActionNotice(["We have received your payment of 1,250."])).toBe(false);
+    expect(
+      isPaymentActionNotice(["Ada shared a document with you. Open in Drive to view Invoice Q3."]),
+    ).toBe(false);
+  });
+
+  it("does not treat a promo footer as noise when the mail is a security action or unpaid invoice", () => {
+    expect(
+      isAutomatedNoiseNotice([
+        "The account is locked until you reset your password. Unsubscribe from security tips.",
+      ]),
+    ).toBe(false);
+    expect(
+      isNonTaskNotice([
+        "50% off if you unsubscribe. Invoice #9911 is unpaid. Please pay the remaining balance.",
+      ]),
+    ).toBe(false);
+    expect(isExplicitNextStepNotice(["Could you review the attached proposal?"])).toBe(true);
+    expect(isExplicitNextStepNotice(["Can you believe this 70% off deal?"])).toBe(false);
   });
 });
 

@@ -392,6 +392,16 @@ function createMemoryStore(): ScanStorePort & {
     async getThread(connectionId, gmailThreadId) {
       return threads.get(`${connectionId}:${gmailThreadId}`) ?? null;
     },
+    async getThreadsByGmailIds(connectionId, gmailThreadIds) {
+      const result = new Map<string, StoredThreadRow>();
+      for (const gmailThreadId of gmailThreadIds) {
+        const row = threads.get(`${connectionId}:${gmailThreadId}`);
+        if (row) {
+          result.set(gmailThreadId, row);
+        }
+      }
+      return result;
+    },
     async upsertMessage(input) {
       messages.set(`${input.connectionId}:${input.message.gmailMessageId}`, input.threadId);
     },
@@ -1826,17 +1836,21 @@ describe("triageFailureCode", () => {
 });
 
 describe("shouldReuseStoredAnalysis", () => {
-  it("reuses analysis only when the latest message and prompt version both match", () => {
+  it("reuses analysis only when parseable analysis, message id, and prompt version match", () => {
+    const analysis = validAnalysis();
     const row = {
       id: "thread-1",
       lastAnalyzedMessageId: "m1",
       promptVersion: TRIAGE_PROMPT_VERSION,
-      analysis: null,
+      analysis,
     };
     expect(shouldReuseStoredAnalysis(row, "m1", TRIAGE_PROMPT_VERSION)).toBe(true);
     expect(shouldReuseStoredAnalysis(row, "m1", "mailpilot-triage-v3")).toBe(false);
     expect(shouldReuseStoredAnalysis(row, "m2", TRIAGE_PROMPT_VERSION)).toBe(false);
     expect(shouldReuseStoredAnalysis(null, "m1", "mailpilot-triage-v4")).toBe(false);
+    expect(shouldReuseStoredAnalysis({ ...row, analysis: null }, "m1", TRIAGE_PROMPT_VERSION)).toBe(
+      false,
+    );
   });
 
   it("changes the analysis key when ignore lists or custom instructions change", () => {
@@ -1856,7 +1870,7 @@ describe("shouldReuseStoredAnalysis", () => {
           id: "thread-1",
           lastAnalyzedMessageId: "m1",
           promptVersion: analysisPromptKey(base),
-          analysis: null,
+          analysis: validAnalysis(),
         },
         "m1",
         analysisPromptKey(withIgnore),
@@ -1893,7 +1907,7 @@ describe("executeGmailScan lease safety", () => {
       modelName: "gemini-test",
     });
 
-    await executeGmailScan({
+    const result = await executeGmailScan({
       ...prepared,
       jobLease: { jobId: "job-1", workerId: "worker-1" },
       analyze: async () => {
@@ -1904,5 +1918,9 @@ describe("executeGmailScan lease safety", () => {
 
     expect(store.threads.size).toBe(0);
     expect(modifyThreadLabels).not.toHaveBeenCalled();
+    // Lease loss must leave the scan RUNNING and ask for another slice so the
+    // UI is not stuck on a frozen progress bar with no recovery path.
+    expect(result.status).toBe("CONTINUED");
+    expect(store.scanRuns[0]?.status).toBe("RUNNING");
   });
 });

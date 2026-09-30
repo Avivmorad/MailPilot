@@ -181,8 +181,11 @@ export function shouldReuseStoredAnalysis(
   latestMessageId: string,
   promptVersion: string,
 ): boolean {
+  // Reuse only when the cached analysis is still parseable. Otherwise a later
+  // upsert with analysis=null would wipe user-facing fields and leave blanks.
   return (
-    existing?.lastAnalyzedMessageId != null &&
+    existing?.analysis != null &&
+    existing.lastAnalyzedMessageId != null &&
     existing.lastAnalyzedMessageId === latestMessageId &&
     existing.promptVersion === promptVersion
   );
@@ -642,21 +645,32 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
       };
     };
     let stopAdmission = false;
+    // Large lookbacks (~700 threads) are dominated by per-thread AI latency,
+    // overlapped only up to AI_MAX_CONCURRENCY. Waves wait on a durable
+    // checkpoint before the next fetch batch (see scan-timing-eval). Intra-wave
+    // fetch/AI overlap and metadata-then-full Gmail probes are follow-ups.
     for (let batchStart = cursor; batchStart < threadIds.length; batchStart += workerCount) {
       let admitIndex = batchStart;
       const batchEnd = Math.min(batchStart + workerCount, threadIds.length);
+      if ((await store.getScanStatus(scanId)) !== "RUNNING") {
+        break;
+      }
+      if (!(await holdsJobLease())) {
+        break;
+      }
+      if (requestBudget.deadlineAt !== undefined && Date.now() >= requestBudget.deadlineAt) {
+        break;
+      }
+      const waveThreadIds = threadIds
+        .slice(batchStart, batchEnd)
+        .filter((id): id is string => Boolean(id));
+      const storedByGmailId = await store.getThreadsByGmailIds(connectionId, waveThreadIds);
       await mapPool(
         Array.from({ length: workerCount }, (_, i) => i),
         workerCount,
         async () => {
           for (;;) {
             if (stopAdmission) {
-              return;
-            }
-            if ((await store.getScanStatus(scanId)) !== "RUNNING") {
-              return;
-            }
-            if (jobLease && !(await stillHoldsScanJob(jobLease.jobId, jobLease.workerId))) {
               return;
             }
             if (requestBudget.deadlineAt !== undefined && Date.now() >= requestBudget.deadlineAt) {
@@ -688,7 +702,7 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
                 countTowardCursor = true;
                 continue;
               }
-              const existing = await store.getThread(connectionId, gmailThreadId);
+              const existing = storedByGmailId.get(gmailThreadId) ?? null;
               const context = buildThreadContext(chronological, userEmails);
               const latestDirection = context.messages.at(-1)?.direction ?? "UNKNOWN";
               const latestAt = receivedAtIso(latest.internalDate);
@@ -791,6 +805,7 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
               await persistMessages(threadId, chronological);
 
               if (!(await holdsJobLease()) || (await store.getScanStatus(scanId)) !== "RUNNING") {
+                stopAdmission = true;
                 return;
               }
 
@@ -985,15 +1000,17 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
 
     return { scanId, status, counters, lookbackDays, mode: discoveryMode };
   } catch (error) {
-    if (error instanceof Error && error.message === SCAN_SLICE_LEASE_LOST) {
-      return asFailedResult("INITIAL");
-    }
     const stopped = await store.getScanStatus(scanId);
     if (stopped && stopped !== "RUNNING") {
       return asFailedResult("INITIAL");
     }
-    if (error instanceof GmailDeadlineError) {
-      if (!(await holdsJobLease())) return asFailedResult("INITIAL");
+    // Lease loss and request deadlines both leave the scan RUNNING with a
+    // durable cursor. Returning CONTINUED schedules the next slice (or the
+    // 5-minute dispatcher fallback) instead of abandoning a frozen progress bar.
+    const resumable =
+      (error instanceof Error && error.message === SCAN_SLICE_LEASE_LOST) ||
+      error instanceof GmailDeadlineError;
+    if (resumable) {
       const saved = await store.updateScanRun(scanId, { ...durableProgress, status: "RUNNING" });
       if (!saved) return asFailedResult("INITIAL");
       const checkpoint = await store.getScanCheckpoint(scanId);

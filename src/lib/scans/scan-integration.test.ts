@@ -230,6 +230,19 @@ function createMemoryStore(
     async getThread(id, gmailThreadId) {
       return threads.get(`${id}:${gmailThreadId}`) ?? null;
     },
+    async getThreadsByGmailIds(connectionId, gmailThreadIds) {
+      const result = new Map<
+        string,
+        NonNullable<Awaited<ReturnType<ScanStorePort["getThread"]>>>
+      >();
+      for (const gmailThreadId of gmailThreadIds) {
+        const row = threads.get(`${connectionId}:${gmailThreadId}`);
+        if (row) {
+          result.set(gmailThreadId, row);
+        }
+      }
+      return result;
+    },
     async upsertMessage(input) {
       messages.set(`${input.connectionId}:${input.message.gmailMessageId}`, input.threadId);
     },

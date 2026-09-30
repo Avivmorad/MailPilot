@@ -73,6 +73,19 @@ describe("logicalLabelsForAnalysis", () => {
       ),
     ).toEqual(["action_required", "processed"]);
   });
+
+  it("does not mark a low-importance waiting thread as low priority", () => {
+    expect(
+      logicalLabelsForAnalysis(
+        analysis({
+          importance: "low",
+          status: "waiting",
+          waiting_for: "the other party",
+          requires_action: false,
+        }),
+      ),
+    ).toEqual(["processed"]);
+  });
 });
 
 describe("labelDiff", () => {

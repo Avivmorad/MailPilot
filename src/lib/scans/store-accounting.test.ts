@@ -125,6 +125,34 @@ describe("durable scan analysis attribution", () => {
     });
   });
 
+  it("does not revive analysis from literal nullish stored titles", async () => {
+    state.row = {
+      id: "thread-row",
+      summary: "null",
+      short_display_title: "undefined",
+      importance: "low",
+      importance_reason: "noise",
+      status: "informational",
+      requires_action: false,
+      requires_reply: false,
+      action_type: "none",
+      action_summary: null,
+      action_reason: null,
+      waiting_for: null,
+      waiting_since: null,
+      urgency: "none",
+      deadline: null,
+      deadline_text: null,
+      category: "other",
+      confidence: 0.5,
+      last_analyzed_message_id: "message-1",
+      analysis_scan_id: null,
+      prompt_version: "prompt-1",
+    };
+    const loaded = await createSupabaseScanStore().getThread("conn-1", "gmail-thread-1");
+    expect(loaded?.analysis).toBeNull();
+  });
+
   it("surfaces failed persistence instead of reporting a saved analysis", async () => {
     state.error = { message: "synthetic write failure" };
     await expect(createSupabaseScanStore().upsertThread(input())).rejects.toThrow(

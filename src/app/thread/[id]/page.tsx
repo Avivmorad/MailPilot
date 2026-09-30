@@ -13,6 +13,7 @@ import { threadPlacementReason } from "@/lib/mail/placement";
 import { requireOnboardingComplete } from "@/lib/onboarding/guard";
 import { getSessionUser } from "@/lib/supabase/auth";
 import { getThreadDetailForUser } from "@/lib/threads/queries";
+import { displayThreadTitle, usableDisplayText } from "@/lib/ui/display-text";
 import { classForDeadline, formatDate, formatDateTime } from "@/lib/ui/format";
 import { labelForDirection } from "@/lib/ui/labels";
 
@@ -37,11 +38,14 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
   const senderMessage = inbound ?? thread.messages[thread.messages.length - 1];
   const sender = senderMessage?.senderName ?? senderMessage?.senderEmail ?? null;
   const backTab = mailBucketForThread({ status: thread.status, actionStatus: thread.actionStatus });
-  const doText = thread.actionSummary;
+  const doText = usableDisplayText(thread.actionSummary);
   const whyText =
-    thread.actionReason && doText && thread.actionReason.trim() === doText.trim()
+    usableDisplayText(thread.actionReason) &&
+    doText &&
+    thread.actionReason?.trim() === doText.trim()
       ? null
-      : thread.actionReason;
+      : usableDisplayText(thread.actionReason);
+  const heading = displayThreadTitle(thread.shortDisplayTitle, thread.summary, thread.subject);
 
   return (
     <AppChrome user={user} current="thread" width="narrow">
@@ -56,11 +60,11 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
           className="text-foreground mt-3 text-2xl font-bold tracking-tight text-balance break-words sm:text-3xl"
           dir="auto"
         >
-          {thread.shortDisplayTitle ?? thread.subject ?? "Thread"}
+          {heading}
         </h1>
-        {thread.subject ? (
+        {usableDisplayText(thread.subject) && usableDisplayText(thread.subject) !== heading ? (
           <p className="text-muted-foreground mt-1 text-sm break-words" dir="auto">
-            {thread.subject}
+            {usableDisplayText(thread.subject)}
           </p>
         ) : null}
       </div>
@@ -80,8 +84,8 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
           <CardTitle>Summary</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3 text-sm leading-relaxed">
-          {thread.summary ? (
-            <p dir="auto">{thread.summary}</p>
+          {usableDisplayText(thread.summary) ? (
+            <p dir="auto">{usableDisplayText(thread.summary)}</p>
           ) : (
             <p className="text-muted-foreground">No analysis yet.</p>
           )}

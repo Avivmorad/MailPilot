@@ -9,6 +9,7 @@ import { groupByTopic } from "@/lib/actions/topics";
 import { threadPlacementReason } from "@/lib/mail/placement";
 import { mailBucketForThread } from "@/lib/mail/buckets";
 import type { RecentThreadRow } from "@/lib/threads/queries";
+import { displayThreadTitle, usableDisplayText } from "@/lib/ui/display-text";
 import { formatRelativeTime } from "@/lib/ui/format";
 
 export function InboxSummary({
@@ -49,11 +50,17 @@ export function InboxSummary({
                       <p
                         className="text-foreground min-w-0 flex-1 leading-snug font-semibold tracking-tight break-words"
                         dir="auto"
-                        title={
-                          thread.shortDisplayTitle ?? thread.summary ?? thread.subject ?? "Thread"
-                        }
+                        title={displayThreadTitle(
+                          thread.shortDisplayTitle,
+                          thread.summary,
+                          thread.subject,
+                        )}
                       >
-                        {thread.shortDisplayTitle ?? thread.summary ?? thread.subject ?? "Thread"}
+                        {displayThreadTitle(
+                          thread.shortDisplayTitle,
+                          thread.summary,
+                          thread.subject,
+                        )}
                       </p>
                       <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
                         <ThreadTags
@@ -66,12 +73,13 @@ export function InboxSummary({
                         </span>
                       </div>
                     </div>
-                    {thread.summary && thread.shortDisplayTitle ? (
+                    {usableDisplayText(thread.summary) &&
+                    usableDisplayText(thread.shortDisplayTitle) ? (
                       <p
                         className="text-muted-foreground mt-1 line-clamp-2 text-sm leading-relaxed"
                         dir="auto"
                       >
-                        {thread.summary}
+                        {usableDisplayText(thread.summary)}
                       </p>
                     ) : null}
                   </Link>

@@ -71,7 +71,7 @@ describe("scanProgressView", () => {
       scanProgressView({ threadsDiscovered: 80, threadsChecked: 20, status: "RUNNING" }),
     ).toEqual({
       percent: 25,
-      label: "Checking 20 of 80 conversations (25%)…",
+      label: "Checking 20 of 80 conversations (25%). Large scans continue automatically…",
       indeterminate: false,
     });
   });

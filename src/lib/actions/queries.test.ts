@@ -62,6 +62,35 @@ describe("mapActionListItem", () => {
     expect(item.actionSummary).toBe("Pay the remaining balance.");
     expect(item.actionReason).toBeNull();
   });
+
+  it("never renders the literal string null as an action title", () => {
+    const item = mapActionListItem(
+      {
+        id: "action-3",
+        thread_id: "thread-1",
+        status: "OPEN",
+        title: null,
+        description: null,
+        waiting_for: null,
+        deadline: null,
+        urgency: null,
+        action_type: "review",
+        email_threads: {
+          ...THREAD,
+          short_display_title: "null",
+          action_summary: null,
+          action_reason: null,
+          summary: null,
+        },
+      },
+      "me@gmail.com",
+    );
+
+    expect(item.title).toBe("Action");
+    expect(item.title.toLowerCase()).not.toBe("null");
+    expect(item.actionSummary).toBeNull();
+    expect(item.summary).toBeNull();
+  });
 });
 
 describe("ActionQueryError", () => {

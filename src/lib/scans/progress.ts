@@ -144,7 +144,7 @@ export function scanProgressView(input: ScanProgressInput): {
     if (threadsChecked < threadsDiscovered) {
       return {
         percent: rawPercent,
-        label: `Checking ${threadsChecked} of ${threadsDiscovered} conversations (${rawPercent}%)…`,
+        label: `Checking ${threadsChecked} of ${threadsDiscovered} conversations (${rawPercent}%). Large scans continue automatically…`,
         indeterminate: false,
       };
     }

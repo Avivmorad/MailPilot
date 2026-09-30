@@ -165,21 +165,21 @@ Scope requested for Connect Gmail: `https://www.googleapis.com/auth/gmail.modify
 
 Copy from [`.env.example`](.env.example). Server secrets must never use a `NEXT_PUBLIC_` prefix.
 
-| Variable                                                                                | Purpose                                                     |
-| --------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
-| `NEXT_PUBLIC_APP_URL`                                                                   | Public base URL for links and OAuth redirects               |
-| `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY`                            | Supabase public client                                      |
-| `SUPABASE_SERVICE_ROLE_KEY`                                                             | Server-only privileged key                                  |
-| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` / `GOOGLE_REDIRECT_URI`                     | Gmail OAuth                                                 |
-| `TOKEN_ENCRYPTION_KEY`                                                                  | 32-byte key for AES-256-GCM refresh-token encryption        |
-| `TOKEN_ENCRYPTION_PREVIOUS_KEY`                                                         | Optional previous key during rotation                       |
-| `GEMINI_API_KEY` / `GEMINI_MODEL`                                                       | Gemini access; used when `NVIDIA_API_KEY` is unset          |
-| `NVIDIA_API_KEY` / `NVIDIA_MODEL`                                                       | NVIDIA Build chat API; primary triage provider when set     |
-| `CRON_SECRET`                                                                           | Protects `/api/cron/scan-dispatcher`                        |
-| `MAX_THREAD_MESSAGES` / `MAX_MESSAGE_CHARS` / `MAX_THREAD_CHARS` / `AI_MAX_CONCURRENCY` | Context and cost controls                                   |
-| `GMAIL_QUOTA_UNITS_PER_MINUTE`                                                          | Optional local Gmail quota budget (default 12000)           |
-| `NEXT_PUBLIC_SENTRY_DSN`                                                                | Optional Sentry DSN (public). App runs without it           |
-| `SENTRY_ORG` / `SENTRY_PROJECT` / `SENTRY_AUTH_TOKEN`                                   | Optional build-only source-map upload. Never `NEXT_PUBLIC_` |
+| Variable                                                                                | Purpose                                                                                                                                                                                                          |
+| --------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_APP_URL`                                                                   | Public base URL for links and OAuth redirects                                                                                                                                                                    |
+| `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY`                            | Supabase public client                                                                                                                                                                                           |
+| `SUPABASE_SERVICE_ROLE_KEY`                                                             | Server-only privileged key                                                                                                                                                                                       |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` / `GOOGLE_REDIRECT_URI`                     | Gmail OAuth                                                                                                                                                                                                      |
+| `TOKEN_ENCRYPTION_KEY`                                                                  | 32-byte key for AES-256-GCM refresh-token encryption                                                                                                                                                             |
+| `TOKEN_ENCRYPTION_PREVIOUS_KEY`                                                         | Optional previous key during rotation                                                                                                                                                                            |
+| `GEMINI_API_KEY` / `GEMINI_MODEL`                                                       | Gemini access; used when `NVIDIA_API_KEY` is unset                                                                                                                                                               |
+| `NVIDIA_API_KEY` / `NVIDIA_MODEL`                                                       | NVIDIA Build chat API; primary triage provider when set                                                                                                                                                          |
+| `CRON_SECRET`                                                                           | Protects `/api/cron/scan-dispatcher`                                                                                                                                                                             |
+| `MAX_THREAD_MESSAGES` / `MAX_MESSAGE_CHARS` / `MAX_THREAD_CHARS` / `AI_MAX_CONCURRENCY` | Context and cost controls (default concurrency **4**; a ~700-thread first scan is dominated by per-thread NVIDIA latency × `ceil(N / concurrency)`, not Gmail listing — see `src/lib/scans/scan-timing-eval.ts`) |
+| `GMAIL_QUOTA_UNITS_PER_MINUTE`                                                          | Optional local Gmail quota budget (default 12000)                                                                                                                                                                |
+| `NEXT_PUBLIC_SENTRY_DSN`                                                                | Optional Sentry DSN (public). App runs without it                                                                                                                                                                |
+| `SENTRY_ORG` / `SENTRY_PROJECT` / `SENTRY_AUTH_TOKEN`                                   | Optional build-only source-map upload. Never `NEXT_PUBLIC_`                                                                                                                                                      |
 
 ### Migrations
 

@@ -10,9 +10,10 @@ export function logicalLabelsForAnalysis(analysis: ThreadAnalysis): MailPilotLog
   if (analysis.requires_action || analysis.status === "action_required") {
     labels.add("action_required");
   }
+  const openWorkflow = analysis.status === "action_required" || analysis.status === "waiting";
   if (
     analysis.status === "ignore" ||
-    (analysis.importance === "low" && !analysis.requires_action)
+    (analysis.importance === "low" && !analysis.requires_action && !openWorkflow)
   ) {
     labels.add("low_priority");
   }

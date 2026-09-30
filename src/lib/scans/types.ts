@@ -167,6 +167,11 @@ export interface ScanStorePort {
     analysisScanId?: string | null;
   }): Promise<string>;
   getThread(connectionId: string, gmailThreadId: string): Promise<StoredThreadRow | null>;
+  /** Batch load for reuse checks within a durable wave (one round trip). */
+  getThreadsByGmailIds(
+    connectionId: string,
+    gmailThreadIds: string[],
+  ): Promise<Map<string, StoredThreadRow>>;
   upsertMessage(input: {
     userId: string;
     connectionId: string;

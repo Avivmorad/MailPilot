@@ -21,35 +21,66 @@ function asStringArray(value: unknown): string[] {
   return value.filter((item): item is string => typeof item === "string");
 }
 
+function usableStoredText(value: unknown): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return null;
+  }
+  const lower = trimmed.toLowerCase();
+  if (lower === "null" || lower === "undefined") {
+    return null;
+  }
+  return trimmed;
+}
+
 function analysisFromRow(row: Record<string, unknown>): ThreadAnalysis | null {
+  const summary = usableStoredText(row.summary);
+  const shortTitle =
+    usableStoredText(row.short_display_title) ?? summary ?? usableStoredText(row.subject);
+  if (!summary || !shortTitle) {
+    return null;
+  }
   const parsed = threadAnalysisSchema.safeParse({
-    summary: row.summary,
+    summary,
     importance: row.importance,
-    importance_reason: row.importance_reason,
+    importance_reason: usableStoredText(row.importance_reason) ?? "Classified during a prior scan",
     status: row.status,
     requires_action: row.requires_action,
     requires_reply: row.requires_reply,
     action_type: row.action_type ?? "none",
-    action_summary: row.action_summary,
-    action_reason: row.action_reason,
-    waiting_for: row.waiting_for,
-    waiting_since: row.waiting_since,
+    action_summary: usableStoredText(row.action_summary),
+    action_reason: usableStoredText(row.action_reason),
+    waiting_for: usableStoredText(row.waiting_for),
+    waiting_since: usableStoredText(row.waiting_since),
     urgency: row.urgency ?? "normal",
     deadline: row.deadline,
-    deadline_text: row.deadline_text,
+    deadline_text: usableStoredText(row.deadline_text),
     category: normalizeCategory(typeof row.category === "string" ? row.category : null),
     sender_name: null,
     organization: null,
     confidence: row.confidence ?? 0,
-    short_display_title: row.short_display_title ?? row.summary,
+    short_display_title: shortTitle,
   });
   return parsed.success ? parsed.data : null;
+}
+
+function storedThreadFromRow(row: Record<string, unknown>): StoredThreadRow {
+  return {
+    id: row.id as string,
+    lastAnalyzedMessageId: (row.last_analyzed_message_id as string | null) ?? null,
+    analysisScanId: (row.analysis_scan_id as string | null) ?? null,
+    promptVersion: (row.prompt_version as string | null) ?? null,
+    analysis: analysisFromRow(row),
+  };
 }
 
 function actionFromRow(row: Record<string, unknown>): ActionRecord {
   return {
     status: row.status as ActionRecord["status"],
-    title: String(row.title),
+    title: usableStoredText(row.title) ?? "Action",
     description: (row.description as string | null) ?? null,
     actionType: (row.action_type as string | null) ?? null,
     waitingFor: (row.waiting_for as string | null) ?? null,
@@ -358,14 +389,33 @@ export function createSupabaseScanStore(): ScanStorePort {
       if (!data) {
         return null;
       }
-      const row: StoredThreadRow = {
-        id: data.id as string,
-        lastAnalyzedMessageId: (data.last_analyzed_message_id as string | null) ?? null,
-        analysisScanId: (data.analysis_scan_id as string | null) ?? null,
-        promptVersion: (data.prompt_version as string | null) ?? null,
-        analysis: analysisFromRow(data as Record<string, unknown>),
-      };
-      return row;
+      return storedThreadFromRow(data as Record<string, unknown>);
+    },
+
+    async getThreadsByGmailIds(connectionId, gmailThreadIds) {
+      const uniqueIds = [...new Set(gmailThreadIds.filter((id) => id.length > 0))];
+      const result = new Map<string, StoredThreadRow>();
+      if (uniqueIds.length === 0) {
+        return result;
+      }
+      const { data, error } = await db
+        .from("email_threads")
+        .select(
+          "id, gmail_thread_id, last_analyzed_message_id, analysis_scan_id, prompt_version, summary, importance, importance_reason, status, requires_action, requires_reply, action_type, action_summary, action_reason, waiting_for, waiting_since, urgency, deadline, deadline_text, category, confidence, short_display_title",
+        )
+        .eq("gmail_connection_id", connectionId)
+        .in("gmail_thread_id", uniqueIds);
+      if (error) {
+        failStore("Failed to load email threads", error);
+      }
+      for (const row of data ?? []) {
+        const gmailThreadId = row.gmail_thread_id;
+        if (typeof gmailThreadId !== "string" || gmailThreadId.length === 0) {
+          continue;
+        }
+        result.set(gmailThreadId, storedThreadFromRow(row as Record<string, unknown>));
+      }
+      return result;
     },
 
     async upsertMessage(input) {

@@ -178,6 +178,7 @@ const MEETING_TIME_CHOICE = [
   /please (accept|decline)/,
   /\brsvp\b/,
   /find a (new )?time/,
+  /does that (still )?work for you/,
 ];
 
 const CONFIRMED_MEETING_CHANGE = [
@@ -218,12 +219,36 @@ const EXPLICIT_USER_ACTION = [
   /unpaid/,
   /failed (payment|charge)/,
   /remaining balance/,
+  /payment is due/,
   /update (your )?(payment|card)/,
   /can you /,
   /could you /,
   /חשבונית.{0,40}לתשלום/,
   /יתרה לתשלום/,
   /אנא שלם/,
+];
+
+/** Direct asks. Narrower than {@link EXPLICIT_USER_ACTION} so "can you believe…" stays marketing. */
+const EXPLICIT_NEXT_STEP = [
+  /please (review|sign|approve|pay|reply|complete|submit|confirm payment)/,
+  /could you (review|reply|send|confirm|approve|sign|pay|complete|check)/,
+  /can you (also )?(review|reply|send|confirm|approve|sign|pay|complete|check)/,
+  /action required/,
+  /required (next )?step/,
+];
+
+const PAYMENT_ACTION = [
+  /payment is due/,
+  /invoice #\d+[^\n]{0,120}\b(due|unpaid|pay|attached)\b/,
+  /\bunpaid\b/,
+  /failed (payment|charge)/,
+  /remaining balance/,
+  /please pay/,
+  /יתרה לתשלום/,
+  /חשבונית.{0,40}לתשלום/,
+  /אנא שלם/,
+  /update (your )?(payment method|card)/,
+  /card (has )?expired/,
 ];
 
 const MARKETING_OR_JOB = [
@@ -237,10 +262,25 @@ const MARKETING_OR_JOB = [
   /new jobs/,
   /webinar/,
   /you('re| are) invited to (a )?webinar/,
+  /mailing list/,
+  /this email is a digest/,
+  /unread slack messages/,
+  /catch up on unread messages/,
+];
+
+/** Passive GitHub / social FYI — not a MailPriority open task unless a CTA asks the user to act. */
+const CODE_OR_SOCIAL_FYI = [
+  /new issue comment/,
+  /commented on (an? )?(issue|pull request|pr) #?\d+/i,
+  /view it on github/,
+  /\d+ new connection requests?/,
+  /people want to connect with you/,
+  /grow your network/,
 ];
 
 const RECEIPT_OR_ROUTINE = [
   /payment (was |is |has been )?(received|successful|posted|confirmed)/,
+  /received your payment/,
   /order confirmation/,
   /thanks for your (order|purchase|payment)/,
   /refund (issued|processed)/,
@@ -332,6 +372,22 @@ export function isAssignedToSomeoneElseNotice(parts: Array<string | null | undef
   return matchesAny(text, ASSIGNED_TO_OTHER);
 }
 
+export function isExplicitNextStepNotice(parts: Array<string | null | undefined>): boolean {
+  const text = haystack(parts);
+  if (!text || isEphemeralAuthNotice(parts)) {
+    return false;
+  }
+  return matchesAny(text, EXPLICIT_NEXT_STEP);
+}
+
+export function isPaymentActionNotice(parts: Array<string | null | undefined>): boolean {
+  const text = haystack(parts);
+  if (!text || isEphemeralAuthNotice(parts) || matchesAny(text, PAID_RECEIPT)) {
+    return false;
+  }
+  return matchesAny(text, PAYMENT_ACTION);
+}
+
 export function isUserOwnedActionNotice(parts: Array<string | null | undefined>): boolean {
   const text = haystack(parts);
   if (!text || isEphemeralAuthNotice(parts)) {
@@ -341,7 +397,9 @@ export function isUserOwnedActionNotice(parts: Array<string | null | undefined>)
     isApplicationFollowUpNotice(parts) ||
     isDeliveryActionNotice(parts) ||
     isAutomatedActionRequestNotice(parts) ||
-    isMeetingTimeChoiceNotice(parts)
+    isMeetingTimeChoiceNotice(parts) ||
+    isPaymentActionNotice(parts) ||
+    isExplicitNextStepNotice(parts)
   );
 }
 
@@ -353,14 +411,20 @@ export function ownedActionType(parts: Array<string | null | undefined>): Action
   if (/approv|אשר/.test(text)) {
     return "approve";
   }
-  if (/interview|schedule|available|rsvp|accept|decline|ראיון/.test(text)) {
+  if (isPaymentActionNotice(parts)) {
+    return "pay";
+  }
+  if (/interview|schedule|available|rsvp|accept|decline|does that work|ראיון/.test(text)) {
     return "schedule";
   }
   if (/assessment|missing|upload|customs|submit|מסמך/.test(text)) {
     return "submit";
   }
-  if (/comment|reply|הגב/.test(text)) {
+  if (/comment|reply|\bsend\b|הגב/.test(text)) {
     return "reply";
+  }
+  if (/\breview\b|בדוק/.test(text)) {
+    return "review";
   }
   if (/collect|pickup|pick up|address|parcel|package|איסוף/.test(text)) {
     return "follow_up";
@@ -370,10 +434,28 @@ export function ownedActionType(parts: Array<string | null | undefined>): Action
 
 export function isAutomatedNoiseNotice(parts: Array<string | null | undefined>): boolean {
   const text = haystack(parts);
-  if (!text || isUserOwnedActionNotice(parts) || matchesAny(text, EXPLICIT_USER_ACTION)) {
+  if (
+    !text ||
+    isUserOwnedActionNotice(parts) ||
+    isSecurityEventNotice(parts) ||
+    matchesAny(text, EXPLICIT_USER_ACTION)
+  ) {
     return false;
   }
   return matchesAny(text, MARKETING_OR_JOB);
+}
+
+export function isCodeOrSocialFyiNotice(parts: Array<string | null | undefined>): boolean {
+  const text = haystack(parts);
+  if (
+    !text ||
+    isUserOwnedActionNotice(parts) ||
+    isSecurityEventNotice(parts) ||
+    matchesAny(text, EXPLICIT_USER_ACTION)
+  ) {
+    return false;
+  }
+  return matchesAny(text, CODE_OR_SOCIAL_FYI);
 }
 
 export function isReceiptOrRoutineNotice(parts: Array<string | null | undefined>): boolean {
@@ -408,6 +490,7 @@ export function isLoginFyiNotice(parts: Array<string | null | undefined>): boole
 
 const PAID_RECEIPT = [
   /payment (was |is |has been )?(received|successful|posted|confirmed)/,
+  /received your payment/,
   /order confirmation/,
   /thanks for your (order|purchase|payment)/,
   /refund (issued|processed)/,
@@ -440,6 +523,7 @@ export function isInformationalNotice(parts: Array<string | null | undefined>): 
     isRoutineTrackingNotice(parts) ||
     isConfirmedMeetingChangeNotice(parts) ||
     isAssignedToSomeoneElseNotice(parts) ||
+    isCodeOrSocialFyiNotice(parts) ||
     (isReceiptOrRoutineNotice(parts) && !isPaidReceiptNotice(parts))
   );
 }

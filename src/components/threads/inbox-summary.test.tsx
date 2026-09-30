@@ -57,4 +57,26 @@ describe("InboxSummary", () => {
     expect(screen.getByText("Invoice 1042")).toBeInTheDocument();
     expect(screen.queryByText("Thread")).not.toBeInTheDocument();
   });
+
+  it("does not render the literal string null as a primary title", () => {
+    render(
+      <InboxSummary
+        threads={[
+          {
+            id: "thread-3",
+            subject: "Board packet",
+            shortDisplayTitle: "null",
+            summary: "undefined",
+            status: "informational",
+            importance: "low",
+            category: "other",
+            latestMessageAt: "2026-09-10T10:00:00.000Z",
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByText("Board packet")).toBeInTheDocument();
+    expect(screen.queryByText(/^null$/i)).not.toBeInTheDocument();
+  });
 });

@@ -46,7 +46,14 @@ const IMPORTANCE_RANK: Record<Importance, number> = {
 
 function nonEmpty(value: string | null | undefined): string | null {
   const trimmed = value?.trim();
-  return trimmed ? trimmed : null;
+  if (!trimmed) {
+    return null;
+  }
+  const lower = trimmed.toLowerCase();
+  if (lower === "null" || lower === "undefined") {
+    return null;
+  }
+  return trimmed;
 }
 
 function isCriticalAccountMessage(analysis: ThreadAnalysis): boolean {
@@ -93,6 +100,29 @@ function applyIgnoreNormalization(next: ThreadAnalysis, importance: Importance):
   next.urgency = "none";
 }
 
+function applyWaiting(next: ThreadAnalysis): void {
+  next.status = "waiting";
+  next.requires_action = false;
+  next.requires_reply = false;
+  if (next.action_type === "reply") {
+    next.action_type = "none";
+  }
+  next.action_summary = null;
+  if (!next.waiting_for) {
+    next.waiting_for = "the other party";
+  }
+}
+
+/** Last `[MESSAGE n]` block. Earlier asks must not override an out-of-office reply. */
+export function latestThreadMessageText(threadText: string | null | undefined): string | null {
+  if (!threadText) {
+    return null;
+  }
+  const matches = [...threadText.matchAll(/\[MESSAGE \d+\][\s\S]*?(?=\[MESSAGE \d+\]|$)/gi)];
+  const last = matches.at(-1)?.[0]?.trim();
+  return last ? last : null;
+}
+
 export function postProcessThreadAnalysis(
   analysis: ThreadAnalysis,
   options: {
@@ -112,6 +142,14 @@ export function postProcessThreadAnalysis(
   next.waiting_since = nonEmpty(next.waiting_since);
   next.sender_name = nonEmpty(next.sender_name);
   next.organization = nonEmpty(next.organization);
+  next.importance_reason = nonEmpty(next.importance_reason) ?? "Needs a quick look";
+  next.summary =
+    nonEmpty(next.summary) ??
+    nonEmpty(next.short_display_title) ??
+    nonEmpty(options.latestSubject) ??
+    "Email update";
+  next.short_display_title =
+    nonEmpty(next.short_display_title) ?? nonEmpty(options.latestSubject) ?? next.summary;
 
   if (!Number.isFinite(next.confidence)) {
     next.confidence = 0;
@@ -131,9 +169,17 @@ export function postProcessThreadAnalysis(
     next.action_summary,
     options.threadText,
   ];
+  const latestMessage = latestThreadMessageText(options.threadText);
+  const latestParts = [options.latestSubject, latestMessage];
+  const latestIsWaitingAck =
+    latestMessage !== null &&
+    isWaitingAcknowledgmentNotice(latestParts) &&
+    !isSecurityEventNotice(latestParts);
 
   if (isEphemeralAuthNotice(noticeParts) || isIgnoreFamilyNotice(noticeParts)) {
     applyIgnoreNormalization(next, next.importance === "high" ? "medium" : next.importance);
+  } else if (latestIsWaitingAck) {
+    applyWaiting(next);
   } else if (isUserOwnedActionNotice(noticeParts) || isSecurityEventNotice(noticeParts)) {
     next.status = "action_required";
     next.requires_action = true;
@@ -149,16 +195,7 @@ export function postProcessThreadAnalysis(
       next.action_summary = next.action_reason ?? ACTION_SUMMARY_FALLBACK[next.action_type];
     }
   } else if (isWaitingAcknowledgmentNotice(noticeParts)) {
-    next.status = "waiting";
-    next.requires_action = false;
-    next.requires_reply = false;
-    if (next.action_type === "reply") {
-      next.action_type = "none";
-    }
-    next.action_summary = null;
-    if (!next.waiting_for) {
-      next.waiting_for = "the other party";
-    }
+    applyWaiting(next);
   } else if (isInformationalNotice(noticeParts)) {
     next.status = "informational";
     next.requires_action = false;

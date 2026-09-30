@@ -48,6 +48,24 @@ describe("postProcessThreadAnalysis", () => {
     expect(() => assertThreadAnalysisInvariants(processed)).not.toThrow();
   });
 
+  it("replaces literal nullish user-facing strings with usable fallbacks", () => {
+    const processed = postProcessThreadAnalysis(
+      analysis({
+        summary: "null",
+        short_display_title: "undefined",
+        importance_reason: "null",
+        action_summary: "null",
+        status: "informational",
+      }),
+      { latestSubject: "Quarterly invoice" },
+    );
+
+    expect(processed.summary).toBe("Quarterly invoice");
+    expect(processed.short_display_title).toBe("Quarterly invoice");
+    expect(processed.importance_reason).toBe("Needs a quick look");
+    expect(processed.action_summary).toBeNull();
+  });
+
   it("enforces Rule B for waiting", () => {
     const processed = postProcessThreadAnalysis(
       analysis({
@@ -277,6 +295,25 @@ describe("postProcessThreadAnalysis", () => {
     expect(receipt.status).toBe("ignore");
   });
 
+  it("keeps passive GitHub comments informational when the model invents an action", () => {
+    const processed = postProcessThreadAnalysis(
+      analysis({
+        status: "action_required",
+        requires_action: true,
+        requires_reply: true,
+        action_type: "reply",
+        action_summary: "Reply to this thread",
+        summary: "someone commented on issue #12. View it on GitHub.",
+      }),
+      {
+        latestSubject: "[mailpilot] New issue comment",
+        threadText: "someone commented on issue #12. View it on GitHub.",
+      },
+    );
+    expect(processed.status).toBe("informational");
+    expect(processed.requires_action).toBe(false);
+  });
+
   it("keeps new-sign-in mail as an open task", () => {
     const processed = postProcessThreadAnalysis(
       analysis({
@@ -432,6 +469,81 @@ describe("postProcessThreadAnalysis", () => {
       }),
     );
     expect(ticket.status).toBe("waiting");
+  });
+
+  it("opens an unpaid invoice that a low-confidence model called informational", () => {
+    const processed = postProcessThreadAnalysis(
+      analysis({
+        status: "informational",
+        requires_action: false,
+        importance: "low",
+        summary: "Invoice",
+      }),
+      {
+        latestSubject: "Invoice #4821 — payment due Sep 15",
+        threadText: "Please find invoice #4821 for 1,250 attached. Payment is due by September 15.",
+      },
+    );
+    expect(processed.status).toBe("action_required");
+    expect(processed.requires_action).toBe(true);
+    expect(processed.action_type).toBe("pay");
+  });
+
+  it("keeps a locked account actionable when the footer says unsubscribe", () => {
+    const processed = postProcessThreadAnalysis(
+      analysis({
+        status: "informational",
+        requires_action: false,
+        summary: "Account notice",
+      }),
+      {
+        latestSubject: "Your account is locked",
+        threadText:
+          "The account is locked until you reset your password. Unsubscribe from security tips.",
+      },
+    );
+    expect(processed.status).toBe("action_required");
+    expect(processed.category).toBe("security");
+  });
+
+  it("keeps an out-of-office reply waiting even if an earlier message asked for a review", () => {
+    const processed = postProcessThreadAnalysis(
+      analysis({
+        status: "informational",
+        requires_action: false,
+        summary: "Automatic reply",
+      }),
+      {
+        latestSubject: "Automatic reply: Can we review the launch checklist?",
+        threadText: [
+          "[MESSAGE 1]",
+          "Could you review the launch checklist when you are back?",
+          "",
+          "[MESSAGE 2]",
+          "Subject: Automatic reply: Can we review the launch checklist?",
+          "I am currently out of the office until Monday with limited access to email.",
+        ].join("\n"),
+      },
+    );
+    expect(processed.status).toBe("waiting");
+    expect(processed.requires_action).toBe(false);
+  });
+
+  it("ignores a payment confirmation that says the payment was received", () => {
+    const processed = postProcessThreadAnalysis(
+      analysis({
+        status: "informational",
+        requires_action: false,
+        summary: "Payment",
+      }),
+      {
+        latestSubject: "Your payment was received",
+        threadText:
+          "Thank you. We have received your payment of 1,250. No further action is required.",
+      },
+    );
+    expect(processed.status).toBe("ignore");
+    expect(processed.requires_action).toBe(false);
   });
 
   it("does not create a task when work is assigned only to someone else", () => {

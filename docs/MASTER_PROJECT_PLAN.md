@@ -1,5 +1,7 @@
 # MailPilot — Master Project Plan
 
+> **How to read this file:** dated audit snapshot (2026-09-29), not the current product contract. Shipped behavior is [`PRODUCT_DECISIONS.md`](PRODUCT_DECISIONS.md) over [`PROJECT_SPEC.md`](PROJECT_SPEC.md), summarized in [`AGENTS.md`](../AGENTS.md) (phases 0–9 implemented). Live console steps are [`HUMAN_TASKS.md`](HUMAN_TASKS.md). Open launch work is [`../PUBLIC_LAUNCH_TASKS.md`](../PUBLIC_LAUNCH_TASKS.md).
+
 Audit date: 2026-09-29. Scope: investigation and planning only. Application source, database configuration, branches, PRs, deployments, and account settings were not changed. This document is the only project artifact created by this audit. Existing uncommitted work was preserved.
 
 ## 1. Executive status

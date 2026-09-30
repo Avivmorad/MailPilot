@@ -1,5 +1,7 @@
 # MailPilot Public Launch Roadmap
 
+> **How to read this file:** public-launch checklist, not the shipped-product contract. Phases 0–9 are implemented (see [`AGENTS.md`](AGENTS.md) and [`docs/PRODUCT_DECISIONS.md`](docs/PRODUCT_DECISIONS.md)). This file tracks what is still required before unrestricted public use. Live console steps are [`docs/HUMAN_TASKS.md`](docs/HUMAN_TASKS.md).
+
 **Updated:** September 30, 2026  
 **Goal:** Any eligible user can create an account, separately authorize Gmail, complete a scan, see trustworthy results, and reliably use MailPilot at the public production URL.
 

@@ -46,6 +46,7 @@ import {
 import { nextDailyScanAt } from "@/lib/scans/schedule";
 import { formatThreadFailureMessage } from "@/lib/scans/thread-failures";
 import { emitProductEvent } from "@/lib/observability/events";
+import { notifyTelegramScanResult } from "@/lib/notifications/telegram";
 import {
   countersFromAnalyses,
   EMPTY_SCAN_COUNTERS,
@@ -897,6 +898,12 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
       errorCode: status === "PARTIAL" ? "partial_thread_failures" : null,
     });
 
+    await notifyTelegramScanResult({
+      status,
+      counters,
+      failedThreads: uniqueFailed.length,
+    });
+
     return { scanId, status, counters, lookbackDays, mode: discoveryMode };
   } catch (error) {
     if (error instanceof Error && error.message === SCAN_SLICE_LEASE_LOST) {
@@ -965,6 +972,21 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
       connectionId,
       errorCode,
       durationMs: Date.now() - startedMs,
+    });
+    await notifyTelegramScanResult({
+      status: "FAILED",
+      errorCode,
+      counters: {
+        messagesDiscovered: durableProgress.messagesDiscovered,
+        messagesProcessed: durableProgress.messagesProcessed,
+        threadsAnalyzed: durableProgress.threadsAnalyzed,
+        importantCount: durableProgress.importantCount,
+        actionCount: durableProgress.actionCount,
+        replyCount: durableProgress.replyCount,
+        waitingCount: durableProgress.waitingCount,
+        informationalCount: durableProgress.informationalCount,
+        ignoredCount: durableProgress.ignoredCount,
+      },
     });
     throw error;
   }

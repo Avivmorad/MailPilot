@@ -1,6 +1,18 @@
 # Cursor tasks — parallel scan UI reliability work
 
-Updated: 2026-09-29. Repository: `C:\Users\Daniel\Desktop\Aviv Projects\MailPilot\mailpilot`.
+Updated: 2026-09-30. Repository: `C:\Users\Daniel\Desktop\Aviv Projects\MailPilot\mailpilot`.
+
+## Checklist
+
+`[V]` = done and accepted locally. `[ ]` = still open.
+
+1. C01 — Stop polling after repeated missing or invalid scan responses - [V]
+2. C02 — Make polling, resume and user requests bounded and lifecycle-safe - [V]
+3. C03 — Give empty terminal scans a terminal progress state - [V]
+4. C04 — Remove unsupported retry guarantees from scan UI copy - [V]
+5. C05 — Verify accessibility and layout of the owned scan components - [ ]
+
+C05 component tests passed. The signed-in narrow/mobile and 200% zoom check is still open (`EXTERNAL_GATE_PENDING`).
 
 This is an execution handoff, not a request for another plan. Implement the tasks below, one at a time, while Codex works independently on Gmail requests, scan deadlines, admission, recovery and security. The owner explicitly authorized this parallel work. Read this file and relevant repository instructions before editing.
 
@@ -162,6 +174,8 @@ Next unblocked Cursor work: none in this lane until owner supplies an authorized
 Re-check: targeted Cursor + TASK-003 tests `npm test --` eight files — 121 passed, 0 failed. `npm run typecheck` PASS. `npm run lint` PASS. C05 authenticated narrow/200% viewport still BLOCKED (no disposable signed-in session). Packaging the on-disk TASK-003 changes into a review PR per owner request; not claiming Cursor authored the backend files.
 
 2026-09-29T15:16Z Owner asked to list Cursor tasks and do them all. No incomplete implementation remains in this lane. C01–C05 stay VERIFIED_LOCALLY. Re-check: `npm test -- src/components/scans/initial-scan-card.test.tsx src/components/scans/scan-progress-bar.test.tsx src/lib/scans/progress.test.ts` — 3 files, 50 passed, 0 failed. No owned source files changed. C05 authenticated narrow/200% viewport still BLOCKED (no disposable signed-in session). Uncommitted `src/lib/gmail/parser.test.ts` left untouched (Codex-owned). PR #92 already open for the TASK-003 branch; this handoff still forbids a Cursor commit.
+
+2026-09-30T02:05Z Owner asked for a top-of-file checklist. Audit against the status table, activity log, and owned sources (`initial-scan-card.tsx` / tests, `scan-progress-bar.tsx` / tests, `progress.ts` `scanProgressView`). C01–C04 marked `[V]` (VERIFIED_LOCALLY and Codex ACCEPTED_LOCAL). C05 left `[ ]`: local accessibility assertions are in place, but signed-in narrow/mobile and 200% zoom remain EXTERNAL_GATE_PENDING. No source files changed. Codex-review column unchanged.
 
 ## Codex review log
 

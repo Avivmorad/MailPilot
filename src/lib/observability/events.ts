@@ -26,6 +26,32 @@ export interface ProductEvent {
 const FORBIDDEN_KEY =
   /token|secret|authorization|password|api[_-]?key|refresh|email_body|thread_text|prompt|cookie|encrypted/i;
 
+// Event metadata is intentionally finite: a future caller must not be able to
+// add an arbitrary subject, provider response, or request body to logs.
+const ALLOWED_EVENT_KEYS = new Set([
+  "actionCount",
+  "actionId",
+  "category",
+  "connectionId",
+  "created",
+  "digestId",
+  "durationMs",
+  "errorCode",
+  "lookbackDays",
+  "persisted",
+  "requiresAction",
+  "scanId",
+  "status",
+  "step",
+  "threadFailures",
+  "threadId",
+  "threadReused",
+  "threadsAnalyzed",
+  "threadsChecked",
+  "threadsDiscovered",
+  "totalMessages",
+]);
+
 const SECRET_VALUE =
   /bearer\s+[a-z0-9._~+/=-]+|ya29\.[a-z0-9_-]+|sk-[a-z0-9]+|eyj[a-z0-9_-]+\.[a-z0-9_-]+/i;
 
@@ -80,10 +106,13 @@ export function sanitizeProductEvent(event: ProductEvent): Record<string, EventS
     if (key === "type" || value === undefined) {
       continue;
     }
-    if (FORBIDDEN_KEY.test(key)) {
+    if (!ALLOWED_EVENT_KEYS.has(key) || FORBIDDEN_KEY.test(key)) {
       continue;
     }
-    sanitized[key] = sanitizeEventValue(value);
+    sanitized[key] =
+      typeof value === "string" && !/^[a-z0-9_.-]{1,128}$/i.test(value)
+        ? "[redacted]"
+        : sanitizeEventValue(value);
   }
   return sanitized;
 }

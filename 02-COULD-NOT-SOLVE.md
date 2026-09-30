@@ -1,10 +1,14 @@
 # Unresolved problems and prerequisites
 
-Cross-branch checkpoint, 2026-09-29: draft PRs #93 and #94 have successful GitHub CI and Dependency Review on their current heads; #95 had both pass on code commit `9aef52c`, but its subsequent documentation-only head still requires fresh CI confirmation. No human approval or merge exists. #93 still requires a non-retryable oversized-thread policy (TASK-005); #94 needs deployed-browser/live telemetry privacy proof; #95 needs real Gmail/database/termination proof. Older active project chats remain unavailable beyond the capped recent list, and Cursor C05 still lacks an authenticated viewport check. These are not resolved by the green checks below.
+## TASK-002 history coverage — 2026-09-29
 
-## EDGE-004 remaining proof — 2026-09-29
+Archived ChatGPT pagination reached `nextCursor: null` after 28 pages, and archived Codex pagination also ended; neither revealed a new MailPilot requirement. The active listing is limited to the most recent 50 chats plus pinned chats and has no older-page cursor. Therefore older unlisted active Mail Pilot conversations cannot be certified as reviewed from the available task tools. An owner-provided export or supported older-active-chat pagination would close this inventory gap; meanwhile keep TASK-002 partial and do not invent requirements from missing history.
 
-Synthetic tests demonstrate that an interrupted second Gmail page does not commit incomplete discovery and that resume can rediscover safely. They do not prove a real process hard-kill, actual Gmail pagination/quota behavior, or a real Supabase checkpoint write. Those need an approved disposable Gmail account and database under TEST-005/007. Legitimately enormous page walks still restart at page one after a slice deadline; no measured workload has yet justified a partial-page checkpoint migration. If a disposable benchmark shows repeated deadline starvation, add durable page-token/checkpoint state with an upgrade/fresh-schema and RLS rehearsal before deployment. Do not silently truncate discovery.
+## Current state — 2026-09-29
+
+The goal and 15-minute Cursor-review heartbeat are active; the older paused-handoff text below is historical. PR #92 merged, but its SQL migration is unapplied and still needs a disposable-database rehearsal before the matching app code is deployed. PR #93 is draft, unmerged and green in CI, with a review-identified TASK-005 oversized-thread non-retryable failure-path gap. Neither a green check nor a `COMMENTED` review is human approval. SEC-003 has local synthetic tests and a build-canary check, but no deployed-browser, live analytics or live Sentry privacy proof. The 72-task plan remains unfinished.
+
+The missing approved disposable database, authenticated test account/Gmail consent, runtime logs, owner decisions and live-release gates in the table below still apply. No production schema, Gmail, deployment or merge action has been taken in this checkpoint.
 
 Handoff checkpoint, 2026-09-29. The full plan is not finished. The owner requested commit/push, a draft PR and then goal pause for another chat. These remain carried-forward blockers, not live-success claims. The Cursor-review heartbeat is PAUSED.
 

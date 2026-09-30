@@ -32,8 +32,9 @@ client_secret*.json
 supabase/.temp/
 .t12-check/
 
-# Cursor local config (do not publish)
-.cursor/
+# Cursor local config (do not publish), except the Cloud Agent environment.
+.cursor/*
+!.cursor/environment.json
 
 # debug
 npm-debug.log*

@@ -280,9 +280,7 @@ export default async function DashboardPage({
       <section className="space-y-3">
         <div className="flex flex-wrap items-end justify-between gap-2">
           <div>
-            <h2 className="text-foreground text-lg font-semibold tracking-tight">
-              Actions
-            </h2>
+            <h2 className="text-foreground text-lg font-semibold tracking-tight">Actions</h2>
             <p className="text-muted-foreground text-sm">
               {overdueOpen > 0
                 ? "Overdue and urgent first. Full list lives in Mail."

@@ -66,7 +66,7 @@ describe("formatDashboardChangeLine", () => {
         staleWaiting: 0,
         overdueOpen: 0,
       }),
-    ).toBe("Since last scan: 3 new open tasks, 2 completed, 1 reopened.");
+    ).toBe("Since last scan: 3 new actions, 2 completed, 1 reopened.");
   });
 
   it("returns a quiet empty state when a scan exists but nothing moved", () => {
@@ -92,6 +92,6 @@ describe("formatDashboardChangeLine", () => {
         staleWaiting: 2,
         overdueOpen: 4,
       }),
-    ).toBe("4 overdue open tasks, 2 stale pending items.");
+    ).toBe("4 overdue actions, 2 stale pending items.");
   });
 });

@@ -1,5 +1,7 @@
 # Changes and verification
 
+EDGE-004 pagination-cycle rejection is on this branch and is being merged with the Actions wording. SEC-003 merged in PR #94. The checkpoints below are historical.
+
 ## TASK-002 — Historical-chat inventory checkpoint (2026-09-29)
 
 The supported archived-ChatGPT listing was paginated to its terminal cursor (28 pages); no archived Mail Pilot project chat or new MailPilot/Gmail-scan title appeared. Archived Codex listings likewise ended without a new project requirement. The available 50 recent chats contain the same mapped Mail Pilot/local-project chats. Relevant chat summaries were rechecked against the existing requirements map; no task was added or marked complete from an assistant's old claim. `docs/MASTER_PROJECT_PLAN.md` and the remaining/blocker reports now record the exact coverage boundary: older active chats are not paginated by the available listing and remain unverified. This is progress on TASK-002, not exhaustive completion. Actual model: Codex current session; planned Light/Standard inventory work, actual Standard due complete archive pagination.

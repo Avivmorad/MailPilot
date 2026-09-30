@@ -1,12 +1,58 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import type { gmail_v1 } from "googleapis";
 
-import { fetchAndParseThread, loadThreadContextFromGmail } from "@/lib/gmail/messages";
+import {
+  fetchAndParseThread,
+  listMessageRefs,
+  loadThreadContextFromGmail,
+} from "@/lib/gmail/messages";
 
 function b64(value: string): string {
   return Buffer.from(value, "utf8").toString("base64url");
 }
+
+describe("listMessageRefs", () => {
+  it("keeps refs across empty and duplicate pages", async () => {
+    const list = vi.fn(async ({ pageToken }: { pageToken?: string }) => {
+      if (!pageToken) {
+        return { data: { messages: [{ id: "m1", threadId: "t1" }], nextPageToken: "p2" } };
+      }
+      if (pageToken === "p2") {
+        return { data: { messages: [], nextPageToken: "p3" } };
+      }
+      return {
+        data: {
+          messages: [
+            { id: "m1", threadId: "t1" },
+            { id: "m2", threadId: "t2" },
+          ],
+        },
+      };
+    });
+    const gmail = { users: { messages: { list } } } as unknown as gmail_v1.Gmail;
+
+    await expect(listMessageRefs(gmail, "in:inbox")).resolves.toEqual([
+      { id: "m1", threadId: "t1" },
+      { id: "m1", threadId: "t1" },
+      { id: "m2", threadId: "t2" },
+    ]);
+    expect(list.mock.calls.map(([request]) => request.pageToken)).toEqual([undefined, "p2", "p3"]);
+  });
+
+  it("rejects a repeated page token before requesting it again", async () => {
+    const list = vi.fn(async () => {
+      if (list.mock.calls.length > 2) throw new Error("unexpected third request");
+      return { data: { messages: [], nextPageToken: "p2" } };
+    });
+    const gmail = { users: { messages: { list } } } as unknown as gmail_v1.Gmail;
+
+    await expect(listMessageRefs(gmail, "in:inbox")).rejects.toThrow(
+      "Gmail message pagination repeated a page token",
+    );
+    expect(list).toHaveBeenCalledTimes(2);
+  });
+});
 
 describe("fetchAndParseThread", () => {
   it("parses every message returned by threads.get", async () => {

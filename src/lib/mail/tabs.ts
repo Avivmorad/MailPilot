@@ -4,7 +4,7 @@ import type { ActionStatus } from "@/lib/actions/reconcile-action";
 
 export const MAIL_TABS = [
   { id: "summary", label: "Summary" },
-  { id: "open", label: "Open" },
+  { id: "open", label: "Actions" },
   { id: "waiting", label: "Pending" },
   { id: "completed", label: "Completed" },
   { id: "snoozed", label: "Snoozed" },
@@ -63,7 +63,7 @@ export function mailTabEmptyCopy(tab: MailTab): { title: string; description: st
   switch (tab) {
     case "open":
       return {
-        title: "Nothing currently needs your action.",
+        title: "No actions right now.",
         description:
           "When a thread still needs a real next step, it will show up here — grouped by category.",
       };
@@ -75,12 +75,12 @@ export function mailTabEmptyCopy(tab: MailTab): { title: string; description: st
     case "completed":
       return {
         title: "No completed tasks yet.",
-        description: "Mark an open task done and it will land here.",
+        description: "Mark an action done and it will land here.",
       };
     case "snoozed":
       return {
         title: "Nothing snoozed.",
-        description: "Postpone a task and it returns to Open when the snooze ends.",
+        description: "Postpone an action and it returns to Actions when the snooze ends.",
       };
     case "ignored":
       return {

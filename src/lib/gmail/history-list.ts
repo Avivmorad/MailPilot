@@ -16,6 +16,7 @@ export async function listHistoryChanges(
 ): Promise<HistoryListResult> {
   const records: Array<{ messagesAdded?: gmail_v1.Schema$History["messagesAdded"] }> = [];
   let pageToken: string | undefined;
+  const seenPageTokens = new Set<string>();
   let latestHistoryId: string | null = null;
   try {
     do {
@@ -38,6 +39,12 @@ export async function listHistoryChanges(
         records.push(item);
       }
       pageToken = res.data.nextPageToken ?? undefined;
+      if (pageToken) {
+        if (seenPageTokens.has(pageToken)) {
+          throw new Error("Gmail history pagination repeated a page token");
+        }
+        seenPageTokens.add(pageToken);
+      }
     } while (pageToken);
   } catch (error) {
     if (isStaleHistoryError(error)) {

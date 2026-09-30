@@ -12,7 +12,7 @@ function DigestCounts({ digest }: { digest: DigestReport }) {
   const stats = [
     { label: "Processed", value: digest.totalMessages },
     { label: "Important", value: digest.importantCount },
-    { label: "Open", value: digest.actionCount },
+    { label: "Actions", value: digest.actionCount },
     { label: "Pending", value: digest.waitingCount },
     { label: "FYI", value: digest.informationalCount },
     { label: "Ignored", value: digest.ignoredCount },
@@ -42,7 +42,7 @@ export function DigestReportCard({
     if (!digest) {
       return (
         <p className="text-muted-foreground text-sm">
-          No digest yet. After a scan, period counts and top open tasks will appear here.{" "}
+          No digest yet. After a scan, period counts and top actions will appear here.{" "}
           <Link href="/digests" className="text-primary font-medium hover:underline">
             Digest history
           </Link>
@@ -79,7 +79,7 @@ export function DigestReportCard({
               ))}
             </ul>
           ) : (
-            <p className="text-muted-foreground text-sm">No open tasks in this digest.</p>
+            <p className="text-muted-foreground text-sm">No actions in this digest.</p>
           )}
           <Link href="/digests" className={buttonVariants({ variant: "outline", size: "sm" })}>
             Full digest
@@ -94,7 +94,7 @@ export function DigestReportCard({
       <Card>
         <CardHeader>
           <CardTitle>{title}</CardTitle>
-          <CardDescription>Period counts and top open tasks after a scan.</CardDescription>
+          <CardDescription>Period counts and top actions after a scan.</CardDescription>
         </CardHeader>
         <CardContent>
           <EmptyState
@@ -126,7 +126,7 @@ export function DigestReportCard({
         <DigestCounts digest={digest} />
         {digest.topActions.length > 0 ? (
           <div>
-            <h3 className="text-foreground mb-2 text-sm font-semibold">Top open tasks</h3>
+            <h3 className="text-foreground mb-2 text-sm font-semibold">Top actions</h3>
             <ul className="divide-border divide-y">
               {digest.topActions.map((action) => (
                 <li key={action.threadId} className="py-2 first:pt-0 last:pb-0">
@@ -157,7 +157,7 @@ export function DigestReportCard({
             </ul>
           </div>
         ) : (
-          <p className="text-muted-foreground text-sm">No open tasks in this digest.</p>
+          <p className="text-muted-foreground text-sm">No actions in this digest.</p>
         )}
       </CardContent>
     </Card>

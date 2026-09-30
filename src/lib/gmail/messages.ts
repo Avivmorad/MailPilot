@@ -13,6 +13,7 @@ export async function listMessageRefs(
 ): Promise<Array<{ id: string; threadId: string }>> {
   const refs: Array<{ id: string; threadId: string }> = [];
   let pageToken: string | undefined;
+  const seenPageTokens = new Set<string>();
   do {
     const res: { data: gmail_v1.Schema$ListMessagesResponse } = await withGmailRetry(
       (options) =>
@@ -33,6 +34,12 @@ export async function listMessageRefs(
       }
     }
     pageToken = res.data.nextPageToken ?? undefined;
+    if (pageToken) {
+      if (seenPageTokens.has(pageToken)) {
+        throw new Error("Gmail message pagination repeated a page token");
+      }
+      seenPageTokens.add(pageToken);
+    }
   } while (pageToken);
   return refs;
 }

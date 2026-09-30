@@ -17,7 +17,7 @@ const LABEL_OVERRIDES: Record<string, string> = {
   manual: "Manual scan",
   scheduled: "Scheduled scan",
   recovery: "Recovery scan",
-  open: "Open",
+  open: "Actions",
   waiting: "Pending",
   completed: "Done",
   snoozed: "Snoozed",

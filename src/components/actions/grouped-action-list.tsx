@@ -9,7 +9,7 @@ import { groupByTopic } from "@/lib/actions/topics";
 export function GroupedActionList({
   items,
   storageKey = "open-tasks",
-  emptyTitle = "No open tasks",
+  emptyTitle = "No actions",
   emptyDescription = "When a thread still needs a real next step, it will show up here — grouped by category.",
   emptyAction,
 }: {

@@ -3,7 +3,7 @@ export function actionChangeAnnouncement(op: string | undefined): string {
     case "complete":
       return "Task marked done.";
     case "reopen":
-      return "Task moved back to Open.";
+      return "Task moved back to Actions.";
     case "snooze":
       return "Task snoozed.";
     case "wait":

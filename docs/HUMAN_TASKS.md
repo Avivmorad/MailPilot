@@ -16,7 +16,7 @@ On [gmailpilot.vercel.app](https://gmailpilot.vercel.app):
 - [x] Revoke Gmail access in Google Account settings, then reconnect from MailPilot.
 - [x] Disconnect Gmail from MailPilot.
 
-## Google sign-in (only ~~if~~ Continue with Google is not done)
+## Google sign-in (Continue with Google)
 
 Connect Gmail stays a separate step. Do not remove the Gmail redirect URI above.
 

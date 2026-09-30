@@ -1,5 +1,7 @@
 # Remaining master-plan tasks
 
+> **How to read this file:** task tracker checkpoint (2026-09-29), not the current product contract. Shipped behavior is [`docs/PRODUCT_DECISIONS.md`](docs/PRODUCT_DECISIONS.md) over [`docs/PROJECT_SPEC.md`](docs/PROJECT_SPEC.md), summarized in [`AGENTS.md`](AGENTS.md) (phases 0–9 implemented). Live console steps are [`docs/HUMAN_TASKS.md`](docs/HUMAN_TASKS.md). Open launch work is [`PUBLIC_LAUNCH_TASKS.md`](PUBLIC_LAUNCH_TASKS.md).
+
 Current checkpoint, 2026-09-29: the 72-task goal is active and unfinished. PR #92 is merged (migration unapplied); PR #93 is draft/unmerged with green CI and a TASK-005 failure-path review gap; PR #94 is draft/unmerged with green CI and live privacy proof pending. SEC-003 is locally implemented: 33/33 targeted, 570/570 full, 17/17 integration and 2/2 evaluation tests, format/lint/typecheck/build and a synthetic production-build canary check pass. TASK-002 archival pagination is complete, but older unlisted active chats remain inaccessible. The old handoff text below is historical.
 
 Execution handoff, 2026-09-29. All 72 original IDs remain tracked. BUG-001/002/003/004/006 are complete locally; BUG-007 is implemented and locally checked but its real termination gate remains open. The owner requested a draft-PR checkpoint and paused-goal handoff to another chat. The full plan is not finished.

@@ -11,7 +11,7 @@ partial: a few threads were not analyzed).
 
 On [gmailpilot.vercel.app](https://gmailpilot.vercel.app):
 
-- [ ] Mail tabs separate Open, Summary, and Ignored, and Gmail shows `MailPilot/*` labels.
+- [ ] Mail tabs separate Actions, For You, and Ignored, and Gmail shows `MailPilot/*` labels.
 - [ ] A second Scan now is incremental: no duplicate threads or actions.
 - [x] Revoke Gmail access in Google Account settings, then reconnect from MailPriority.
 - [x] Disconnect Gmail from MailPriority.

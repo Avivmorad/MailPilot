@@ -17,6 +17,15 @@ must follow these.
 - **Pending tab:** User-facing copy for the `waiting` / `WAITING` state is **Pending** (Mail tabs,
   dashboard counts, digest, feedback). Database values, Gmail analysis `status`, and `?tab=waiting`
   stay `waiting` / `WAITING`. The spec’s “Waiting List” is this same list.
+- **Actions tab:** User-facing copy for `action_required` / `OPEN` is **Actions** (Mail tabs,
+  dashboard counts, digest, feedback, status chips). The tab id and `?tab=open` stay `open`.
+  The action-row status stays `OPEN`. The analysis status stays `action_required`.
+- **For You tab:** User-facing copy for leftover `informational` / `resolved` mail is **For You**.
+  The tab id and `?tab=summary` stay `summary`.
+- **Closed tab:** User-facing copy for the completed workflow is **Closed**, including the
+  mark-closed control. The tab id and `?tab=completed` stay `completed`. The action-row
+  status stays `COMPLETED`.
+- **Ignore:** Status chips say **Ignore**. The Mail tab and digest count stay **Ignored**.
 
 ## MVP operating defaults
 
@@ -113,7 +122,8 @@ This overrides spec §4/§22/§60, which named OpenAI.
 
 Implementation:
 
-- Env: `NVIDIA_API_KEY`, `NVIDIA_MODEL` (default `meta/llama-3.3-70b-instruct`),
+- Env: `NVIDIA_API_KEY`, `NVIDIA_MODEL` (default `openai/gpt-oss-20b`;
+  `meta/llama-3.3-70b-instruct` returned HTTP 410 after its 2026-08-26 end of life),
   optional `NVIDIA_BASE_URL`. Fallback: `GEMINI_API_KEY`, `GEMINI_MODEL` (default
   in `.env.example`: `gemini-3.1-flash-lite`). Do not hard-code either model in
   source. Full server env accepts NVIDIA alone, Gemini alone, or both.
@@ -124,14 +134,14 @@ Implementation:
   or call the NVIDIA HTTP API outside `src/lib/ai/nvidia.ts`.
 - Gmail labels are applied only after validated analysis (spec §68.8).
 
-## Inbox summary vs open tasks
+## For You vs Actions
 
 The dashboard is an overview (scan status and counts). Mail lists live on **Mail** tabs
 and stay two separate products (they must not be the same list):
 
-1. **Inbox summary** (Summary tab) — leftover useful FYI only (`informational` / `resolved`).
-   **Never** `ignore` and never open/pending tasks.
-2. **Open tasks** (Open tab) — a real next step, including security events and expired credentials.
+1. **For You** — leftover useful FYI only (`informational` / `resolved`).
+   **Never** `ignore` and never Actions or Pending tasks.
+2. **Actions** — a real next step, including security events and expired credentials.
 3. **Ignored** — OTP/verification, marketing, job alerts, receipts, and routine automated notices.
 
 Placement priority:
@@ -139,19 +149,19 @@ Placement priority:
 1. OTP, verification code, marketing, job alert, receipt, routine confirmation, or automated FYI → `ignore`, unless the mail explicitly requires action.
 2. Unrecognized/new-device login, security alert, expired API key/token, deadline, required payment, check-in, or explicit action → `action_required`.
 3. Otherwise → `informational`.
-4. Status is never empty. `requires_action` is true only for Open.
+4. Status is never empty. `requires_action` is true only for Actions.
 
-Mail tabs are derived from this single `status` (plus action workflow for pending/completed/snoozed). A thread ID cannot appear in both Summary and Ignored.
+Mail tabs are derived from this single `status` (plus action workflow for pending/closed/snoozed). A thread ID cannot appear in both For You and Ignored.
 
-## Open-task topics
+## Action topics
 
-Within Open (and in the summary), group threads by the AI `category`. Use
+Within Actions (and in For You), group threads by the AI `category`. Use
 `other` only when nothing else fits. Headings:
 
 | Category                 | Label                       | Typical mail                                                                       |
 | ------------------------ | --------------------------- | ---------------------------------------------------------------------------------- |
 | `finance`                | Finance                     | Banking, charges, receipts, invoices, billed subscriptions, investments, tax       |
-| `security`               | Security                    | Logins, authentication, passwords, OAuth, account access (not OTPs as Open tasks)  |
+| `security`               | Security                    | Logins, authentication, passwords, OAuth, account access (not OTPs as Actions)     |
 | `career`                 | Career                      | Jobs, recruiters, applications, interviews                                         |
 | `education`              | Education                   | Courses, exams, school or university enrollment                                    |
 | `projects_development`   | Projects & Development      | Code, deployments, developer tooling                                               |
@@ -172,9 +182,9 @@ the same heading; they are not merged into a single Gmail thread.
 
 ## Placement map
 
-Decide **Open** only when the user still has a durable next step; **Pending** when they
-already did their step; **Summary** when the mail is useful FYI; **Ignore** for noise.
-Never persist full email bodies. `action_items` rows exist only for Open (`OPEN`) and
+Decide **Actions** only when the user still has a durable next step; **Pending** when they
+already did their step; **For You** when the mail is useful FYI; **Ignore** for noise.
+Never persist full email bodies. `action_items` rows exist only for Actions (`OPEN`) and
 Pending (`WAITING`).
 
 **Precedence:** classify by the remaining action and who owns it. An automated sender
@@ -183,45 +193,45 @@ alone must not cause an actionable request to be ignored. OTP, magic links, and
 
 ### Security
 
-| Case                                                                        | Where  | `status` / action            |
-| --------------------------------------------------------------------------- | ------ | ---------------------------- |
-| OTP, magic link, confirm-email, “Link verification code”                    | Ignore | `ignore`                     |
-| New / unrecognized device login, Google security alert                      | Open   | `action_required` / `review` |
-| Expired API key, personal access token, or similar credential               | Open   | `action_required` / `review` |
-| Provider already blocked the login                                          | Open   | `action_required` / `review` |
-| Security copy about a **different** account (this mailbox is only recovery) | Ignore | `ignore`                     |
-| Password reset, locked/compromised account, unauthorized charge             | Open   | `action_required` / `review` |
+| Case                                                                        | Where   | `status` / action            |
+| --------------------------------------------------------------------------- | ------- | ---------------------------- |
+| OTP, magic link, confirm-email, “Link verification code”                    | Ignore  | `ignore`                     |
+| New / unrecognized device login, Google security alert                      | Actions | `action_required` / `review` |
+| Expired API key, personal access token, or similar credential               | Actions | `action_required` / `review` |
+| Provider already blocked the login                                          | Actions | `action_required` / `review` |
+| Security copy about a **different** account (this mailbox is only recovery) | Ignore  | `ignore`                     |
+| Password reset, locked/compromised account, unauthorized charge             | Actions | `action_required` / `review` |
 
 ### Payments
 
-| Case                                                          | Where                                | `status` / action         |
-| ------------------------------------------------------------- | ------------------------------------ | ------------------------- |
-| Paid receipt, refund issued, tax/VAT PDF ready to download    | Ignore                               | `ignore`                  |
-| Bank/account update with no unpaid amount                     | Ignore                               | `ignore`                  |
-| Upcoming renewal or trial started, no charge due              | Ignore                               | `ignore`                  |
-| Unpaid invoice, failed charge, remaining balance, fine to pay | Open until **that thread** says paid | `action_required` / `pay` |
-| Card expired / update payment or service stops                | Open                                 | `action_required` / `pay` |
-| Marketing that looks like a credit alert                      | Ignore                               | `ignore`                  |
+| Case                                                          | Where                                   | `status` / action         |
+| ------------------------------------------------------------- | --------------------------------------- | ------------------------- |
+| Paid receipt, refund issued, tax/VAT PDF ready to download    | Ignore                                  | `ignore`                  |
+| Bank/account update with no unpaid amount                     | Ignore                                  | `ignore`                  |
+| Upcoming renewal or trial started, no charge due              | Ignore                                  | `ignore`                  |
+| Unpaid invoice, failed charge, remaining balance, fine to pay | Actions until **that thread** says paid | `action_required` / `pay` |
+| Card expired / update payment or service stops                | Actions                                 | `action_required` / `pay` |
+| Marketing that looks like a credit alert                      | Ignore                                  | `ignore`                  |
 
 ### General
 
 | Case                                                                                                | Where   | `status` / action            |
 | --------------------------------------------------------------------------------------------------- | ------- | ---------------------------- |
-| Person or automated mail asks the user to grant access, approve, sign, submit, or answer            | Open    | matching `action_type`       |
-| Signature request, approval request, or document comment that explicitly asks the user to act       | Open    | `sign` / `approve` / `reply` |
-| Bounce for mail the user sent                                                                       | Open    | `review`                     |
-| Meeting the user must accept/decline, or a request to choose/confirm a new time                     | Open    | `schedule`                   |
-| Interview scheduling, assessment, or request for missing application documents                      | Open    | `schedule` / `submit`        |
-| Parcel collection, address correction, or customs-information request                               | Open    | `follow_up` / `submit`       |
-| Check-in still needed                                                                               | Open    | `submit`                     |
+| Person or automated mail asks the user to grant access, approve, sign, submit, or answer            | Actions | matching `action_type`       |
+| Signature request, approval request, or document comment that explicitly asks the user to act       | Actions | `sign` / `approve` / `reply` |
+| Bounce for mail the user sent                                                                       | Actions | `review`                     |
+| Meeting the user must accept/decline, or a request to choose/confirm a new time                     | Actions | `schedule`                   |
+| Interview scheduling, assessment, or request for missing application documents                      | Actions | `schedule` / `submit`        |
+| Parcel collection, address correction, or customs-information request                               | Actions | `follow_up` / `submit`       |
+| Check-in still needed                                                                               | Actions | `submit`                     |
 | User already asked/sent/signed; no reply yet                                                        | Pending | `waiting`                    |
 | Out-of-office reply or support-ticket acknowledgment while that request is unanswered               | Pending | `waiting` (not resolved)     |
 | Webinar / mass calendar invite                                                                      | Ignore  | `ignore`                     |
-| Confirmed meeting reschedule or cancellation (no new time to choose)                                | Summary | `informational`              |
-| Lab results or “document ready in the portal”                                                       | Summary | `informational`              |
-| Drive/Docs/Dropbox “shared a document/file with you” (access granted)                               | Summary | `informational`              |
-| Routine tracking / shipment out for delivery, itinerary, boarding pass, confirmed appointment       | Summary | `informational`              |
-| Useful mail that assigns work only to someone else; being CC’d is not a task                        | Summary | `informational`              |
+| Confirmed meeting reschedule or cancellation (no new time to choose)                                | For You | `informational`              |
+| Lab results or “document ready in the portal”                                                       | For You | `informational`              |
+| Drive/Docs/Dropbox “shared a document/file with you” (access granted)                               | For You | `informational`              |
+| Routine tracking / shipment out for delivery, itinerary, boarding pass, confirmed appointment       | For You | `informational`              |
+| Useful mail that assigns work only to someone else; being CC’d is not a task                        | For You | `informational`              |
 | Job alerts, receipt-only application acknowledgments, bot mail with no user action, surveys, promos | Ignore  | `ignore`                     |
 
 ## App-account emails (Supabase Auth)

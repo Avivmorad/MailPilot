@@ -17,6 +17,7 @@ describe("mapRecentThreadRow", () => {
     expect(
       mapRecentThreadRow({
         id: "thread-1",
+        subject: "Your receipt",
         short_display_title: "Bank receipt",
         summary: "Payment posted.",
         status: "ignore",
@@ -26,6 +27,7 @@ describe("mapRecentThreadRow", () => {
       }),
     ).toEqual({
       id: "thread-1",
+      subject: "Your receipt",
       shortDisplayTitle: "Bank receipt",
       summary: "Payment posted.",
       status: "ignore",

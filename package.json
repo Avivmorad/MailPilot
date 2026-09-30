@@ -13,7 +13,11 @@
     "eval:scorecard": "node scripts/run-vitest.mjs run src/lib/ai/eval-scorecard.test.ts",
     "test:integration": "node scripts/run-vitest.mjs run src/lib/scans/scan-integration.test.ts src/lib/privacy/rls-isolation.test.ts src/lib/privacy/deletion.test.ts",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*": "prettier --write --ignore-unknown"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
@@ -45,7 +49,9 @@
     "@vitejs/plugin-react": "^6.1.1",
     "eslint": "^9.39.5",
     "eslint-config-next": "16.3.6",
+    "husky": "^9.1.7",
     "jsdom": "^30.1.0",
+    "lint-staged": "^16.4.0",
     "prettier": "^3.9.6",
     "prettier-plugin-tailwindcss": "^0.8.1",
     "tailwindcss": "^4",

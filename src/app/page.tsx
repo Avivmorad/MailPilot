@@ -11,8 +11,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 const questions = [
   {
     icon: Inbox,
-    title: "What happened?",
-    body: "A digest of leftover For You — useful updates, not receipts, OTPs, or marketing.",
+    title: "For You",
+    body: "Useful updates, not receipts, OTPs, or marketing.",
   },
   {
     icon: ListChecks,
@@ -35,7 +35,7 @@ const features = [
   {
     icon: ListChecks,
     title: "One action per thread",
-    body: "Six emails about one task become a single action item that moves Actions → Pending → Completed as the conversation evolves.",
+    body: "Six emails about one task become a single action item that moves Actions → Pending → Closed as the conversation evolves.",
   },
   {
     icon: Tag,
@@ -90,9 +90,9 @@ const previewColumns = [
     ],
   },
   {
-    tab: "Summary",
+    tab: "For You",
     accent: "border-l-zinc-400",
-    hint: "Useful For You, not a task",
+    hint: "Useful to know, not a task",
     items: [
       {
         title: "Weekly product changelog",
@@ -142,8 +142,8 @@ export default function Home() {
                 Your inbox, <span className="text-primary">under control.</span>
               </h1>
               <p className="text-muted-foreground mt-6 max-w-lg text-lg leading-relaxed text-pretty">
-                MailPriority turns busy email threads into a short list of Actions, what you&apos;re
-                waiting on, and what you only need to know.
+                MailPriority turns busy email threads into a short list of Actions, Pending, and For
+                You.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
                 <a href="/login" className={buttonVariants({ size: "lg" })}>
@@ -165,7 +165,7 @@ export default function Home() {
               <div className="border-border bg-muted/40 grid grid-cols-3 border-b">
                 {[
                   ["02", "Actions"],
-                  ["01", "Waiting"],
+                  ["01", "Pending"],
                   ["01", "For You"],
                 ].map(([count, label]) => (
                   <div key={label} className="border-border border-r px-4 py-4 last:border-0">

@@ -26,13 +26,13 @@ export const dynamic = "force-dynamic";
 function tabDescription(tab: ReturnType<typeof parseMailTab>): string {
   switch (tab) {
     case "summary":
-      return "Leftover useful For You mail only. Receipts, OTPs, and marketing live in Ignored. Security events live in Actions.";
+      return "Useful updates only. Receipts, OTPs, and marketing live in Ignored. Security events live in Actions.";
     case "open":
       return "Mail that still needs a next step, grouped by category.";
     case "waiting":
       return "You already acted. The ball is in someone else's court.";
     case "completed":
-      return "Tasks you marked complete.";
+      return "Tasks you marked closed.";
     case "snoozed":
       return "Tasks you postponed. They return to Actions when the snooze ends.";
     case "ignored":

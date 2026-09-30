@@ -2,7 +2,7 @@ import { CATEGORY_LABELS } from "@/lib/ai/categories";
 
 const LABEL_OVERRIDES: Record<string, string> = {
   ...CATEGORY_LABELS,
-  action_required: "Needs action",
+  action_required: "Actions",
   informational: "For You",
   follow_up: "Follow up",
   inbound: "Received",
@@ -19,7 +19,7 @@ const LABEL_OVERRIDES: Record<string, string> = {
   recovery: "Recovery scan",
   open: "Actions",
   waiting: "Pending",
-  completed: "Done",
+  completed: "Closed",
   snoozed: "Snoozed",
   urgent: "Urgent",
   soon: "Soon",

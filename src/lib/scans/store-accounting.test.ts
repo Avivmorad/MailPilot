@@ -115,6 +115,16 @@ describe("durable scan analysis attribution", () => {
     expect(state.row?.analysis_scan_id).toBeNull();
   });
 
+  it("does not invent an informational For You status when classification never ran", async () => {
+    await createSupabaseScanStore().upsertThread({ ...input(), analysis: null });
+    expect(state.row).toMatchObject({
+      status: null,
+      summary: null,
+      category: null,
+      short_display_title: null,
+    });
+  });
+
   it("surfaces failed persistence instead of reporting a saved analysis", async () => {
     state.error = { message: "synthetic write failure" };
     await expect(createSupabaseScanStore().upsertThread(input())).rejects.toThrow(

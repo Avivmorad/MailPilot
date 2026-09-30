@@ -722,7 +722,7 @@ I'll review it tomorrow.
 
 # 12. AI Classification Contract
 
-> **Superseded by [`PRODUCT_DECISIONS.md`](PRODUCT_DECISIONS.md):** the `category` enum below is replaced by the 14-topic taxonomy in overlay § "Open-task topics". Legacy values map at read/group time.
+> **Superseded by [`PRODUCT_DECISIONS.md`](PRODUCT_DECISIONS.md):** the `category` enum below is replaced by the 14-topic taxonomy in overlay § "Action topics". Legacy values map at read/group time.
 
 ה־AI מחזיר **JSON בלבד דרך Structured Outputs**.
 
@@ -1701,7 +1701,7 @@ Summary generation:
 
 # 27. Dashboard
 
-> **Superseded by [`PRODUCT_DECISIONS.md`](PRODUCT_DECISIONS.md):** the dashboard is a scan-status overview with counts; mail lists live on **Mail** tabs (Summary, Open, Waiting, etc.) — not as combined sections on `/dashboard`. See overlay § "Inbox summary vs open tasks".
+> **Superseded by [`PRODUCT_DECISIONS.md`](PRODUCT_DECISIONS.md):** the dashboard is a scan-status overview with counts; mail lists live on **Mail** tabs (For You, Actions, Pending, and the rest) — not as combined sections on `/dashboard`. See overlay § "For You vs Actions".
 
 Route:
 
@@ -1756,7 +1756,7 @@ Scan now
 
 # 28. Action Center
 
-> **Superseded by [`PRODUCT_DECISIONS.md`](PRODUCT_DECISIONS.md):** Open / Waiting / Completed / Snoozed tabs live under **Mail** in the app UI (not a standalone `/actions` page). The tab structure and card fields below remain the conceptual model. See overlay § "Inbox summary vs open tasks".
+> **Superseded by [`PRODUCT_DECISIONS.md`](PRODUCT_DECISIONS.md):** Actions / Pending / Closed / Snoozed tabs live under **Mail** in the app UI (not a standalone `/actions` page). The tab structure and card fields below remain the conceptual model. See overlay § "For You vs Actions".
 
 Route:
 
@@ -3223,7 +3223,7 @@ MVP is complete only when this flow works end-to-end:
 
 # 65. Example End-to-End Scenario
 
-> **Superseded by [`PRODUCT_DECISIONS.md`](PRODUCT_DECISIONS.md):** use `category: "career"` (not `"work"`) and `MailPilot/*` Gmail labels (not `AI/*`). See overlay §§ "Open-task topics" and "Gmail labels".
+> **Superseded by [`PRODUCT_DECISIONS.md`](PRODUCT_DECISIONS.md):** use `category: "career"` (not `"work"`) and `MailPilot/*` Gmail labels (not `AI/*`). See overlay §§ "Action topics" and "Gmail labels".
 
 Incoming:
 

@@ -52,7 +52,8 @@ const geminiEnvSchema = z.object({
   GEMINI_MODEL: z.string().min(1),
 });
 
-export const DEFAULT_NVIDIA_MODEL = "meta/llama-3.3-70b-instruct";
+/** `meta/llama-3.3-70b-instruct` reached end of life on 2026-08-26 (HTTP 410). */
+export const DEFAULT_NVIDIA_MODEL = "openai/gpt-oss-20b";
 export const DEFAULT_NVIDIA_BASE_URL = "https://integrate.api.nvidia.com/v1";
 
 const nvidiaEnvSchema = z.object({

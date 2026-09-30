@@ -76,7 +76,7 @@ function countPhrase(count: number, singular: string, plural: string): string | 
 export function formatDashboardChangeLine(summary: DashboardChangeSummary): string | null {
   const scanBits = [
     countPhrase(summary.newOpen, "new action", "new actions"),
-    countPhrase(summary.completed, "completed", "completed"),
+    countPhrase(summary.completed, "closed", "closed"),
     countPhrase(summary.reopened, "reopened", "reopened"),
   ].filter((value): value is string => Boolean(value));
 

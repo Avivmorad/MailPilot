@@ -13,6 +13,17 @@ export function normalizeThreadStatus(status: string | null | undefined): Thread
   return "informational";
 }
 
+/** A saved status without a model summary is an analysis failure, not For You. */
+export function isClassifiedSummaryThread(input: {
+  status: string | null | undefined;
+  summary: string | null | undefined;
+}): boolean {
+  if (input.status !== "informational" && input.status !== "resolved") {
+    return false;
+  }
+  return typeof input.summary === "string" && input.summary.trim().length > 0;
+}
+
 /**
  * One canonical Mail tab for a thread. Action workflow can refine Open
  * into waiting / completed / snoozed; ignore and summary never share a thread.

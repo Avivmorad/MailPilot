@@ -32,6 +32,7 @@ import { createSupabaseScanStore } from "@/lib/scans/store";
 import { persistDigestAfterScan } from "@/lib/digest/build-digest";
 import { emitProductEvent } from "@/lib/observability/events";
 import { captureSafeException } from "@/lib/observability/sentry-report";
+import { isClassifiedSummaryThread } from "@/lib/mail/buckets";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { ScanRunResult } from "@/lib/scans/types";
 
@@ -336,7 +337,7 @@ export async function getInboxCountsForUser(userId: string) {
   const db = createAdminClient();
   const { data, error } = await db
     .from("email_threads")
-    .select("importance, status, requires_action")
+    .select("importance, status, requires_action, summary")
     .eq("user_id", userId);
   if (error) {
     throw new Error("Failed to load inbox counts");
@@ -348,6 +349,11 @@ export async function getInboxCountsForUser(userId: string) {
     needAction: rows.filter((row) => row.requires_action === true).length,
     waiting: rows.filter((row) => row.status === "waiting").length,
     ignored: rows.filter((row) => row.status === "ignore").length,
-    fyi: rows.filter((row) => row.status === "informational" || row.status === "resolved").length,
+    fyi: rows.filter((row) =>
+      isClassifiedSummaryThread({
+        status: row.status,
+        summary: typeof row.summary === "string" ? row.summary : null,
+      }),
+    ).length,
   };
 }

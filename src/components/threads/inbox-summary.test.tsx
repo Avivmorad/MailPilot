@@ -20,6 +20,7 @@ describe("InboxSummary", () => {
         threads={[
           {
             id: "thread-1",
+            subject: "Your flight changed",
             shortDisplayTitle: "Flight change",
             summary: "The 9am flight moved to 11am.",
             status: "informational",
@@ -31,7 +32,29 @@ describe("InboxSummary", () => {
       />,
     );
 
-    expect(screen.getByText(/leftover For You/i)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Needs action" })).toBeInTheDocument();
+    expect(screen.getByText(/useful update/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Actions" })).toBeInTheDocument();
+  });
+
+  it("uses the mailbox subject when the model did not return a title", () => {
+    render(
+      <InboxSummary
+        threads={[
+          {
+            id: "thread-2",
+            subject: "Invoice 1042",
+            shortDisplayTitle: null,
+            summary: null,
+            status: "informational",
+            importance: null,
+            category: null,
+            latestMessageAt: "2026-09-10T10:00:00.000Z",
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByText("Invoice 1042")).toBeInTheDocument();
+    expect(screen.queryByText("Thread")).not.toBeInTheDocument();
   });
 });

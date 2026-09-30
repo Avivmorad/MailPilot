@@ -18,7 +18,7 @@ import { threadAnalysisSchema, type ThreadAnalysis } from "@/lib/ai/schemas";
 import type { MailPilotLogicalLabel } from "@/lib/gmail/constants";
 import { listMessageRefs as listGmailMessageRefs } from "@/lib/gmail/messages";
 import type { ParsedGmailMessage } from "@/lib/gmail/parser";
-import { withGmailRequest } from "@/lib/gmail/request-budget";
+import { GmailRequestTimeoutError, withGmailRequest } from "@/lib/gmail/request-budget";
 import { asLookbackDays } from "@/lib/scans/checkpoint";
 import type { InitialLookbackDays } from "@/lib/scans/lookback";
 import { DISPATCH_LEASE_SECONDS } from "@/lib/scans/dispatch-budget";
@@ -1148,13 +1148,15 @@ describe("processInitialScan", () => {
       modifyThreadLabels,
     };
 
+    const analyze = vi.fn(async () => ({ ok: false as const, error: new Error("gemini down") }));
     const result = await runScan({
       store,
       gmail,
-      analyze: async () => ({ ok: false, error: new Error("gemini down") }),
+      analyze,
     });
 
     expect(result.status).toBe("PARTIAL");
+    expect(analyze).toHaveBeenCalledTimes(1);
     expect(result.counters.threadsAnalyzed).toBe(0);
     expect(modifyThreadLabels).not.toHaveBeenCalled();
     expect(store.actions.size).toBe(0);
@@ -1163,6 +1165,130 @@ describe("processInitialScan", () => {
     expect(store.connection.lastSuccessfulScanAt).toBeNull();
     expect(store.scanRuns.at(-1)?.errorCode).toBe("partial_thread_failures");
     expect(store.scanRuns.at(-1)?.errorMessage).toBe("thread_failures:1:t1");
+  });
+
+  it("recovers when an AI request times out and the retry validates", async () => {
+    const store = createMemoryStore();
+    const modifyThreadLabels = vi.fn(async () => undefined);
+    const message = parsedMessage();
+    let calls = 0;
+    const analyze = vi.fn(async () => {
+      calls += 1;
+      if (calls === 1) {
+        throw new GmailRequestTimeoutError();
+      }
+      return { ok: true as const, analysis: validAnalysis() };
+    });
+    const result = await runScan({
+      store,
+      gmail: {
+        listMessageRefs: async () => [
+          { id: message.gmailMessageId, threadId: message.gmailThreadId },
+        ],
+        listHistoryChanges: async () => {
+          throw new Error("history should not run on the initial scan");
+        },
+        fetchThread: async () => [message],
+        getProfileHistoryId: async () => "hist-new",
+        loadLabelMap: async () => LABEL_MAP,
+        modifyThreadLabels,
+      },
+      analyze,
+    });
+
+    expect(result.status).toBe("SUCCESS");
+    expect(analyze).toHaveBeenCalledTimes(2);
+    expect(modifyThreadLabels).toHaveBeenCalledTimes(1);
+    expect(store.connection.historyId).toBe("hist-new");
+    expect(store.scanRuns.at(-1)?.failedThreadIds ?? []).toEqual([]);
+    expect(store.actions.size).toBe(1);
+    expect([...store.threads.values()][0]?.analysis).toMatchObject({ status: "action_required" });
+  });
+
+  it("keeps a validated thread and records one retryable partial when a later AI timeout persists", async () => {
+    vi.stubEnv("AI_MAX_CONCURRENCY", "1");
+    const store = createMemoryStore();
+    const modifyThreadLabels = vi.fn(async (id: string, add: string[], remove: string[]) => {
+      void id;
+      void add;
+      void remove;
+    });
+    let calls = 0;
+    const analyze = vi.fn(async () => {
+      calls += 1;
+      if (calls === 1) {
+        return { ok: true as const, analysis: validAnalysis() };
+      }
+      throw new GmailRequestTimeoutError();
+    });
+    try {
+      const result = await runScan({
+        store,
+        gmail: {
+          listMessageRefs: async () => [
+            { id: "m-t1", threadId: "t1" },
+            { id: "m-t2", threadId: "t2" },
+          ],
+          listHistoryChanges: async () => {
+            throw new Error("history should not run on the initial scan");
+          },
+          fetchThread: async (id: string) => [
+            parsedMessage({ gmailThreadId: id, gmailMessageId: `m-${id}` }),
+          ],
+          getProfileHistoryId: async () => "hist-new",
+          loadLabelMap: async () => LABEL_MAP,
+          modifyThreadLabels,
+        },
+        analyze,
+      });
+
+      expect(result.status).toBe("PARTIAL");
+      expect(analyze).toHaveBeenCalledTimes(3);
+      expect(modifyThreadLabels).toHaveBeenCalledTimes(1);
+      expect(modifyThreadLabels).toHaveBeenCalledWith("t1", expect.any(Array), expect.any(Array));
+      expect(store.connection.historyId).toBeNull();
+      expect(store.connection.lastSuccessfulScanAt).toBeNull();
+      expect(store.scanRuns.at(-1)?.failedThreadIds).toEqual(["t2"]);
+      expect(store.scanRuns.at(-1)?.errorCode).toBe("partial_thread_failures");
+      expect(store.threads.get("conn-1:t1")?.analysis).toMatchObject({
+        status: "action_required",
+      });
+      expect(store.threads.has("conn-1:t2")).toBe(false);
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it("defers an AI request timeout that cannot finish inside the slice", async () => {
+    const store = createMemoryStore();
+    const modifyThreadLabels = vi.fn(async () => undefined);
+    const analyze = vi.fn(async () => {
+      throw new GmailRequestTimeoutError();
+    });
+    const result = await runScan({
+      store,
+      gmail: {
+        requestBudget: { deadlineAt: Date.now() + 1_000 },
+        listMessageRefs: async () => [{ id: "m1", threadId: "t1" }],
+        listHistoryChanges: async () => ({ ok: true, refs: [], latestHistoryId: "hist-new" }),
+        fetchThread: async () => [parsedMessage()],
+        getProfileHistoryId: async () => "hist-new",
+        loadLabelMap: async () => LABEL_MAP,
+        modifyThreadLabels,
+      },
+      analyze,
+    });
+
+    expect(result.status).toBe("CONTINUED");
+    expect(analyze).toHaveBeenCalledTimes(1);
+    expect(modifyThreadLabels).not.toHaveBeenCalled();
+    expect(store.connection.historyId).toBeNull();
+    expect(store.scanRuns[0]).toMatchObject({
+      status: "RUNNING",
+      threadCursor: 0,
+      failedThreadIds: [],
+    });
+    expect(store.actions.size).toBe(0);
   });
 
   it("does not bump prompt_version when reanalysis fails", async () => {

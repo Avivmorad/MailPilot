@@ -192,37 +192,37 @@ alone must not cause an actionable request to be ignored. OTP, magic links, and
 
 ### Security
 
-| Case                                                                        | Where  | `status` / action            |
-| --------------------------------------------------------------------------- | ------ | ---------------------------- |
-| OTP, magic link, confirm-email, “Link verification code”                    | Ignore | `ignore`                     |
-| New / unrecognized device login, Google security alert                      | Actions   | `action_required` / `review` |
-| Expired API key, personal access token, or similar credential               | Actions   | `action_required` / `review` |
-| Provider already blocked the login                                          | Actions   | `action_required` / `review` |
-| Security copy about a **different** account (this mailbox is only recovery) | Ignore | `ignore`                     |
-| Password reset, locked/compromised account, unauthorized charge             | Actions   | `action_required` / `review` |
+| Case                                                                        | Where   | `status` / action            |
+| --------------------------------------------------------------------------- | ------- | ---------------------------- |
+| OTP, magic link, confirm-email, “Link verification code”                    | Ignore  | `ignore`                     |
+| New / unrecognized device login, Google security alert                      | Actions | `action_required` / `review` |
+| Expired API key, personal access token, or similar credential               | Actions | `action_required` / `review` |
+| Provider already blocked the login                                          | Actions | `action_required` / `review` |
+| Security copy about a **different** account (this mailbox is only recovery) | Ignore  | `ignore`                     |
+| Password reset, locked/compromised account, unauthorized charge             | Actions | `action_required` / `review` |
 
 ### Payments
 
-| Case                                                          | Where                                | `status` / action         |
-| ------------------------------------------------------------- | ------------------------------------ | ------------------------- |
-| Paid receipt, refund issued, tax/VAT PDF ready to download    | Ignore                               | `ignore`                  |
-| Bank/account update with no unpaid amount                     | Ignore                               | `ignore`                  |
-| Upcoming renewal or trial started, no charge due              | Ignore                               | `ignore`                  |
+| Case                                                          | Where                                   | `status` / action         |
+| ------------------------------------------------------------- | --------------------------------------- | ------------------------- |
+| Paid receipt, refund issued, tax/VAT PDF ready to download    | Ignore                                  | `ignore`                  |
+| Bank/account update with no unpaid amount                     | Ignore                                  | `ignore`                  |
+| Upcoming renewal or trial started, no charge due              | Ignore                                  | `ignore`                  |
 | Unpaid invoice, failed charge, remaining balance, fine to pay | Actions until **that thread** says paid | `action_required` / `pay` |
 | Card expired / update payment or service stops                | Actions                                 | `action_required` / `pay` |
-| Marketing that looks like a credit alert                      | Ignore                               | `ignore`                  |
+| Marketing that looks like a credit alert                      | Ignore                                  | `ignore`                  |
 
 ### General
 
 | Case                                                                                                | Where   | `status` / action            |
 | --------------------------------------------------------------------------------------------------- | ------- | ---------------------------- |
-| Person or automated mail asks the user to grant access, approve, sign, submit, or answer            | Actions    | matching `action_type`       |
-| Signature request, approval request, or document comment that explicitly asks the user to act       | Actions    | `sign` / `approve` / `reply` |
-| Bounce for mail the user sent                                                                       | Actions    | `review`                     |
-| Meeting the user must accept/decline, or a request to choose/confirm a new time                     | Actions    | `schedule`                   |
-| Interview scheduling, assessment, or request for missing application documents                      | Actions    | `schedule` / `submit`        |
-| Parcel collection, address correction, or customs-information request                               | Actions    | `follow_up` / `submit`       |
-| Check-in still needed                                                                               | Actions    | `submit`                     |
+| Person or automated mail asks the user to grant access, approve, sign, submit, or answer            | Actions | matching `action_type`       |
+| Signature request, approval request, or document comment that explicitly asks the user to act       | Actions | `sign` / `approve` / `reply` |
+| Bounce for mail the user sent                                                                       | Actions | `review`                     |
+| Meeting the user must accept/decline, or a request to choose/confirm a new time                     | Actions | `schedule`                   |
+| Interview scheduling, assessment, or request for missing application documents                      | Actions | `schedule` / `submit`        |
+| Parcel collection, address correction, or customs-information request                               | Actions | `follow_up` / `submit`       |
+| Check-in still needed                                                                               | Actions | `submit`                     |
 | User already asked/sent/signed; no reply yet                                                        | Pending | `waiting`                    |
 | Out-of-office reply or support-ticket acknowledgment while that request is unanswered               | Pending | `waiting` (not resolved)     |
 | Webinar / mass calendar invite                                                                      | Ignore  | `ignore`                     |

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   assertExclusiveMailBuckets,
+  isClassifiedSummaryThread,
   mailBucketForThread,
   normalizeThreadStatus,
 } from "@/lib/mail/buckets";
@@ -11,6 +12,17 @@ describe("normalizeThreadStatus", () => {
     expect(normalizeThreadStatus(null)).toBe("informational");
     expect(normalizeThreadStatus("")).toBe("informational");
     expect(normalizeThreadStatus("ignore")).toBe("ignore");
+  });
+});
+
+describe("isClassifiedSummaryThread", () => {
+  it("hides threads saved when classification never ran", () => {
+    expect(isClassifiedSummaryThread({ status: "informational", summary: null })).toBe(false);
+    expect(isClassifiedSummaryThread({ status: "informational", summary: "  " })).toBe(false);
+    expect(isClassifiedSummaryThread({ status: null, summary: null })).toBe(false);
+    expect(
+      isClassifiedSummaryThread({ status: "informational", summary: "A useful update." }),
+    ).toBe(true);
   });
 });
 

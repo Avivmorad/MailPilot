@@ -2,7 +2,11 @@ import { z } from "zod";
 
 import type { ActionStatus } from "@/lib/actions/reconcile-action";
 import { gmailThreadUrl } from "@/lib/gmail/deep-link";
-import { mailBucketForThread, normalizeThreadStatus } from "@/lib/mail/buckets";
+import {
+  isClassifiedSummaryThread,
+  mailBucketForThread,
+  normalizeThreadStatus,
+} from "@/lib/mail/buckets";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { correctionFromFeedback } from "@/lib/threads/apply-feedback";
 import { threadFeedbackSchema } from "@/lib/threads/feedback";
@@ -58,6 +62,7 @@ export interface ThreadDetail {
 
 export interface RecentThreadRow {
   id: string;
+  subject: string | null;
   shortDisplayTitle: string | null;
   summary: string | null;
   status: string | null;
@@ -68,6 +73,7 @@ export interface RecentThreadRow {
 
 type ThreadListDbRow = {
   id: unknown;
+  subject: unknown;
   short_display_title: unknown;
   summary: unknown;
   status: unknown;
@@ -86,6 +92,7 @@ export function isInboxSummaryStatus(status: string | null | undefined): boolean
 export function mapRecentThreadRow(row: ThreadListDbRow): RecentThreadRow {
   return {
     id: String(row.id),
+    subject: (row.subject as string | null) ?? null,
     shortDisplayTitle: (row.short_display_title as string | null) ?? null,
     summary: (row.summary as string | null) ?? null,
     status: (row.status as string | null) ?? null,
@@ -96,7 +103,7 @@ export function mapRecentThreadRow(row: ThreadListDbRow): RecentThreadRow {
 }
 
 const THREAD_LIST_SELECT =
-  "id, short_display_title, summary, status, importance, category, latest_message_at";
+  "id, subject, short_display_title, summary, status, importance, category, latest_message_at";
 
 export async function listRecentThreadsForUser(
   userId: string,
@@ -108,6 +115,7 @@ export async function listRecentThreadsForUser(
     .select(THREAD_LIST_SELECT)
     .eq("user_id", userId)
     .in("status", [...INBOX_SUMMARY_STATUSES])
+    .not("summary", "is", null)
     .order("latest_message_at", { ascending: false })
     .limit(limit);
   if (error) {
@@ -116,7 +124,7 @@ export async function listRecentThreadsForUser(
   const rows = data ?? [];
   return rows
     .map((row) => mapRecentThreadRow(row))
-    .filter((row) => mailBucketForThread({ status: row.status }) === "summary");
+    .filter((row) => isClassifiedSummaryThread({ status: row.status, summary: row.summary }));
 }
 
 export async function listIgnoredThreadsForUser(

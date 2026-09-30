@@ -49,9 +49,11 @@ export function InboxSummary({
                       <p
                         className="text-foreground min-w-0 flex-1 leading-snug font-semibold tracking-tight break-words"
                         dir="auto"
-                        title={thread.shortDisplayTitle ?? thread.summary ?? "Thread"}
+                        title={
+                          thread.shortDisplayTitle ?? thread.summary ?? thread.subject ?? "Thread"
+                        }
                       >
-                        {thread.shortDisplayTitle ?? thread.summary ?? "Thread"}
+                        {thread.shortDisplayTitle ?? thread.summary ?? thread.subject ?? "Thread"}
                       </p>
                       <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
                         <ThreadTags

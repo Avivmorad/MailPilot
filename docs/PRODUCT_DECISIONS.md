@@ -122,7 +122,8 @@ This overrides spec §4/§22/§60, which named OpenAI.
 
 Implementation:
 
-- Env: `NVIDIA_API_KEY`, `NVIDIA_MODEL` (default `meta/llama-3.3-70b-instruct`),
+- Env: `NVIDIA_API_KEY`, `NVIDIA_MODEL` (default `openai/gpt-oss-20b`;
+  `meta/llama-3.3-70b-instruct` returned HTTP 410 after its 2026-08-26 end of life),
   optional `NVIDIA_BASE_URL`. Fallback: `GEMINI_API_KEY`, `GEMINI_MODEL` (default
   in `.env.example`: `gemini-3.1-flash-lite`). Do not hard-code either model in
   source. Full server env accepts NVIDIA alone, Gemini alone, or both.

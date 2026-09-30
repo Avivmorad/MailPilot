@@ -101,7 +101,7 @@ describe("NVIDIA triage selection", () => {
     };
     expect(isNvidiaConfigured(source)).toBe(true);
     expect(isTriageConfigured(source)).toBe(true);
-    expect(getTriageModelName(source)).toBe("meta/llama-3.3-70b-instruct");
+    expect(getTriageModelName(source)).toBe("openai/gpt-oss-20b");
     expect(getTriageModelName({ ...source, NVIDIA_MODEL: "nvidia/custom" })).toBe("nvidia/custom");
   });
 

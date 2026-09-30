@@ -6,7 +6,7 @@ import type { ThreadAnalysisInput } from "@/lib/ai/types";
 
 const env = {
   NVIDIA_API_KEY: "nvapi-test",
-  NVIDIA_MODEL: "meta/llama-3.3-70b-instruct",
+  NVIDIA_MODEL: "openai/gpt-oss-20b",
   NVIDIA_BASE_URL: "https://integrate.api.nvidia.com/v1",
 };
 
@@ -50,7 +50,7 @@ describe("NvidiaEmailTriageProvider", () => {
     });
     expect(generate).toHaveBeenCalledWith(
       expect.objectContaining({
-        model: "meta/llama-3.3-70b-instruct",
+        model: "openai/gpt-oss-20b",
         baseUrl: "https://integrate.api.nvidia.com/v1",
       }),
     );

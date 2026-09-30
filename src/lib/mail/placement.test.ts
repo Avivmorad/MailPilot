@@ -9,7 +9,7 @@ import {
 describe("threadPlacementReason", () => {
   it("explains each Mail tab without requiring model reasoning", () => {
     expect(threadPlacementReason({ tab: "open" })).toContain("Actions");
-    expect(threadPlacementReason({ tab: "summary" })).toContain("FYI");
+    expect(threadPlacementReason({ tab: "summary" })).toContain("For You");
     expect(threadPlacementReason({ tab: "ignored" })).toContain("Ignored");
     expect(threadPlacementReason({ tab: "waiting" })).toContain("already acted");
   });

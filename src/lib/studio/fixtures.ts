@@ -117,7 +117,7 @@ export const STUDIO_ITEMS: StudioItem[] = [
     when: "Sep 25",
     urgency: "low",
     nextStep: "Nothing to do. Keep it for your records.",
-    why: "A receipt with no remaining decision stays FYI.",
+why: "A receipt with no remaining decision stays For You.",
     messages: [{ at: "Sep 25, 10:24 AM", text: "Payment of $20.00 for MailPriority Pro." }],
   },
   {

@@ -12,7 +12,7 @@ const questions = [
   {
     icon: Inbox,
     title: "What happened?",
-    body: "A digest of leftover FYI — useful updates, not receipts, OTPs, or marketing.",
+    body: "A digest of leftover For You — useful updates, not receipts, OTPs, or marketing.",
   },
   {
     icon: ListChecks,
@@ -92,11 +92,11 @@ const previewColumns = [
   {
     tab: "Summary",
     accent: "border-l-zinc-400",
-    hint: "Useful FYI, not a task",
+    hint: "Useful For You, not a task",
     items: [
       {
         title: "Weekly product changelog",
-        meta: "Linear · FYI",
+        meta: "Linear · For You",
         body: "Shipped: placement reasons, undo, and a change-focused dashboard.",
       },
     ],
@@ -166,7 +166,7 @@ export default function Home() {
                 {[
                   ["02", "Actions"],
                   ["01", "Waiting"],
-                  ["01", "FYI"],
+                  ["01", "For You"],
                 ].map(([count, label]) => (
                   <div key={label} className="border-border border-r px-4 py-4 last:border-0">
                     <p className="text-2xl font-semibold tabular-nums">{count}</p>
@@ -200,8 +200,8 @@ export default function Home() {
                 How a morning inbox looks
               </h2>
               <p className="text-muted-foreground mt-2">
-                After a scan, MailPriority does not dump 32 emails into one list. It keeps tasks,
-                pending, and FYI apart.
+After a scan, MailPriority does not dump 32 emails into one list. It keeps tasks,
+                pending, and For You apart.
               </p>
             </div>
             <div className="grid gap-4 lg:grid-cols-3">

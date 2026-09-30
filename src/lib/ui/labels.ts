@@ -3,7 +3,7 @@ import { CATEGORY_LABELS } from "@/lib/ai/categories";
 const LABEL_OVERRIDES: Record<string, string> = {
   ...CATEGORY_LABELS,
   action_required: "Needs action",
-  informational: "FYI",
+  informational: "For You",
   follow_up: "Follow up",
   inbound: "Received",
   outbound: "Sent by you",

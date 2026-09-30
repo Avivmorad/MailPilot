@@ -18,7 +18,7 @@ const LANES: { id: StudioLane | "focus"; label: string; hint: string }[] = [
   { id: "focus", label: "Today", hint: "Due soon" },
   { id: "open", label: "Actions", hint: "Your move" },
   { id: "pending", label: "Pending", hint: "Their move" },
-  { id: "fyi", label: "FYI", hint: "No task" },
+  { id: "fyi", label: "For You", hint: "No task" },
 ];
 
 function visibleItems(items: StudioItem[], lane: StudioLane | "focus"): StudioItem[] {

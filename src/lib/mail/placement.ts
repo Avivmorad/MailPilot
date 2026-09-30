@@ -8,7 +8,7 @@ export const PLACEMENT_RULE: Record<MailTab, string> = {
   waiting: "This is in Pending because you already acted.",
   completed: "This is in Completed because you marked the task done.",
   snoozed: "This is in Snoozed until the reminder date.",
-  summary: "This is in Summary because it is leftover FYI, not an action.",
+  summary: "This is in Summary because it is leftover For You mail, not an action.",
   ignored: "This is in Ignored because it is noise or a notice, not a task.",
 };
 

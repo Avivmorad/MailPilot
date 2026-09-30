@@ -117,7 +117,7 @@ export function buildDigestSummaryText(counts: DigestPeriodCounts): string {
     `Processed ${counts.totalMessages} ${emails} in this period.`,
     `${counts.actionCount} thread${counts.actionCount === 1 ? " needs" : "s need"} action,`,
     `${counts.waitingCount} pending,`,
-    `${counts.informationalCount} FYI,`,
+    `${counts.informationalCount} For You,`,
     `and ${counts.ignoredCount} ignored.`,
     `${counts.importantCount} ${counts.importantCount === 1 ? "was" : "were"} marked important.`,
   ].join(" ");

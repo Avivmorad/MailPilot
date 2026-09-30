@@ -89,7 +89,7 @@ export function mailTabEmptyCopy(tab: MailTab): { title: string; description: st
       };
     case "summary":
       return {
-        title: "No leftover FYI yet",
+        title: "No leftover For You mail yet",
         description:
           "Run a scan to see useful updates. Receipts, OTPs, and marketing are in Ignored.",
       };

@@ -14,7 +14,7 @@ function DigestCounts({ digest }: { digest: DigestReport }) {
     { label: "Important", value: digest.importantCount },
     { label: "Actions", value: digest.actionCount },
     { label: "Pending", value: digest.waitingCount },
-    { label: "FYI", value: digest.informationalCount },
+    { label: "For You", value: digest.informationalCount },
     { label: "Ignored", value: digest.ignoredCount },
   ];
   return (

@@ -10,7 +10,7 @@ import { THEME_INIT_SCRIPT } from "@/lib/ui/theme";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "MailPilot",
+  title: "MailPriority",
   description:
     "Turn your inbox into a triage system that tells you what happened, your Actions, and what's pending.",
 };

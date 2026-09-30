@@ -56,7 +56,9 @@ export function DigestReportCard({
           <CardTitle>Latest digest</CardTitle>
           <CardDescription>
             {formatDateTime(digest.periodStart)} – {formatDateTime(digest.periodEnd)}
-            {digest.actionCount > 0 ? ` · ${digest.actionCount} open` : ""}
+            {digest.actionCount > 0
+              ? ` · ${digest.actionCount} ${digest.actionCount === 1 ? "action" : "actions"}`
+              : ""}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -99,7 +101,7 @@ export function DigestReportCard({
         <CardContent>
           <EmptyState
             title="No digest yet"
-            description="Run a scan to generate an in-app digest. Counts come from mail already stored in MailPilot."
+            description="Run a scan to generate an in-app digest. Counts come from mail already stored in MailPriority."
             action={
               <Link href="/dashboard#scan" className={buttonVariants({ size: "sm" })}>
                 Scan now

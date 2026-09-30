@@ -14,12 +14,6 @@ import { getNvidiaEnv, type NvidiaEnv } from "@/lib/config/env";
 
 const MAX_ATTEMPTS = 2;
 export const NVIDIA_REQUEST_TIMEOUT_MS = 25_000;
-/** NVIDIA's gpt-oss chat API allows at most 4096 completion tokens. */
-const NVIDIA_MAX_OUTPUT_TOKENS = 4096;
-
-function isGptOssModel(model: string): boolean {
-  return model.toLowerCase().includes("gpt-oss");
-}
 
 export type NvidiaGenerateFn = (params: {
   apiKey: string;
@@ -59,7 +53,13 @@ function extractJsonText(content: string): string {
   return fenced?.[1]?.trim() || trimmed;
 }
 
+/** gpt-oss defaults to medium reasoning on NVIDIA Integrate; low is enough for triage JSON. */
+export function nvidiaReasoningEffortForModel(model: string): "low" | undefined {
+  return model.toLowerCase().includes("gpt-oss") ? "low" : undefined;
+}
+
 export async function generateWithNvidia(params: Parameters<NvidiaGenerateFn>[0]): Promise<string> {
+  const reasoningEffort = nvidiaReasoningEffortForModel(params.model);
   const response = await fetch(`${params.baseUrl.replace(/\/$/, "")}/chat/completions`, {
     method: "POST",
     headers: {
@@ -71,11 +71,8 @@ export async function generateWithNvidia(params: Parameters<NvidiaGenerateFn>[0]
     body: JSON.stringify({
       model: params.model,
       temperature: 0,
-      // gpt-oss spends this budget on reasoning_content first. The hosted API
-      // defaults to medium effort, which can exhaust a smaller cap and return
-      // an empty message.content. Low effort keeps the JSON in content.
-      max_tokens: NVIDIA_MAX_OUTPUT_TOKENS,
-      ...(isGptOssModel(params.model) ? { reasoning_effort: "low" } : {}),
+      max_tokens: 2048,
+      ...(reasoningEffort ? { reasoning_effort: reasoningEffort } : {}),
       response_format: { type: "json_object" },
       messages: [
         {

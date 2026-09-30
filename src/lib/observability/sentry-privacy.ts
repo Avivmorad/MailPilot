@@ -1,4 +1,4 @@
-import type { Breadcrumb, Event } from "@sentry/nextjs";
+import type { Event } from "@sentry/nextjs";
 
 import { isAiUnavailableError } from "@/lib/scans/errors";
 import type { ScanTriggerType } from "@/lib/scans/types";
@@ -29,6 +29,20 @@ const SECRET_RE =
   /bearer\s+[a-z0-9._~+/=-]+|ya29\.[a-z0-9._-]+|sk-[a-z0-9]+|eyj[a-z0-9_-]+\.[a-z0-9._-]+|\b[a-f0-9]{64}\b/gi;
 const UUID_RE = /[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/gi;
 const ALLOWED_TAG_SET = new Set<string>(SENTRY_TAG_KEYS);
+const ALLOWED_TAG_VALUES: Record<SentryTagKey, ReadonlySet<string>> = {
+  environment: new Set(["development", "test", "preview", "production", "local"]),
+  route: new Set([
+    "/api/scans",
+    "/api/scans/continue",
+    "/api/cron/scan-dispatcher",
+    "/mail",
+    "/dashboard",
+    "/thread/[id]",
+  ]),
+  provider: new Set(["gmail", "gemini", "supabase", "unknown"]),
+  scan_type: new Set(["initial", "manual", "recovery", "scheduled"]),
+  error_category: new Set(["reauth", "quota", "ai", "partial", "store", "unknown"]),
+};
 
 export function sentryEnvironment(
   source: Record<string, string | undefined> = typeof process === "undefined" ? {} : process.env,
@@ -104,8 +118,8 @@ export function pickAllowedSentryTags(
   const next: Partial<Record<SentryTagKey, string>> = {};
   for (const key of SENTRY_TAG_KEYS) {
     const value = tags[key];
-    if (typeof value === "string" && value.length > 0) {
-      next[key] = redactSensitiveText(value);
+    if (typeof value === "string" && ALLOWED_TAG_VALUES[key].has(value)) {
+      next[key] = value;
     }
   }
   return next;
@@ -116,55 +130,39 @@ export function sanitizeSentryEvent(event: Event): Event | null {
     return null;
   }
 
-  const route =
-    existingTag(event, "route") ?? sanitizeSentryRoute(event.request?.url ?? event.transaction);
   const allowed = pickAllowedSentryTags({
     environment: existingTag(event, "environment") ?? event.environment ?? sentryEnvironment(),
-    route,
+    // Only explicitly known route templates may leave the process. Request URLs
+    // and transaction names can contain mailbox data in path segments.
+    route: existingTag(event, "route"),
     provider: asAllowedTag(event, "provider"),
     scan_type: asAllowedTag(event, "scan_type"),
     error_category: asAllowedTag(event, "error_category"),
   } satisfies Partial<Record<SentryTagKey, string | undefined>>);
+  const route = allowed.route;
 
   return {
-    ...event,
-    message: event.message ? redactSensitiveText(event.message) : event.message,
-    logentry: event.logentry
-      ? {
-          ...event.logentry,
-          message: event.logentry.message
-            ? redactSensitiveText(event.logentry.message)
-            : event.logentry.message,
-          params: undefined,
-        }
-      : event.logentry,
-    user: undefined,
-    extra: undefined,
-    breadcrumbs: sanitizeBreadcrumbs(event.breadcrumbs),
-    request: event.request
-      ? {
-          method: event.request.method,
-          url: sanitizeSentryRoute(event.request.url),
-        }
-      : undefined,
+    // Rebuild from a small allowlist. Redacting known patterns in arbitrary
+    // messages or nested SDK fields cannot guarantee removal of email bodies.
+    event_id: /^[a-f0-9]{32}$/i.test(event.event_id ?? "") ? event.event_id : undefined,
+    type: event.type === "transaction" ? "transaction" : undefined,
+    timestamp:
+      typeof event.timestamp === "number" && Number.isFinite(event.timestamp)
+        ? event.timestamp
+        : undefined,
+    platform: "javascript",
+    message: event.message || event.logentry ? "MailPilot error" : undefined,
     exception: event.exception
       ? {
-          values: event.exception.values?.map((value) => ({
-            ...value,
-            value: value.value ? redactSensitiveText(value.value) : value.value,
-          })),
+          values: event.exception.values?.length ? [{ type: "Error", value: "[redacted]" }] : [],
         }
-      : event.exception,
+      : undefined,
     tags: allowed,
-    transaction:
-      route ?? (event.transaction ? redactSensitiveText(event.transaction) : event.transaction),
-    contexts: {
-      ...(event.contexts?.trace ? { trace: event.contexts.trace } : {}),
-      ...(event.contexts?.app ? { app: event.contexts.app } : {}),
-      ...(event.contexts?.os ? { os: event.contexts.os } : {}),
-      ...(event.contexts?.runtime ? { runtime: event.contexts.runtime } : {}),
-    },
-    spans: undefined,
+    transaction: route,
+    request:
+      route && event.request
+        ? { method: safeRequestMethod(event.request.method), url: route }
+        : undefined,
   };
 }
 
@@ -178,16 +176,8 @@ function asAllowedTag(event: Event, key: SentryTagKey): string | undefined {
   return value && ALLOWED_TAG_SET.has(key) ? value : undefined;
 }
 
-function sanitizeBreadcrumbs(breadcrumbs: Breadcrumb[] | undefined): Breadcrumb[] | undefined {
-  if (!breadcrumbs) {
-    return undefined;
-  }
-  return breadcrumbs.map((crumb) => ({
-    timestamp: crumb.timestamp,
-    category: crumb.category,
-    type: crumb.type,
-    level: crumb.level,
-  }));
+function safeRequestMethod(method: string | undefined): string | undefined {
+  return method && /^(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)$/.test(method) ? method : undefined;
 }
 
 function safePathname(value: string): string {

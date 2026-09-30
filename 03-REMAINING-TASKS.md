@@ -1,5 +1,7 @@
 # Remaining master-plan tasks
 
+Current checkpoint, 2026-09-29: the 72-task goal is active and unfinished. PR #92 is merged (migration unapplied); PR #93 is draft/unmerged with green CI and a TASK-005 failure-path review gap; PR #94 is draft/unmerged with green CI and live privacy proof pending. SEC-003 is locally implemented: 33/33 targeted, 570/570 full, 17/17 integration and 2/2 evaluation tests, format/lint/typecheck/build and a synthetic production-build canary check pass. TASK-002 archival pagination is complete, but older unlisted active chats remain inaccessible. The old handoff text below is historical.
+
 Execution handoff, 2026-09-29. All 72 original IDs remain tracked. BUG-001/002/003/004/006 are complete locally; BUG-007 is implemented and locally checked but its real termination gate remains open. The owner requested a draft-PR checkpoint and paused-goal handoff to another chat. The full plan is not finished.
 
 Resumed 2026-09-29 by explicit owner request to continue tasks and updates. TASK-003 local counter-accounting work is implemented with targeted checks; real SQL/migration/hard-kill gates remain open. No deployment, live database change or full-plan completion is claimed.
@@ -19,7 +21,7 @@ The task cards below preserve each original acceptance criterion, affected files
 | ID       | Task                                                            | Depends on                                        | Status                                           | Acceptance / verification                                                  |
 | -------- | --------------------------------------------------------------- | ------------------------------------------------- | ------------------------------------------------ | -------------------------------------------------------------------------- |
 | TASK-001 | Diagnose the two all-failure live scans                         | none                                              | Not started                                      | Original acceptance and verification below                                 |
-| TASK-002 | Complete and reconcile historical context inventory             | none                                              | Not started                                      | Original acceptance and verification below                                 |
+| TASK-002 | Complete and reconcile historical context inventory             | none                                              | Archive checked; active-history gap              | 28 archived pages exhausted; older active chats not paginated              |
 | BUG-001  | Repair the checkpoint regression test harness                   | none                                              | Complete locally                                 | 35/35 targeted; 459/459 full suite                                         |
 | BUG-003  | Do not disconnect Gmail on transient refresh failure            | none                                              | Complete locally                                 | 27/27 targeted; typecheck PASS                                             |
 | BUG-004  | Release admitted leases when scan preparation fails             | BUG-001                                           | Complete locally                                 | 57/57 targeted; typecheck PASS                                             |
@@ -54,12 +56,12 @@ The task cards below preserve each original acceptance criterion, affected files
 | TASK-014 | Apply the requested scan/workspace UX polish narrowly           | DEC-004, BUG-002/005/006, TASK-012/013            | Not started                                      | Original acceptance and verification below                                 |
 | SEC-001  | Prove two-user database isolation                               | none                                              | Not started                                      | Original acceptance and verification below                                 |
 | SEC-002  | Verify deletion, retention and token revocation end to end      | EDGE-003, TEST-001                                | Not started                                      | Original acceptance and verification below                                 |
-| SEC-003  | Keep secrets and personal data out of browser/logs              | none                                              | Not started                                      | Original acceptance and verification below                                 |
+| SEC-003  | Keep secrets and personal data out of browser/logs              | none                                              | Local fix verified; live gate pending            | 570 full tests/all local gates and build canary pass; live proof pending   |
 | SEC-004  | Address leaked-password protection advisor warning              | DEC-005                                           | Not started                                      | Original acceptance and verification below                                 |
 | SEC-005  | Exercise malicious email/output and unsafe links                | TEST-004                                          | Not started                                      | Original acceptance and verification below                                 |
 | SEC-006  | Verify mutation authorization, abuse bounds and CSRF posture    | TEST-003                                          | Not started                                      | Original acceptance and verification below                                 |
 | SEC-007  | Finish source-security coverage and operational threat review   | SEC-001/003/006                                   | Not started                                      | Original acceptance and verification below                                 |
-| SEC-008  | Bound MIME ingestion and make HTML conversion linear            | none                                              | Not started                                      | Original acceptance and verification below                                 |
+| SEC-008  | Bound MIME ingestion and make HTML conversion linear            | none                                              | PR #93 draft; review pending                     | CI green; unmerged; TASK-005 failure-path gap identified in review         |
 | SEC-009  | Keep abuse budgets and in-flight bounds across cancellation     | BUG-007, explicit retry UX decision               | Not started                                      | Original acceptance and verification below                                 |
 | SEC-010  | Enforce thread ownership for direct feedback INSERT             | TEST-001, OPS-005 before deployment               | Not started                                      | Original acceptance and verification below                                 |
 | TEST-001 | Add real database/RLS and migration tests                       | approved disposable database access               | Not started                                      | Original acceptance and verification below                                 |
@@ -192,7 +194,7 @@ Use the least costly capable profile. Current implementation is performed by Cod
 - **Acceptance:** all available relevant chats are reconciled, with unavailable pages explicitly listed; no unrelated project chats or stale bugs added to the backlog.
 - **Tests/verification:** cross-check chat-to-task map against current Git/source; verify unique IDs and links, then `npm run format:check`.
 
-- **Execution status:** Not started. Retain the original steps, affected systems, acceptance, verification, dependencies and risks above.
+- **Execution status:** Supported archived ChatGPT pagination exhausted after 28 pages, with no new Mail Pilot project chat or MailPilot/Gmail-scan title; archived Codex pagination also ended. Available recent project chats match the existing map. Older unlisted active chats cannot be enumerated through the available 50-chat listing. No new task justified; this remains partially verified until a supported export or older-active-history source is available. See `docs/MASTER_PROJECT_PLAN.md` and `02-COULD-NOT-SOLVE.md`.
 
 ### BUG-001 — Repair the checkpoint regression test harness
 
@@ -577,7 +579,7 @@ Use the least costly capable profile. Current implementation is performed by Cod
 - **Acceptance:** no service-role/encryption/provider key or raw body/prompt reaches browser, analytics or Sentry; tests detect deliberate regression without printing real secrets.
 - **Tests/verification:** `npm test -- src/lib/observability/sentry-privacy.test.ts src/lib/observability/events.test.ts src/lib/config/env.test.ts`; TEST-008 plus build artifact inspection.
 
-- **Execution status:** Not started. Retain the original steps, affected systems, acceptance, verification, dependencies and risks above.
+- **Execution status:** Local source fix and regression coverage implemented. Product-event and Sentry outbound allowlists reject synthetic nested body/prompt/credential canaries; transitive client-import boundary test passes. 33/33 targeted, 570/570 full, 17/17 integration, 2/2 evaluation tests, format/lint/typecheck/build and a synthetic production-build canary check pass. Deployed-browser inspection and live analytics/Sentry verification remain open; see `01-CHANGED-AND-ADDED.md`.
 
 ### SEC-004 — Address leaked-password protection advisor warning
 
@@ -632,7 +634,7 @@ Use the least costly capable profile. Current implementation is performed by Cod
 - **Acceptance:** sender-controlled mail cannot drive disproportionate CPU; limits apply before parsing; ordinary HTML/MIME fixtures remain correct; no new parser dependency unless needed and approved.
 - **Tests/verification:** adversarial mixed-case raw-text tags and increasing input-size tests, large/deep MIME limits; `npm test -- src/lib/gmail/parser.test.ts src/lib/gmail/messages.test.ts src/lib/gmail/thread-context.test.ts`; bounded synthetic benchmark and full gates. No malicious mail sent to production.
 
-- **Execution status:** Not started. Retain the original steps, affected systems, acceptance, verification, dependencies and risks above.
+- **Execution status:** Scoped implementation is in draft PR #93, unmerged. Its local/full CI checks are green, but the Cursor review highlighted a TASK-005 oversized-thread non-retryable failure path. No approval, merge or live ingestion proof is claimed.
 
 ### SEC-009 — Keep abuse budgets and in-flight bounds across cancellation
 

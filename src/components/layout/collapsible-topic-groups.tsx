@@ -75,7 +75,7 @@ export function CollapsibleTopicGroups({
                   )}
                   aria-hidden
                 />
-                <span className="min-w-0 truncate font-bold" dir="auto">
+                <span className="min-w-0 flex-1 font-bold break-words" dir="auto">
                   {ACTION_TOPIC_LABELS[group.topic]}
                 </span>
                 <span className="text-muted-foreground tabular-nums">{group.count}</span>

@@ -67,16 +67,14 @@ function LabelFilterLink({
       aria-current={active ? "page" : undefined}
       className={cn(
         interactiveChipClass,
-        "flex w-[7.25rem] shrink-0 flex-col rounded-xl border px-3 py-2.5 sm:w-36",
+        "inline-flex w-max max-w-full shrink-0 items-center gap-2 rounded-xl border px-3 py-2.5",
         active
           ? "border-primary bg-primary/10 text-foreground"
           : "border-border bg-card text-muted-foreground hover:bg-muted/40 hover:text-foreground",
       )}
     >
-      <span className="flex min-w-0 items-center justify-between gap-3">
-        <span className={cn("min-w-0 truncate text-sm", active && "font-medium")}>{label}</span>
-        <span className="text-foreground shrink-0 text-sm font-semibold tabular-nums">{count}</span>
-      </span>
+      <span className={cn("text-sm", active && "font-medium")}>{label}</span>
+      <span className="text-foreground shrink-0 text-sm font-semibold tabular-nums">{count}</span>
     </Link>
   );
 }

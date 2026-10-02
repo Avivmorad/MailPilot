@@ -76,6 +76,21 @@ describe("AppHeader", () => {
     expect(screen.getByRole("link", { name: "Mail" })).toHaveAttribute("aria-label", "Mail");
   });
 
+  it("does not let narrow rows squash nav labels over each other", () => {
+    render(<AppHeader email="user@example.com" current="dashboard" />);
+    const dashboard = screen.getByRole("link", { name: "Dashboard" });
+    expect(dashboard.className).toContain("shrink-0");
+    expect(dashboard.className).not.toContain("min-w-0");
+  });
+
+  it("keeps section labels at their full width so a narrow row can scroll", () => {
+    render(<AppHeader email="user@example.com" current="dashboard" />);
+
+    const dashboard = screen.getByRole("link", { name: "Dashboard" });
+    expect(dashboard.className).toContain("shrink-0");
+    expect(dashboard.className).not.toContain("min-w-0");
+  });
+
   it("pins the desktop rail to the viewport left edge when fixed", () => {
     render(<AppHeader email="user@example.com" current="dashboard" />);
     const header = screen.getByRole("banner");

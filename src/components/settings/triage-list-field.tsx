@@ -104,14 +104,16 @@ export function TriageListField({
       {values.length > 0 ? (
         <ul className="mt-2 flex flex-wrap gap-1.5" aria-label={`${label} entries`}>
           {values.map((value) => (
-            <li key={value}>
+            <li key={value} className="max-w-full">
               <Badge
                 variant="secondary"
                 className={cn(
-                  "border-border/70 h-7 max-w-full gap-1 rounded-lg border px-2 py-0 font-normal",
+                  "border-border/70 h-auto max-w-full gap-1 rounded-lg border px-2 py-1 font-normal whitespace-normal",
                 )}
               >
-                <span className="min-w-0 truncate">{value}</span>
+                <span className="min-w-0 text-start [overflow-wrap:anywhere] break-words">
+                  {value}
+                </span>
                 <button
                   type="button"
                   className="text-muted-foreground hover:text-foreground -mr-0.5 inline-flex size-5 shrink-0 items-center justify-center rounded-md transition-colors"

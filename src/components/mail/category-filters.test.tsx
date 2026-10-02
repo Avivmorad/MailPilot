@@ -35,4 +35,20 @@ describe("MailCategoryFilters", () => {
       "/mail?tab=waiting&category=career",
     );
   });
+
+  it("shows a long label in full instead of a fixed truncated chip", () => {
+    render(
+      <MailCategoryFilters
+        tab="open"
+        total={1}
+        active={null}
+        options={[{ category: "official_legal", count: 1 }]}
+      />,
+    );
+
+    const label = screen.getByRole("link", { name: /Official, Legal & Insurance/ });
+    expect(label.className).not.toContain("truncate");
+    expect(label.className).not.toContain("w-[7.25rem]");
+    expect(label.className).toContain("w-max");
+  });
 });

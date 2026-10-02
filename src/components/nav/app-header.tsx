@@ -117,7 +117,7 @@ export function AppHeader({ email, current }: { email?: string | null; current: 
               title={item.label}
               className={cn(
                 interactiveNavClass,
-                "inline-flex min-h-11 min-w-0 items-center gap-2.5 rounded-lg px-3 text-sm whitespace-nowrap lg:min-h-10 lg:w-full",
+                "inline-flex min-h-11 shrink-0 items-center gap-2.5 rounded-lg px-3 text-sm whitespace-nowrap lg:min-h-10 lg:w-full",
                 collapsed && "lg:size-10 lg:min-h-10 lg:max-w-10 lg:justify-center lg:px-0",
                 active
                   ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"

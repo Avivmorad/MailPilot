@@ -26,20 +26,14 @@ export function StatusBanner({ kind, title, body, href, actionLabel }: AppBanner
           href.startsWith("/api/") ? (
             <a
               href={href}
-              className={buttonVariants({
-                size: "sm",
-                className: "min-h-10 shrink-0 px-3 sm:min-h-8",
-              })}
+              className={cn(buttonVariants({ size: "sm" }), "min-h-10 shrink-0 px-3 sm:min-h-8")}
             >
               {actionLabel}
             </a>
           ) : (
             <Link
               href={href}
-              className={buttonVariants({
-                size: "sm",
-                className: "min-h-10 shrink-0 px-3 sm:min-h-8",
-              })}
+              className={cn(buttonVariants({ size: "sm" }), "min-h-10 shrink-0 px-3 sm:min-h-8")}
             >
               {actionLabel}
             </Link>

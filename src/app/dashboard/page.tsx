@@ -20,6 +20,7 @@ import { getLatestScanRunForUser } from "@/lib/scans/manual";
 import { formatDateTime } from "@/lib/ui/format";
 import { labelForScanStatus } from "@/lib/ui/labels";
 import { getSessionUser } from "@/lib/supabase/auth";
+import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -240,7 +241,7 @@ export default async function DashboardPage({
               <p className="text-muted-foreground mt-1 text-sm leading-relaxed">{changeLine}</p>
             ) : null}
           </div>
-          <Link href="/scan" className={buttonVariants({ className: "min-h-10 px-4" })}>
+          <Link href="/scan" className={cn(buttonVariants(), "min-h-10 px-4")}>
             Open scan
           </Link>
         </div>
@@ -285,10 +286,7 @@ export default async function DashboardPage({
               <p className="text-muted-foreground mt-1 text-sm leading-relaxed">{changeLine}</p>
             ) : null}
           </div>
-          <Link
-            href={step.href}
-            className={buttonVariants({ className: "min-h-10 shrink-0 px-4" })}
-          >
+          <Link href={step.href} className={cn(buttonVariants(), "min-h-10 shrink-0 px-4")}>
             {step.label}
           </Link>
         </div>

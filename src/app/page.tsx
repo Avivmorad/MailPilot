@@ -7,6 +7,7 @@ import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 
 const questions = [
   {
@@ -119,28 +120,26 @@ export default function Home() {
           <nav aria-label="Landing" className="flex shrink-0 items-center gap-1 sm:gap-2">
             <a
               href="#preview"
-              className={buttonVariants({
-                variant: "ghost",
-                size: "sm",
-                className: "hidden sm:inline-flex",
-              })}
+              className={cn(
+                buttonVariants({ variant: "ghost", size: "sm" }),
+                "hidden sm:inline-flex",
+              )}
             >
               Example
             </a>
             <a
               href="#features"
-              className={buttonVariants({
-                variant: "ghost",
-                size: "sm",
-                className: "hidden sm:inline-flex",
-              })}
+              className={cn(
+                buttonVariants({ variant: "ghost", size: "sm" }),
+                "hidden sm:inline-flex",
+              )}
             >
               Features
             </a>
             <ThemeToggle className="size-10 sm:size-8" />
             <a
               href="/login"
-              className={buttonVariants({ size: "sm", className: "min-h-10 px-3 sm:min-h-8" })}
+              className={cn(buttonVariants({ size: "sm" }), "min-h-10 px-3 sm:min-h-8")}
             >
               Sign in
             </a>
@@ -163,19 +162,15 @@ export default function Home() {
                 You.
               </p>
               <div className="mt-7 flex flex-col gap-3 sm:mt-8 sm:flex-row sm:flex-wrap">
-                <a
-                  href="/login"
-                  className={buttonVariants({ size: "lg", className: "w-full sm:w-auto" })}
-                >
+                <a href="/login" className={cn(buttonVariants({ size: "lg" }), "w-full sm:w-auto")}>
                   Get started with Gmail <ArrowRight className="size-4" />
                 </a>
                 <a
                   href="#preview"
-                  className={buttonVariants({
-                    variant: "outline",
-                    size: "lg",
-                    className: "w-full sm:w-auto",
-                  })}
+                  className={cn(
+                    buttonVariants({ variant: "outline", size: "lg" }),
+                    "w-full sm:w-auto",
+                  )}
                 >
                   See an example
                 </a>

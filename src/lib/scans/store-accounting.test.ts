@@ -160,7 +160,7 @@ describe("durable scan analysis attribution", () => {
     );
   });
 
-  it("draft migration preserves existing rows, grants and scan deletion semantics", () => {
+  it("attribution migration preserves existing rows, grants and scan deletion semantics", () => {
     const sql = readFileSync(
       "supabase/migrations/20260929174644_analysis_scan_attribution.sql",
       "utf8",

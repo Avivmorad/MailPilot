@@ -328,23 +328,9 @@ function LoginForm() {
             </p>
           ) : null}
 
-          <p className="text-muted-foreground mt-4 text-center text-sm">
-            {mode === "signup" ? "Already have an account? " : "Don't have an account? "}
-            <button
-              type="button"
-              className="text-foreground font-medium underline underline-offset-4"
-              onClick={() => {
-                setMode(mode === "signup" ? "signin" : "signup");
-                setError(null);
-                setNotice(null);
-                setFieldError(null);
-              }}
-            >
-              {mode === "signup" ? "Sign in" : "Sign up"}
-            </button>
-            {mode === "forgot" ? (
-              <>
-                <span aria-hidden="true"> · </span>
+          {mode === "forgot" ? (
+            <div className="mt-4 space-y-2 text-center text-sm">
+              <p>
                 <button
                   type="button"
                   className="text-foreground font-medium underline underline-offset-4"
@@ -356,9 +342,40 @@ function LoginForm() {
                 >
                   Back to sign in
                 </button>
-              </>
-            ) : null}
-          </p>
+              </p>
+              <p className="text-muted-foreground">
+                Don't have an account?{" "}
+                <button
+                  type="button"
+                  className="text-foreground font-medium underline underline-offset-4"
+                  onClick={() => {
+                    setMode("signup");
+                    setError(null);
+                    setNotice(null);
+                    setFieldError(null);
+                  }}
+                >
+                  Sign up
+                </button>
+              </p>
+            </div>
+          ) : (
+            <p className="text-muted-foreground mt-4 text-center text-sm">
+              {mode === "signup" ? "Already have an account? " : "Don't have an account? "}
+              <button
+                type="button"
+                className="text-foreground font-medium underline underline-offset-4"
+                onClick={() => {
+                  setMode(mode === "signup" ? "signin" : "signup");
+                  setError(null);
+                  setNotice(null);
+                  setFieldError(null);
+                }}
+              >
+                {mode === "signup" ? "Sign in" : "Sign up"}
+              </button>
+            </p>
+          )}
         </CardContent>
       </Card>
     </LoginShell>

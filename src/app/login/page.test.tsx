@@ -70,6 +70,8 @@ describe("LoginPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "Forgot password?" }));
     expect(screen.getByRole("heading", { level: 1, name: "Reset password" })).toBeInTheDocument();
     expect(screen.queryByLabelText("Password")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Back to sign in" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Sign up" })).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText("Email"), { target: { value: "ada@example.com" } });
     fireEvent.click(screen.getByRole("button", { name: "Send reset link" }));

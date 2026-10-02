@@ -90,7 +90,11 @@ export default async function HistoryPage() {
         <Link href="/mail?tab=open" className="text-primary font-medium hover:underline">
           Mail
         </Link>
-        . Scan again from the dashboard to refresh these numbers.
+        . Scan again from{" "}
+        <Link href="/scan" className="text-primary font-medium hover:underline">
+          Scan
+        </Link>{" "}
+        to refresh these numbers.
       </p>
     </AppChrome>
   );

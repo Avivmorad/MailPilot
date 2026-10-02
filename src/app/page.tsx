@@ -7,6 +7,7 @@ import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 
 const questions = [
   {
@@ -107,24 +108,39 @@ export default function Home() {
   return (
     <div className="flex min-h-full flex-col">
       <SkipToContent />
-      <header className="border-border/60 border-b">
-        <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-4">
+      <header className="border-border/60 bg-background/90 sticky top-0 z-40 border-b backdrop-blur-md">
+        <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-4">
           <Link
             href="/"
             aria-label="MailPriority home"
-            className="focus-visible:ring-ring rounded-lg focus-visible:ring-3 focus-visible:outline-none"
+            className="focus-visible:ring-ring shrink-0 rounded-lg focus-visible:ring-3 focus-visible:outline-none"
           >
             <Logo />
           </Link>
-          <nav aria-label="Landing" className="flex items-center gap-2">
-            <a href="#preview" className={buttonVariants({ variant: "ghost", size: "sm" })}>
+          <nav aria-label="Landing" className="flex shrink-0 items-center gap-1 sm:gap-2">
+            <a
+              href="#preview"
+              className={cn(
+                buttonVariants({ variant: "ghost", size: "sm" }),
+                "hidden sm:inline-flex",
+              )}
+            >
               Example
             </a>
-            <a href="#features" className={buttonVariants({ variant: "ghost", size: "sm" })}>
+            <a
+              href="#features"
+              className={cn(
+                buttonVariants({ variant: "ghost", size: "sm" }),
+                "hidden sm:inline-flex",
+              )}
+            >
               Features
             </a>
-            <ThemeToggle />
-            <a href="/login" className={buttonVariants({ size: "sm" })}>
+            <ThemeToggle className="size-10 sm:size-8" />
+            <a
+              href="/login"
+              className={cn(buttonVariants({ size: "sm" }), "min-h-10 px-3 sm:min-h-8")}
+            >
               Sign in
             </a>
           </nav>
@@ -132,24 +148,30 @@ export default function Home() {
       </header>
 
       <main id="main-content" tabIndex={-1} className="flex-1">
-        <section className="border-border/60 relative overflow-hidden border-b bg-[radial-gradient(circle_at_80%_15%,var(--accent),transparent_38%)]">
-          <div className="mx-auto grid w-full max-w-6xl items-center gap-12 px-6 py-16 lg:grid-cols-[.9fr_1.1fr] lg:py-24">
-            <div>
-              <Badge variant="secondary" className="mb-6">
+        <section className="border-border/60 relative overflow-hidden border-b bg-[radial-gradient(circle_at_80%_15%,var(--accent),transparent_42%)]">
+          <div className="mx-auto grid w-full max-w-6xl items-center gap-10 px-4 py-12 sm:px-6 sm:py-16 lg:grid-cols-[.9fr_1.1fr] lg:gap-12 lg:py-24">
+            <div className="motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-3 motion-safe:duration-500">
+              <Badge variant="secondary" className="mb-5 sm:mb-6">
                 A clearer way to handle Gmail
               </Badge>
-              <h1 className="text-foreground max-w-xl text-5xl leading-[1.07] font-semibold tracking-[-.05em] text-balance sm:text-6xl">
+              <h1 className="text-foreground max-w-xl text-4xl leading-[1.08] font-semibold tracking-[-.04em] text-balance sm:text-5xl sm:tracking-[-.05em] lg:text-6xl">
                 Your inbox, <span className="text-primary">under control.</span>
               </h1>
-              <p className="text-muted-foreground mt-6 max-w-lg text-lg leading-relaxed text-pretty">
+              <p className="text-muted-foreground mt-5 max-w-lg text-base leading-relaxed text-pretty sm:mt-6 sm:text-lg">
                 MailPriority turns busy email threads into a short list of Actions, Pending, and For
                 You.
               </p>
-              <div className="mt-8 flex flex-wrap gap-3">
-                <a href="/login" className={buttonVariants({ size: "lg" })}>
+              <div className="mt-7 flex flex-col gap-3 sm:mt-8 sm:flex-row sm:flex-wrap">
+                <a href="/login" className={cn(buttonVariants({ size: "lg" }), "w-full sm:w-auto")}>
                   Get started with Gmail <ArrowRight className="size-4" />
                 </a>
-                <a href="#preview" className={buttonVariants({ variant: "outline", size: "lg" })}>
+                <a
+                  href="#preview"
+                  className={cn(
+                    buttonVariants({ variant: "outline", size: "lg" }),
+                    "w-full sm:w-auto",
+                  )}
+                >
                   See an example
                 </a>
               </div>
@@ -157,7 +179,7 @@ export default function Home() {
                 No automatic sending or deleting emails.
               </p>
             </div>
-            <div className="border-border bg-card shadow-primary/10 overflow-hidden rounded-2xl border shadow-2xl">
+            <div className="border-border bg-card motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-4 overflow-hidden rounded-2xl border shadow-sm motion-safe:duration-700">
               <div className="border-border flex items-center justify-between border-b px-5 py-4">
                 <span className="text-sm font-semibold">Your daily overview</span>
                 <span className="text-muted-foreground text-xs">Example inbox</span>

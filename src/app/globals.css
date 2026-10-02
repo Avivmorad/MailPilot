@@ -75,13 +75,14 @@
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
   --radius: 0.75rem;
-  --sidebar: oklch(0.955 0.014 260);
+  /* Cool navy-tinted rail so the app chrome reads apart from the canvas. */
+  --sidebar: oklch(0.93 0.02 260);
   --sidebar-foreground: oklch(0.22 0.02 260);
   --sidebar-primary: oklch(0.38 0.09 260);
   --sidebar-primary-foreground: oklch(0.985 0.004 85);
-  --sidebar-accent: oklch(0.92 0.02 260);
-  --sidebar-accent-foreground: oklch(0.28 0.04 260);
-  --sidebar-border: oklch(0.88 0.016 260);
+  --sidebar-accent: oklch(0.88 0.03 260);
+  --sidebar-accent-foreground: oklch(0.24 0.04 260);
+  --sidebar-border: oklch(0.86 0.02 260);
   --sidebar-ring: oklch(0.55 0.08 260);
 }
 
@@ -110,11 +111,11 @@
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.2 0.028 260);
+  --sidebar: oklch(0.18 0.032 260);
   --sidebar-foreground: oklch(0.97 0.01 85);
-  --sidebar-primary: oklch(0.62 0.12 260);
+  --sidebar-primary: oklch(0.72 0.1 260);
   --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.28 0.02 260);
+  --sidebar-accent: oklch(0.26 0.03 260);
   --sidebar-accent-foreground: oklch(0.97 0.01 85);
   --sidebar-border: oklch(1 0 0 / 12%);
   --sidebar-ring: oklch(0.62 0.08 260);
@@ -144,7 +145,16 @@
     scroll-behavior: auto;
   }
 
-  .animate-pulse {
-    animation: none;
+  .animate-pulse,
+  .animate-in,
+  .animate-out {
+    animation: none !important;
+  }
+
+  .motion-safe\:lg\:transition-\[width\],
+  .motion-safe\:lg\:transition-\[padding\],
+  .motion-safe\:animate-in {
+    transition: none !important;
+    animation: none !important;
   }
 }

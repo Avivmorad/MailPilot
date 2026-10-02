@@ -23,7 +23,7 @@ export function AppShell({
   return (
     <div
       className={cn(
-        "flex min-h-full flex-col lg:transition-[padding]",
+        "flex min-h-full flex-col motion-safe:lg:transition-[padding] motion-safe:lg:duration-200 motion-safe:lg:ease-out",
         collapsed ? SIDEBAR_COLLAPSED_PAD_CLASS : SIDEBAR_EXPANDED_PAD_CLASS,
       )}
     >
@@ -34,8 +34,8 @@ export function AppShell({
         id="main-content"
         tabIndex={-1}
         className={cn(
-          "mx-auto w-full flex-1 px-4 py-8 sm:px-6 sm:py-10",
-          width === "wide" ? "max-w-6xl space-y-8" : "max-w-3xl space-y-6",
+          "mx-auto w-full flex-1 px-4 py-6 sm:px-6 sm:py-10",
+          width === "wide" ? "max-w-6xl space-y-7 sm:space-y-8" : "max-w-3xl space-y-6",
         )}
       >
         {children}

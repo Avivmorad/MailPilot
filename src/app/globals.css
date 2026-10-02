@@ -87,6 +87,16 @@
   --sidebar-accent-foreground: oklch(0.24 0.04 260);
   --sidebar-border: oklch(0.86 0.02 260);
   --sidebar-ring: oklch(0.55 0.08 260);
+  /* Tasteful navy / soft-white interactive glow (not purple neon). */
+  --ui-glow:
+    0 0 0 1px color-mix(in oklch, var(--primary) 18%, transparent),
+    0 1px 2px color-mix(in oklch, var(--foreground) 6%, transparent),
+    0 0 14px -4px color-mix(in oklch, var(--primary) 22%, transparent);
+  --ui-glow-strong:
+    0 0 0 1px color-mix(in oklch, var(--primary) 36%, transparent),
+    0 1px 3px color-mix(in oklch, var(--foreground) 8%, transparent),
+    0 0 22px -2px color-mix(in oklch, var(--primary) 38%, transparent),
+    0 0 10px -1px color-mix(in oklch, var(--foreground) 10%, transparent);
 }
 
 .dark {
@@ -122,6 +132,15 @@
   --sidebar-accent-foreground: oklch(0.97 0.01 85);
   --sidebar-border: oklch(1 0 0 / 12%);
   --sidebar-ring: oklch(0.62 0.08 260);
+  --ui-glow:
+    0 0 0 1px color-mix(in oklch, var(--primary) 40%, transparent),
+    0 1px 2px color-mix(in oklch, var(--foreground) 12%, transparent),
+    0 0 20px -1px color-mix(in oklch, var(--primary) 48%, transparent);
+  --ui-glow-strong:
+    0 0 0 1px color-mix(in oklch, var(--primary) 70%, transparent),
+    0 1px 4px color-mix(in oklch, var(--foreground) 16%, transparent),
+    0 0 36px 0 color-mix(in oklch, var(--primary) 65%, transparent),
+    0 0 16px 2px color-mix(in oklch, var(--foreground) 22%, transparent);
 }
 
 @layer base {
@@ -146,6 +165,32 @@
   }
 }
 
+@layer components {
+  /**
+   * Shared clickable affordance: subtle brand-navy glow at rest, stronger on
+   * hover/focus. Pair with cursor-pointer + focus-visible rings — do not rely
+   * on glow alone.
+   */
+  .ui-interactive {
+    box-shadow: var(--ui-glow);
+    transition-property: background-color, border-color, color, box-shadow, transform, opacity;
+    transition-duration: 150ms;
+    transition-timing-function: ease-out;
+  }
+
+  .ui-interactive:hover,
+  .ui-interactive:focus-visible {
+    box-shadow: var(--ui-glow-strong);
+  }
+
+  .ui-interactive:disabled,
+  .ui-interactive[aria-disabled="true"],
+  .ui-interactive:disabled:hover,
+  .ui-interactive[aria-disabled="true"]:hover {
+    box-shadow: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
@@ -162,5 +207,9 @@
   .motion-safe\:animate-in {
     transition: none !important;
     animation: none !important;
+  }
+
+  .ui-interactive {
+    transition: none !important;
   }
 }

@@ -17,6 +17,7 @@ import { Logo } from "@/components/brand/logo";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { isUsageTelemetryUiEnabled } from "@/lib/config/features";
+import { interactiveNavClass } from "@/lib/ui/interactive";
 import { SIDEBAR_COLLAPSED_WIDTH_CLASS, SIDEBAR_EXPANDED_WIDTH_CLASS } from "@/lib/ui/sidebar";
 import { useSidebarCollapsed } from "@/lib/ui/use-sidebar-collapsed";
 import { cn } from "@/lib/utils";
@@ -115,13 +116,11 @@ export function AppHeader({ email, current }: { email?: string | null; current: 
               aria-label={item.label}
               title={item.label}
               className={cn(
-                "focus-visible:ring-ring inline-flex min-h-11 min-w-0 items-center gap-2.5 rounded-lg px-3 text-sm whitespace-nowrap transition-[background-color,color,transform] duration-150 focus-visible:ring-3 focus-visible:outline-none active:translate-y-px lg:min-h-10 lg:w-full",
+                interactiveNavClass,
+                "inline-flex min-h-11 min-w-0 items-center gap-2.5 rounded-lg px-3 text-sm whitespace-nowrap lg:min-h-10 lg:w-full",
                 collapsed && "lg:size-10 lg:min-h-10 lg:max-w-10 lg:justify-center lg:px-0",
                 active
-                  ? cn(
-                      "bg-sidebar-accent text-sidebar-accent-foreground font-medium",
-                      !collapsed && "shadow-sm",
-                    )
+                  ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
                   : "text-muted-foreground hover:bg-sidebar-accent/70 hover:text-foreground",
               )}
             >

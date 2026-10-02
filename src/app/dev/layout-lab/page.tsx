@@ -5,8 +5,8 @@ import { useSyncExternalStore } from "react";
 
 import { AppShell } from "@/components/layout/app-shell";
 import { PageHeader } from "@/components/layout/page-header";
+import { InboxStatCard } from "@/components/dashboard/inbox-stat-card";
 import { AppHeader } from "@/components/nav/app-header";
-import { Card, CardContent } from "@/components/ui/card";
 import { SIDEBAR_STORAGE_KEY } from "@/lib/ui/sidebar";
 
 function subscribeNoop() {
@@ -35,11 +35,14 @@ export default function LayoutLabPage() {
     return null;
   }
 
-  const primaryStats = [
-    { label: "Actions", value: "3" },
-    { label: "Pending", value: "2" },
-    { label: "For You", value: "5" },
-    { label: "Ignored", value: "12" },
+  const inboxStats = [
+    { label: "Actions", value: "3", href: "/mail?tab=open" },
+    { label: "Pending", value: "2", href: "/mail?tab=waiting" },
+    { label: "For You", value: "5", href: "/mail?tab=summary" },
+    { label: "Ignored", value: "12", href: "/mail?tab=ignored" },
+    { label: "Closed", value: "4", href: "/mail?tab=completed" },
+    { label: "Snoozed", value: "1", href: "/mail?tab=snoozed" },
+    { label: "Important", value: "2" },
   ];
 
   return (
@@ -77,21 +80,14 @@ export default function LayoutLabPage() {
 
       <section className="min-w-0 space-y-3">
         <h2 className="text-foreground text-lg font-semibold tracking-tight">Inbox now</h2>
-        <div className="grid min-w-0 grid-cols-2 gap-3 xl:grid-cols-4">
-          {primaryStats.map((stat) => (
-            <Card
+        <div className="grid min-w-0 grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
+          {inboxStats.map((stat) => (
+            <InboxStatCard
               key={stat.label}
-              className="hover:bg-muted/40 h-full min-w-0 transition-[background-color,box-shadow] duration-150 hover:shadow-sm"
-            >
-              <CardContent className="min-w-0">
-                <div className="text-3xl font-semibold tracking-tight tabular-nums">
-                  {stat.value}
-                </div>
-                <div className="text-muted-foreground mt-1 text-sm leading-snug break-words">
-                  {stat.label}
-                </div>
-              </CardContent>
-            </Card>
+              label={stat.label}
+              value={stat.value}
+              href={stat.href}
+            />
           ))}
         </div>
       </section>

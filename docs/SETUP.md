@@ -81,7 +81,7 @@ Copy from [`.env.example`](../.env.example). Validated in
 | `GEMINI_API_KEY` / `GEMINI_MODEL`                                                       | Gemini; used when `NVIDIA_API_KEY` is unset                 |
 | `NVIDIA_API_KEY` / `NVIDIA_MODEL`                                                       | NVIDIA Build; primary triage provider when set              |
 | `CRON_SECRET`                                                                           | Protects `/api/cron/scan-dispatcher`                        |
-| `MAX_THREAD_MESSAGES` / `MAX_MESSAGE_CHARS` / `MAX_THREAD_CHARS` / `AI_MAX_CONCURRENCY` | Context and cost controls (default concurrency **4**)       |
+| `MAX_THREAD_MESSAGES` / `MAX_MESSAGE_CHARS` / `MAX_THREAD_CHARS` / `AI_MAX_CONCURRENCY` | Context and cost controls (default concurrency **8**)       |
 | `GMAIL_QUOTA_UNITS_PER_MINUTE`                                                          | Optional local Gmail quota budget (default 12000)           |
 | `NEXT_PUBLIC_SENTRY_DSN`                                                                | Optional Sentry DSN (public). App runs without it           |
 | `SENTRY_ORG` / `SENTRY_PROJECT` / `SENTRY_AUTH_TOKEN`                                   | Optional build-only source-map upload. Never `NEXT_PUBLIC_` |

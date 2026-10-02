@@ -20,10 +20,7 @@ describe("CollapsibleBlock", () => {
 
     const header = screen.getByRole("button", { name: /Actions/ });
     expect(header).toHaveAttribute("aria-expanded", "false");
-    expect(document.getElementById("dashboard-actions-panel")?.firstElementChild).toHaveAttribute(
-      "aria-hidden",
-      "true",
-    );
+    expect(screen.queryByText("Pay the invoice")).not.toBeInTheDocument();
 
     fireEvent.click(header);
     expect(header).toHaveAttribute("aria-expanded", "true");

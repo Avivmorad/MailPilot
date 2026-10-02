@@ -43,6 +43,8 @@ describe("CollapsibleTopicGroups", () => {
     const security = screen.getByRole("button", { name: /Security/ });
     expect(finance).toHaveAttribute("aria-expanded", "false");
     expect(security).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByText("Pay the invoice")).not.toBeInTheDocument();
+    expect(screen.queryByText("Review the login")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Expand all" })).toBeInTheDocument();
 
     fireEvent.click(finance);

@@ -4,7 +4,7 @@ import { ActionControls } from "@/components/actions/action-controls";
 import { ThreadPlacementCorrection } from "@/components/threads/thread-placement-correction";
 import { LabeledField } from "@/components/ui/labeled-field";
 import { ThreadTags } from "@/components/ui/thread-tags";
-import type { ActionListItem } from "@/lib/actions/queries";
+import type { ActionListItem } from "@/lib/actions/action-list-item";
 import { mailBucketForThread } from "@/lib/mail/buckets";
 import { isUncertainClassification } from "@/lib/mail/filters";
 import { threadPlacementReason } from "@/lib/mail/placement";

@@ -1,16 +1,8 @@
 import { countActionRowsByStatus } from "@/lib/actions/queries";
+import type { MailFigures } from "@/lib/mail/mail-figures";
 import { getInboxCountsForUser } from "@/lib/scans/manual";
 
-export interface MailFigures {
-  processed: number;
-  actions: number;
-  pending: number;
-  forYou: number;
-  ignored: number;
-  important: number;
-  closed: number;
-  snoozed: number;
-}
+export type { MailFigures } from "@/lib/mail/mail-figures";
 
 export async function getMailFigures(userId: string): Promise<MailFigures> {
   const [counts, workflow] = await Promise.all([

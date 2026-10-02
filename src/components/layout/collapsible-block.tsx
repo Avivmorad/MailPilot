@@ -55,18 +55,7 @@ export function CollapsibleBlock({
         </button>
         {action}
       </div>
-      <div
-        className={cn(
-          "grid transition-[grid-template-rows] duration-200 ease-out",
-          open ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
-        )}
-      >
-        <div id={panelId} className="overflow-hidden">
-          <div aria-hidden={!open} inert={!open ? true : undefined}>
-            {children}
-          </div>
-        </div>
-      </div>
+      {open ? <div id={panelId}>{children}</div> : <div id={panelId} hidden />}
     </section>
   );
 }

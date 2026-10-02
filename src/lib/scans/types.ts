@@ -75,6 +75,13 @@ export interface ScanGmailPort {
   listMessageRefs(query: string): Promise<Array<{ id: string; threadId: string }>>;
   listHistoryChanges(startHistoryId: string): Promise<HistoryListResult>;
   fetchThread(threadId: string): Promise<ParsedGmailMessage[]>;
+  /**
+   * Latest message id and labels without `format=full`.
+   * Present on the live Gmail port. Tests may omit it and always full-fetch.
+   */
+  fetchThreadMetadata?(
+    threadId: string,
+  ): Promise<{ latestMessageId: string; labelIds: string[] } | null>;
   getProfileHistoryId(): Promise<string | null>;
   loadLabelMap(): Promise<Map<MailPilotLogicalLabel, string>>;
   /**

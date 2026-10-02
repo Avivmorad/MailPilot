@@ -8,6 +8,7 @@ import {
   normalizeThreadStatus,
 } from "@/lib/mail/buckets";
 import { createAdminClient } from "@/lib/supabase/admin";
+import type { RecentThreadRow } from "@/lib/threads/recent-thread";
 import { correctionFromFeedback } from "@/lib/threads/apply-feedback";
 import { threadFeedbackSchema } from "@/lib/threads/feedback";
 
@@ -60,16 +61,7 @@ export interface ThreadDetail {
   messages: ThreadMessageMeta[];
 }
 
-export interface RecentThreadRow {
-  id: string;
-  subject: string | null;
-  shortDisplayTitle: string | null;
-  summary: string | null;
-  status: string | null;
-  importance: string | null;
-  category: string | null;
-  latestMessageAt: string | null;
-}
+export type { RecentThreadRow } from "@/lib/threads/recent-thread";
 
 type ThreadListDbRow = {
   id: unknown;

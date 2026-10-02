@@ -67,7 +67,7 @@ function readFailure(payload: unknown): { error?: string; message?: string } {
 
 async function fetchLatestScan(signal: AbortSignal): Promise<LatestScanResult> {
   try {
-    const response = await fetch("/api/scans", { cache: "no-store", signal });
+    const response = await fetch("/api/scans?progress=1", { cache: "no-store", signal });
     if (!response.ok) {
       return { kind: "http", status: response.status };
     }

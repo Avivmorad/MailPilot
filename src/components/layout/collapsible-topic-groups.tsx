@@ -83,22 +83,11 @@ export function CollapsibleTopicGroups({
                   {open ? "Hide" : "Show"}
                 </span>
               </button>
-              <div
-                className={cn(
-                  "grid transition-[grid-template-rows] duration-200 ease-out",
-                  open ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
-                )}
-              >
-                <div id={panelId} className="overflow-hidden">
-                  <div
-                    className={cn(variant === "panel" ? "" : "space-y-3 pt-1")}
-                    aria-hidden={!open}
-                    inert={!open ? true : undefined}
-                  >
-                    {group.body}
-                  </div>
+              {open ? (
+                <div id={panelId} className={cn(variant === "panel" ? "" : "space-y-3 pt-1")}>
+                  {group.body}
                 </div>
-              </div>
+              ) : null}
             </section>
           );
         })}

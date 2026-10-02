@@ -6,6 +6,7 @@ import { InboxStatCard } from "@/components/dashboard/inbox-stat-card";
 import { DigestReportCard } from "@/components/digest/digest-report-card";
 import { GmailConnectionCard } from "@/components/gmail/gmail-connection-card";
 import { AppChrome } from "@/components/layout/app-chrome";
+import { CollapsibleBlock } from "@/components/layout/collapsible-block";
 import { EmptyState } from "@/components/layout/empty-state";
 import { PageHeader } from "@/components/layout/page-header";
 import { buttonVariants } from "@/components/ui/button";
@@ -281,25 +282,25 @@ export default async function DashboardPage({
         </div>
       </section>
 
-      <section className="space-y-3">
-        <div className="flex flex-wrap items-end justify-between gap-2">
-          <div>
-            <h2 className="text-foreground text-lg font-semibold tracking-tight">Actions</h2>
-            <p className="text-muted-foreground text-sm">
-              {overdueOpen > 0
-                ? "Overdue and urgent first. Full list lives in Mail."
-                : "Top actions. Full list lives in Mail."}
-            </p>
-          </div>
-          {openCount > 0 ? (
+      <CollapsibleBlock
+        storageKey="dashboard-actions"
+        title="Actions"
+        description={
+          overdueOpen > 0
+            ? "Overdue and urgent first. Full list lives in Mail."
+            : "Top actions. Full list lives in Mail."
+        }
+        action={
+          openCount > 0 ? (
             <Link
               href="/mail?tab=open"
               className="text-primary text-sm font-medium hover:underline"
             >
               View all in Mail
             </Link>
-          ) : null}
-        </div>
+          ) : undefined
+        }
+      >
         {actionsLoadError ? (
           <EmptyState
             variant="error"
@@ -344,7 +345,7 @@ export default async function DashboardPage({
             }
           />
         )}
-      </section>
+      </CollapsibleBlock>
 
       <DigestReportCard digest={latestDigest} variant="compact" />
 

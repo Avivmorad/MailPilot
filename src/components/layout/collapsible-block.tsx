@@ -22,7 +22,7 @@ export function CollapsibleBlock({
   action?: ReactNode;
   children: ReactNode;
 }) {
-  const [collapsed, setCollapsed] = useCollapsedIds(storageKey);
+  const [collapsed, setCollapsed] = useCollapsedIds(storageKey, { defaultIds: [SECTION_ID] });
   const open = !collapsed.includes(SECTION_ID);
   const panelId = `${storageKey.replace(/[^a-zA-Z0-9_-]/g, "-")}-panel`;
 

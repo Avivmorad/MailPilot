@@ -130,7 +130,7 @@
     @apply border-border outline-ring/50;
   }
   html {
-    @apply font-sans;
+    @apply h-full font-sans antialiased;
     overflow-x: clip;
   }
   body {

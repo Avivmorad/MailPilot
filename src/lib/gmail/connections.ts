@@ -1,3 +1,5 @@
+import { after } from "next/server";
+
 import { getGmailEnv, isGmailConfigured } from "@/lib/config/env";
 import {
   type GmailConnectionPublic,
@@ -11,6 +13,7 @@ import {
   GmailConnectError,
   revokeRefreshToken,
 } from "@/lib/gmail/oauth";
+import { GMAIL_CONNECT_RETRY_DELAYS_MS } from "@/lib/gmail/retry";
 import { unwrapSecretWithRotation, encryptSecret } from "@/lib/security/encryption";
 import { cancelActiveJobsForConnection } from "@/lib/scans/jobs";
 import { nextDailyScanAt } from "@/lib/scans/schedule";
@@ -168,7 +171,9 @@ export async function completeGmailOAuth(
 ): Promise<GmailConnectionPublic> {
   const env = getGmailEnv();
   const tokens = await exchangeAuthorizationCode(code);
-  const identity = await fetchGmailIdentity(tokens.accessToken, tokens.refreshToken);
+  const identity = await fetchGmailIdentity(tokens.accessToken, tokens.refreshToken, {
+    delaysMs: GMAIL_CONNECT_RETRY_DELAYS_MS,
+  });
 
   let encryptedRefreshToken: string;
   try {
@@ -293,11 +298,13 @@ export async function completeGmailOAuth(
     }
   }
 
-  try {
-    await ensureManagedLabels(row.id, tokens.accessToken, tokens.refreshToken);
-  } catch {
-    // Connection is still valid; labels can be reconciled on the next scan.
-  }
+  after(() => {
+    void ensureManagedLabels(row.id, tokens.accessToken, tokens.refreshToken, {
+      delaysMs: GMAIL_CONNECT_RETRY_DELAYS_MS,
+    }).catch(() => {
+      // Connection is still valid; labels can be reconciled on the next scan.
+    });
+  });
 
   emitProductEvent({ type: "gmail.connected", connectionId: row.id });
   return toPublicConnection(row);

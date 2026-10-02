@@ -1,7 +1,11 @@
 import type { gmail_v1 } from "googleapis";
 
 import { listSendAsEmails } from "@/lib/gmail/aliases";
-import { loadLabelIdMap, modifyThreadLabels } from "@/lib/gmail/labels";
+import {
+  ensureManagedLabelsWithClient,
+  loadLabelIdMap,
+  modifyThreadLabels,
+} from "@/lib/gmail/labels";
 import { listHistoryChanges } from "@/lib/gmail/history-list";
 import { fetchAndParseThread, fetchProfileHistoryId, listMessageRefs } from "@/lib/gmail/messages";
 import type { ScanGmailPort } from "@/lib/scans/types";
@@ -21,6 +25,7 @@ export function createGmailScanPort(
     fetchThread: (threadId) => fetchAndParseThread(gmail, threadId, requestBudget),
     getProfileHistoryId: () => fetchProfileHistoryId(gmail, requestBudget),
     loadLabelMap: () => loadLabelIdMap(connectionId),
+    ensureManagedLabels: () => ensureManagedLabelsWithClient(gmail, connectionId, requestBudget),
     modifyThreadLabels: (threadId, addLabelIds, removeLabelIds) =>
       modifyThreadLabels(gmail, threadId, addLabelIds, removeLabelIds, requestBudget),
     listSendAsEmails: () => listSendAsEmails(gmail, requestBudget),

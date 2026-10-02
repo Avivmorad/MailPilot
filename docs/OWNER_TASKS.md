@@ -4,14 +4,15 @@ Console and live checks only. App code stays in separate sessions. Check a box o
 
 Supabase migrations `0007`–`0012` and `20260929174644_analysis_scan_attribution` are applied on `mailpilot-dev`. Vercel has the required env vars. The Gmail redirect URI on record is `https://gmailpilot.vercel.app/api/gmail/callback`. Sign-in, Connect Gmail, and a last-week Scan now already ran on the live app (699 conversations, finished partial: a few threads were not analyzed).
 
-Do the sections in order. Sections 8 and 9 wait on app changes; the others can start now.
+Do the sections in order. Section 8's scan-timeout code is in the tree; its live Success boxes stay open. Section 9 still waits on the daily-dispatch code. The other sections can start now.
 
 ## Code sessions
 
 Live boxes below stay open until their **Done when** line is true. Session progress is also in `IgnoreFolder/plan_to_publish.md`.
 
 - [x] Session 1, repo cleanup: `package.json` has one `overrides` object, and setup docs say the scan-attribution migration is applied on `mailpilot-dev`.
-- Still open: scan reliability (section 8), daily dispatch (section 9), privacy copy (section 11), and pointing the app at the host you choose (section 2).
+- [x] Session 2, scan timeouts: a retryable AI timeout is retried once before the scan is sealed partial, and a thread that still fails stays stored so a later scan can retry it.
+- Still open: two live accounts finishing Success (section 8), daily dispatch (section 9), privacy copy (section 11), and pointing the app at the host you choose (section 2).
 
 ## Already done
 
@@ -154,7 +155,7 @@ Supabase’s default sender is for testing. It restricts who can receive mail an
 
 ## 8. Prove two first scans finish
 
-Wait for the scan-reliability code session before treating a failure here as a settings problem. The last live run was partial because AI requests timed out.
+The scan-timeout code is in the tree. These boxes stay open until two live accounts finish Success on the host. The last live run was still partial; that proof was not re-run here.
 
 - [ ] On `<host>`, two different Gmail accounts each finish a seven-day Scan now as Success.
 - [ ] Mail shows separate Actions, For You, and Ignored lists, and Gmail shows the `MailPilot/` labels.

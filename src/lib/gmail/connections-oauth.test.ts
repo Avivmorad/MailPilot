@@ -1,46 +1,72 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const afterMock = vi.fn((task: () => void) => {
-  task();
-});
-const ensureManagedLabels = vi.fn(async () => undefined);
-const exchangeAuthorizationCode = vi.fn();
-const fetchGmailIdentity = vi.fn();
-const encryptSecret = vi.fn(() => "v1:iv:tag:ciphertext");
-const emitProductEvent = vi.fn();
-const getScanPreferences = vi.fn(async () => ({
-  dailyScanTime: "09:00",
-  timezone: "Asia/Jerusalem",
-}));
-const nextDailyScanAt = vi.fn(() => new Date("2026-09-11T06:00:00.000Z"));
-
-const upsertSelectSingle = vi.fn();
-const updateEq = vi.fn(async () => ({ error: null }));
-const fromMock = vi.fn((table: string) => {
-  if (table === "profiles") {
-    return {
-      upsert: vi.fn(async () => ({ error: null })),
-    };
-  }
-  if (table === "gmail_connections") {
-    return {
-      select: vi.fn(() => ({
-        neq: vi.fn(() => ({
-          ilike: vi.fn(async () => ({ data: [], error: null })),
-          eq: vi.fn(async () => ({ data: [], error: null })),
-        })),
-      })),
-      upsert: vi.fn(() => ({
+const {
+  afterMock,
+  ensureManagedLabels,
+  exchangeAuthorizationCode,
+  fetchGmailIdentity,
+  encryptSecret,
+  emitProductEvent,
+  getScanPreferences,
+  nextDailyScanAt,
+  upsertSelectSingle,
+  updateEq,
+  fromMock,
+} = vi.hoisted(() => {
+  const afterMock = vi.fn((task: () => void) => {
+    task();
+  });
+  const ensureManagedLabels = vi.fn(async () => undefined);
+  const exchangeAuthorizationCode = vi.fn();
+  const fetchGmailIdentity = vi.fn();
+  const encryptSecret = vi.fn(() => "v1:iv:tag:ciphertext");
+  const emitProductEvent = vi.fn();
+  const getScanPreferences = vi.fn(async () => ({
+    dailyScanTime: "09:00",
+    timezone: "Asia/Jerusalem",
+  }));
+  const nextDailyScanAt = vi.fn(() => new Date("2026-09-11T06:00:00.000Z"));
+  const upsertSelectSingle = vi.fn();
+  const updateEq = vi.fn(async () => ({ error: null }));
+  const fromMock = vi.fn((table: string) => {
+    if (table === "profiles") {
+      return {
+        upsert: vi.fn(async () => ({ error: null })),
+      };
+    }
+    if (table === "gmail_connections") {
+      return {
         select: vi.fn(() => ({
-          single: upsertSelectSingle,
+          neq: vi.fn(() => ({
+            ilike: vi.fn(async () => ({ data: [], error: null })),
+            eq: vi.fn(async () => ({ data: [], error: null })),
+          })),
         })),
-      })),
-      update: vi.fn(() => ({
-        eq: updateEq,
-      })),
-    };
-  }
-  throw new Error(`unexpected table ${table}`);
+        upsert: vi.fn(() => ({
+          select: vi.fn(() => ({
+            single: upsertSelectSingle,
+          })),
+        })),
+        update: vi.fn(() => ({
+          eq: updateEq,
+        })),
+      };
+    }
+    throw new Error(`unexpected table ${table}`);
+  });
+  return {
+    afterMock,
+    ensureManagedLabels,
+    exchangeAuthorizationCode,
+    fetchGmailIdentity,
+    encryptSecret,
+    emitProductEvent,
+    getScanPreferences,
+    nextDailyScanAt,
+    upsertSelectSingle,
+    updateEq,
+    fromMock,
+  };
 });
 
 vi.mock("next/server", () => ({
@@ -55,12 +81,12 @@ vi.mock("@/lib/config/env", () => ({
 }));
 
 vi.mock("@/lib/gmail/labels", () => ({
-  ensureManagedLabels: (...args: unknown[]) => ensureManagedLabels(...args),
+  ensureManagedLabels,
 }));
 
 vi.mock("@/lib/gmail/oauth", () => ({
-  exchangeAuthorizationCode: (...args: unknown[]) => exchangeAuthorizationCode(...args),
-  fetchGmailIdentity: (...args: unknown[]) => fetchGmailIdentity(...args),
+  exchangeAuthorizationCode,
+  fetchGmailIdentity,
   GmailConnectError: class GmailConnectError extends Error {
     constructor(
       readonly reason: string,
@@ -74,7 +100,7 @@ vi.mock("@/lib/gmail/oauth", () => ({
 }));
 
 vi.mock("@/lib/security/encryption", () => ({
-  encryptSecret: (...args: unknown[]) => encryptSecret(...args),
+  encryptSecret,
   unwrapSecretWithRotation: vi.fn(),
 }));
 
@@ -83,11 +109,11 @@ vi.mock("@/lib/scans/jobs", () => ({
 }));
 
 vi.mock("@/lib/scans/schedule", () => ({
-  nextDailyScanAt: (...args: unknown[]) => nextDailyScanAt(...args),
+  nextDailyScanAt,
 }));
 
 vi.mock("@/lib/settings/preferences", () => ({
-  getScanPreferences: (...args: unknown[]) => getScanPreferences(...args),
+  getScanPreferences,
 }));
 
 vi.mock("@/lib/supabase/admin", () => ({
@@ -95,7 +121,7 @@ vi.mock("@/lib/supabase/admin", () => ({
 }));
 
 vi.mock("@/lib/observability/events", () => ({
-  emitProductEvent: (...args: unknown[]) => emitProductEvent(...args),
+  emitProductEvent,
 }));
 
 import { completeGmailOAuth } from "@/lib/gmail/connections";

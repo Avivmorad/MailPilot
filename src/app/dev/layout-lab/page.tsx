@@ -7,15 +7,27 @@ import { AppShell } from "@/components/layout/app-shell";
 import { PageHeader } from "@/components/layout/page-header";
 import { InboxStatCard } from "@/components/dashboard/inbox-stat-card";
 import { AppHeader } from "@/components/nav/app-header";
+import { Button } from "@/components/ui/button";
 import { SIDEBAR_STORAGE_KEY } from "@/lib/ui/sidebar";
+import { THEME_STORAGE_KEY } from "@/lib/ui/theme";
 
 function subscribeNoop() {
   return () => {};
 }
 
+function readLabTheme(): "light" | "dark" {
+  if (typeof window === "undefined") {
+    return "dark";
+  }
+  const param = new URLSearchParams(window.location.search).get("theme");
+  return param === "light" ? "light" : "dark";
+}
+
 function prepareLayoutLabClient(): true {
   window.localStorage.setItem(SIDEBAR_STORAGE_KEY, "1");
-  document.documentElement.classList.add("dark");
+  const theme = readLabTheme();
+  window.localStorage.setItem(THEME_STORAGE_KEY, theme);
+  document.documentElement.classList.toggle("dark", theme === "dark");
   return true;
 }
 
@@ -23,6 +35,7 @@ function prepareLayoutLabClient(): true {
  * Local-only layout lab for overflow / zoom / phone regression screenshots.
  * Unavailable in production builds. Uses inline markup (not action/mail query
  * modules) so it stays on the safe side of the client import boundary.
+ * Query `?theme=light` for light mode; default is dark.
  */
 export default function LayoutLabPage() {
   if (process.env.NODE_ENV === "production") {
@@ -51,6 +64,17 @@ export default function LayoutLabPage() {
         title="Inbox overview"
         description="Layout lab — collapsed sidebar, zoom, and phone overflow checks."
       />
+
+      <section className="min-w-0 space-y-3">
+        <h2 className="text-foreground text-lg font-semibold tracking-tight">Buttons</h2>
+        <div className="flex min-w-0 flex-wrap items-center gap-3">
+          <Button data-testid="lab-open-scan">Open scan</Button>
+          <Button variant="outline">Outline</Button>
+          <Button variant="secondary">Secondary</Button>
+          <Button variant="ghost">Ghost</Button>
+          <Button variant="destructive">Destructive</Button>
+        </div>
+      </section>
 
       <div className="bg-card ring-foreground/10 min-w-0 rounded-xl px-4 py-4 shadow-xs ring-1">
         <p className="font-medium tracking-tight">Last scan</p>

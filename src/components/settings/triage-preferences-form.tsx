@@ -8,12 +8,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DEFAULT_LOOKBACK_DAYS } from "@/lib/scans/lookback";
 import { CUSTOM_AI_INSTRUCTIONS_MAX } from "@/lib/settings/limits";
-import { parseTriageDomain, parseTriageSender } from "@/lib/settings/preferences";
 import {
   TRIAGE_CARD_DESCRIPTION,
   TRIAGE_SETTINGS_SAVED_MESSAGE,
   TRIAGE_UPDATE_STARTED_MESSAGE,
 } from "@/lib/settings/schedule-copy";
+import { parseTriageDomain, parseTriageSender } from "@/lib/settings/triage-lists";
 
 export function TriagePreferencesForm({
   vipSenders,
@@ -56,7 +56,11 @@ export function TriagePreferencesForm({
     });
     if (!response.ok) {
       setError(true);
-      setMessage("Could not save triage settings. Check emails, domains, and instruction length.");
+      setMessage(
+        response.status === 401
+          ? "Sign in to save triage settings."
+          : "Could not save triage settings. Check emails, domains, and instruction length.",
+      );
       return false;
     }
     return true;

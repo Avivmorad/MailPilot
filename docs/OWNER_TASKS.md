@@ -4,14 +4,15 @@ Console and live checks only. App code stays in separate sessions. Check a box o
 
 Supabase migrations `0007`–`0012` and `20260929174644_analysis_scan_attribution` are applied on `mailpilot-dev`. Vercel has the required env vars. The Gmail redirect URI on record is `https://gmailpilot.vercel.app/api/gmail/callback`. Sign-in, Connect Gmail, and a last-week Scan now already ran on the live app (699 conversations, finished partial: a few threads were not analyzed).
 
-Do the sections in order. Sections 8 and 9 wait on app changes; the others can start now.
+Do the sections in order. Section 8 still waits on the scan-timeout code. Section 9's dispatch code is in the tree; its ten-account live check is still open. The other sections can start now.
 
 ## Code sessions
 
 Live boxes below stay open until their **Done when** line is true. Session progress is also in `IgnoreFolder/plan_to_publish.md`.
 
 - [x] Session 1, repo cleanup: `package.json` has one `overrides` object, and setup docs say the scan-attribution migration is applied on `mailpilot-dev`.
-- Still open: scan reliability (section 8), daily dispatch (section 9), privacy copy (section 11), and pointing the app at the host you choose (section 2).
+- [x] Session 3, daily dispatch: one Hobby cron chains bounded slices so every due connection in the cycle is claimed, retries the next slice when it does not start, and raises a backlog alert if the queue does not drain.
+- Still open: scan reliability (section 8), the live ten-account daily cycle (section 9), privacy copy (section 11), and pointing the app at the host you choose (section 2).
 
 ## Already done
 
@@ -174,7 +175,7 @@ Wait for the scan-reliability code session before treating a failure here as a s
 
 ## 9. Prove the daily run reaches every connected account
 
-Wait for the daily-dispatch code session. Until that ships, one cron run still handles a single connection, so this check cannot pass.
+Session 3 is in the tree: one daily cron chains a bounded slice per due connection, retries a slice that does not start, and alerts if the queue does not drain. Still open: this live check needs ten connected accounts on the host, which local tests cannot prove.
 
 The schedule is best-effort once a day. Vercel Hobby cron is `0 6 * * *` UTC (09:00 in Israel during summer time). Settings may still show a local time; that clock is not a promise that Hobby will run at that minute.
 

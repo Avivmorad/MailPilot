@@ -100,6 +100,27 @@ async function claimDueConnectionsOptimistic(input: {
   return claimed;
 }
 
+/**
+ * Due CONNECTED accounts with no live lease. Matches the claim filter so a
+ * cycle can see who is still waiting without locking them.
+ */
+export async function countDueConnections(now: Date = new Date()): Promise<number> {
+  const db = createAdminClient();
+  const nowIso = now.toISOString();
+  const { count, error } = await db
+    .from("gmail_connections")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "CONNECTED")
+    .not("next_scan_at", "is", null)
+    .lte("next_scan_at", nowIso)
+    .or(`lease_expires_at.is.null,lease_expires_at.lt.${nowIso}`);
+
+  if (error || count === null) {
+    throw new Error("Failed to count due scans");
+  }
+  return count;
+}
+
 export async function releaseConnectionLease(connectionId: string): Promise<void> {
   const db = createAdminClient();
   const { error } = await db

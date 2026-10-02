@@ -23,6 +23,7 @@ describe("sentry privacy", () => {
     expect(sentryErrorCategoryFromError(new Error("gmail_quota"))).toBe("quota");
     expect(sentryErrorCategoryFromError(new Error("ai_unavailable"))).toBe("ai");
     expect(sentryErrorCategoryFromError(new Error("thread_failures:abc"))).toBe("partial");
+    expect(sentryErrorCategoryFromError(new Error("dispatch_backlog"))).toBe("backlog");
     expect(sentryProviderFromError(new Error("googleapis quota"))).toBe("gmail");
     expect(sentryProviderFromError(new Error("gemini overloaded"))).toBe("gemini");
   });

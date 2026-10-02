@@ -81,6 +81,8 @@ function LoginShell({ children }: { children?: ReactNode }) {
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const redirectedFrom = searchParams.get("redirectedFrom");
+  const hasAppReturn = Boolean(redirectedFrom && redirectedFrom.startsWith("/"));
   const [mode, setMode] = useState<Mode>("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -195,7 +197,9 @@ function LoginForm() {
           </CardTitle>
           <CardDescription>
             {mode === "signin"
-              ? "Welcome back. Sign in to your MailPriority account."
+              ? hasAppReturn
+                ? "Sign in to open your inbox triage."
+                : "Welcome back. Sign in to your MailPriority account."
               : mode === "signup"
                 ? "Sign up to start triaging your inbox."
                 : "We will email a reset link if that address has an account."}

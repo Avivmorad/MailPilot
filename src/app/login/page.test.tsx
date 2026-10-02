@@ -1,11 +1,13 @@
 /** @vitest-environment jsdom */
 
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+let searchParams = new URLSearchParams();
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
-  useSearchParams: () => new URLSearchParams(),
+  useSearchParams: () => searchParams,
 }));
 
 type GoogleOAuthCall = {
@@ -38,6 +40,7 @@ import LoginPage from "@/app/login/page";
 
 afterEach(() => {
   cleanup();
+  searchParams = new URLSearchParams();
   resetPasswordForEmail.mockClear();
   signInWithOAuth.mockClear();
   signInWithPassword.mockClear();
@@ -46,6 +49,16 @@ afterEach(() => {
 });
 
 describe("LoginPage", () => {
+  beforeEach(() => {
+    searchParams = new URLSearchParams();
+  });
+
+  it("frames a deep-link handoff when redirectedFrom is set", () => {
+    searchParams = new URLSearchParams("redirectedFrom=/mail");
+    render(<LoginPage />);
+    expect(screen.getByText("Sign in to open your inbox triage.")).toBeInTheDocument();
+  });
+
   it("toggles password visibility and opens forgot-password", async () => {
     render(<LoginPage />);
 

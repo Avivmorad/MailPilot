@@ -4,7 +4,7 @@ export const PRIVACY_POLICY_SECTIONS = [
   {
     id: "what-mailpilot-is",
     title: "What MailPriority is",
-    body: "MailPriority is an inbox triage product. You create a MailPriority login, connect your own Gmail account, and MailPriority scans a window of mail you choose. It classifies threads, applies MailPilot/ labels in Gmail, and shows actions, pending items, and the History screen. MailPriority does not send, delete, or archive mail for you.",
+    body: "MailPriority is an inbox triage product. You create a MailPriority login, connect your own Gmail account, and MailPriority scans a window of mail you choose. It classifies threads, applies Gmail labels under the MailPilot/ prefix (the product is MailPriority), and shows actions, pending items, and the History screen. MailPriority does not send, delete, or archive mail for you.",
   },
   {
     id: "gmail-access",

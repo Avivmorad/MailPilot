@@ -94,12 +94,13 @@
   --card-foreground: oklch(0.97 0.01 85);
   --popover: oklch(0.21 0.02 260);
   --popover-foreground: oklch(0.97 0.01 85);
-  --primary: oklch(0.82 0.06 260);
-  --primary-foreground: oklch(0.2 0.03 260);
+  /* Soft off-white fill + navy ink — keeps dark CTAs in the navy family (not lavender). */
+  --primary: oklch(0.93 0.012 255);
+  --primary-foreground: oklch(0.26 0.05 260);
   --secondary: oklch(0.28 0.02 260);
   --secondary-foreground: oklch(0.97 0.01 85);
   --muted: oklch(0.28 0.02 260);
-  --muted-foreground: oklch(0.8 0.02 260);
+  --muted-foreground: oklch(0.84 0.015 260);
   --accent: oklch(0.28 0.03 260);
   --accent-foreground: oklch(0.97 0.01 85);
   --destructive: oklch(0.7 0.16 22);
@@ -113,8 +114,8 @@
   --chart-5: oklch(0.269 0 0);
   --sidebar: oklch(0.18 0.032 260);
   --sidebar-foreground: oklch(0.97 0.01 85);
-  --sidebar-primary: oklch(0.72 0.1 260);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.93 0.012 255);
+  --sidebar-primary-foreground: oklch(0.26 0.05 260);
   --sidebar-accent: oklch(0.26 0.03 260);
   --sidebar-accent-foreground: oklch(0.97 0.01 85);
   --sidebar-border: oklch(1 0 0 / 12%);
@@ -131,6 +132,7 @@
   body {
     @apply bg-background text-foreground font-sans antialiased;
     line-height: 1.6;
+    overflow-x: hidden;
   }
   :lang(he),
   [dir="rtl"],

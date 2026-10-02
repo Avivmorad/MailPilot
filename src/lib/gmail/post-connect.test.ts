@@ -1,25 +1,27 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const ensureManagedLabels = vi.fn(async () => undefined);
-const getScanPreferences = vi.fn(async () => ({
-  dailyScanTime: "08:00",
-  timezone: "UTC",
-}));
-const nextDailyScanAt = vi.fn(() => new Date("2026-10-03T08:00:00.000Z"));
-const updateEq = vi.fn(async () => ({ error: null }));
-const update = vi.fn(() => ({ eq: updateEq }));
-const from = vi.fn(() => ({ update }));
+const ensureManagedLabels = vi.hoisted(() => vi.fn(async () => undefined));
+const getScanPreferences = vi.hoisted(() =>
+  vi.fn(async () => ({
+    dailyScanTime: "08:00",
+    timezone: "UTC",
+  })),
+);
+const nextDailyScanAt = vi.hoisted(() => vi.fn(() => new Date("2026-10-03T08:00:00.000Z")));
+const updateEq = vi.hoisted(() => vi.fn(async () => ({ error: null })));
+const update = vi.hoisted(() => vi.fn(() => ({ eq: updateEq })));
+const from = vi.hoisted(() => vi.fn(() => ({ update })));
 
 vi.mock("@/lib/gmail/labels", () => ({
-  ensureManagedLabels: (...args: unknown[]) => ensureManagedLabels(...args),
+  ensureManagedLabels,
 }));
 
 vi.mock("@/lib/settings/preferences", () => ({
-  getScanPreferences: (...args: unknown[]) => getScanPreferences(...args),
+  getScanPreferences,
 }));
 
 vi.mock("@/lib/scans/schedule", () => ({
-  nextDailyScanAt: (...args: unknown[]) => nextDailyScanAt(...args),
+  nextDailyScanAt,
 }));
 
 vi.mock("@/lib/supabase/admin", () => ({

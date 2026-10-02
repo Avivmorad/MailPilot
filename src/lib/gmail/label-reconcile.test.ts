@@ -2,12 +2,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { gmail_v1 } from "googleapis";
 
-const loadLabelIdMap = vi.fn();
-const ensureManagedLabelsWithGmail = vi.fn(async () => undefined);
+const loadLabelIdMap = vi.hoisted(() => vi.fn());
+const ensureManagedLabelsWithGmail = vi.hoisted(() => vi.fn(async () => undefined));
 
 vi.mock("@/lib/gmail/labels", () => ({
-  loadLabelIdMap: (...args: unknown[]) => loadLabelIdMap(...args),
-  ensureManagedLabelsWithGmail: (...args: unknown[]) => ensureManagedLabelsWithGmail(...args),
+  loadLabelIdMap,
+  ensureManagedLabelsWithGmail,
 }));
 
 describe("loadOrEnsureLabelIdMap", () => {

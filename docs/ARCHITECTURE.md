@@ -162,16 +162,16 @@ connected to two MailPriority users.
 
 Business logic stays in `src/lib/**`. Route map:
 
-| Area     | Routes                                                           |
-| -------- | ---------------------------------------------------------------- |
-| Gmail    | `/api/gmail/connect`, `callback`, `disconnect`, `status`         |
-| Scans    | `/api/scans`, `/api/scans/[id]`, `cancel`, `/api/scans/continue` |
-| Cron     | `/api/cron/scan-dispatcher` (`CRON_SECRET`)                      |
-| Actions  | `/api/actions`, `/api/actions/[id]`                              |
-| Threads  | `/api/threads`, `/api/threads/[id]`, `feedback`                  |
-| Settings | `/api/settings`                                                  |
-| History  | `/api/digests`, `/api/digests/latest`                            |
-| Privacy  | `/api/privacy/delete-analysis`, `delete-account`                 |
+| Area     | Routes                                                                                                                                             |
+| -------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Gmail    | `/api/gmail/connect`, `callback` (persists connection then redirects; label ensure + initial `next_scan_at` via `after()`), `disconnect`, `status` |
+| Scans    | `/api/scans`, `/api/scans/[id]`, `cancel`, `/api/scans/continue`                                                                                   |
+| Cron     | `/api/cron/scan-dispatcher` (`CRON_SECRET`)                                                                                                        |
+| Actions  | `/api/actions`, `/api/actions/[id]`                                                                                                                |
+| Threads  | `/api/threads`, `/api/threads/[id]`, `feedback`                                                                                                    |
+| Settings | `/api/settings`                                                                                                                                    |
+| History  | `/api/digests`, `/api/digests/latest`                                                                                                              |
+| Privacy  | `/api/privacy/delete-analysis`, `delete-account`                                                                                                   |
 
 ## Key directories
 

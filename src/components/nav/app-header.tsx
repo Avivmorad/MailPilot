@@ -50,7 +50,7 @@ export function AppHeader({ email, current }: { email?: string | null; current: 
   return (
     <header
       className={cn(
-        "border-sidebar-border bg-sidebar text-sidebar-foreground sticky top-0 z-40 border-b lg:fixed lg:inset-y-0 lg:flex lg:flex-col lg:overflow-x-visible lg:overflow-y-auto lg:border-r lg:border-b-0 motion-safe:lg:transition-[width] motion-safe:lg:duration-200 motion-safe:lg:ease-out",
+        "border-sidebar-border bg-sidebar text-sidebar-foreground sticky top-0 z-40 border-b lg:fixed lg:inset-y-0 lg:left-0 lg:flex lg:flex-col lg:overflow-x-visible lg:overflow-y-auto lg:border-r lg:border-b-0 motion-safe:lg:transition-[width] motion-safe:lg:duration-200 motion-safe:lg:ease-out",
         collapsed ? SIDEBAR_COLLAPSED_WIDTH_CLASS : SIDEBAR_EXPANDED_WIDTH_CLASS,
       )}
     >

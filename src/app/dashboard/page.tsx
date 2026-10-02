@@ -2,13 +2,13 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { ActionItemCard } from "@/components/actions/action-item-card";
+import { InboxStatCard } from "@/components/dashboard/inbox-stat-card";
 import { DigestReportCard } from "@/components/digest/digest-report-card";
 import { GmailConnectionCard } from "@/components/gmail/gmail-connection-card";
 import { AppChrome } from "@/components/layout/app-chrome";
 import { EmptyState } from "@/components/layout/empty-state";
 import { PageHeader } from "@/components/layout/page-header";
 import { buttonVariants } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { listActionsForUser, type ActionListItem } from "@/lib/actions/queries";
 import { getDashboardChangesForUser } from "@/lib/dashboard/queries";
 import { ensureDigestForLatestScan } from "@/lib/digest/build-digest";
@@ -194,15 +194,14 @@ export default async function DashboardPage({
       });
   const showCount = connected && !countsLoadError;
   const countText = (value: number) => (showCount ? String(value) : "—");
-  const primaryStats = [
+  const inboxStats: Array<{ label: string; value: string; href?: string }> = [
     { label: "Actions", value: countText(figures.actions), href: "/mail?tab=open" },
     { label: "Pending", value: countText(figures.pending), href: "/mail?tab=waiting" },
     { label: "For You", value: countText(figures.forYou), href: "/mail?tab=summary" },
     { label: "Ignored", value: countText(figures.ignored), href: "/mail?tab=ignored" },
-  ];
-  const secondaryStats = [
     { label: "Closed", value: countText(figures.closed), href: "/mail?tab=completed" },
     { label: "Snoozed", value: countText(figures.snoozed), href: "/mail?tab=snoozed" },
+    { label: "Important", value: countText(figures.important) },
   ];
   const scanRunning = latestStatus === "RUNNING";
   const lastScanFinishedAt =
@@ -231,44 +230,54 @@ export default async function DashboardPage({
       ) : null}
 
       {scanRunning ? (
-        <div className="bg-card ring-foreground/10 flex flex-wrap items-center justify-between gap-3 rounded-xl px-4 py-4 shadow-xs ring-1">
-          <div>
+        <div className="bg-card ring-foreground/10 flex min-w-0 flex-wrap items-center justify-between gap-3 rounded-xl px-4 py-4 shadow-xs ring-1">
+          <div className="min-w-0">
             <p className="font-medium tracking-tight">Live progress</p>
-            <p className="text-muted-foreground mt-0.5 text-sm">
+            <p className="text-muted-foreground mt-0.5 text-sm break-words">
               A scan is running. The circle and the latest numbers are on the Scan tab.
             </p>
             {changeLine ? (
-              <p className="text-muted-foreground mt-1 text-sm leading-relaxed">{changeLine}</p>
+              <p className="text-muted-foreground mt-1 text-sm leading-relaxed break-words">
+                {changeLine}
+              </p>
             ) : null}
           </div>
-          <Link href="/scan" className={cn(buttonVariants(), "min-h-10 px-4")}>
+          <Link href="/scan" className={cn(buttonVariants(), "min-h-10 shrink-0 px-4")}>
             Open scan
           </Link>
         </div>
       ) : (
-        <div className="bg-card ring-foreground/10 rounded-xl px-4 py-4 shadow-xs ring-1">
+        <div className="bg-card ring-foreground/10 min-w-0 rounded-xl px-4 py-4 shadow-xs ring-1">
           <p className="font-medium tracking-tight">Last scan</p>
           {latestScan ? (
-            <dl className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <div>
-                <dt className="text-muted-foreground text-xs">Emails scanned</dt>
+            <dl className="mt-3 grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <div className="min-w-0">
+                <dt className="text-muted-foreground text-xs leading-snug break-words">
+                  Emails scanned
+                </dt>
                 <dd className="mt-0.5 text-lg font-semibold tabular-nums">
                   {Number(latestScan.messages_processed ?? 0)}
                 </dd>
               </div>
-              <div>
-                <dt className="text-muted-foreground text-xs">Conversations checked</dt>
+              <div className="min-w-0">
+                <dt className="text-muted-foreground text-xs leading-snug break-words">
+                  Conversations checked
+                </dt>
                 <dd className="mt-0.5 text-lg font-semibold tabular-nums">
                   {Number(latestScan.threads_checked ?? 0)}
                 </dd>
               </div>
-              <div>
-                <dt className="text-muted-foreground text-xs">Status</dt>
-                <dd className="mt-0.5 text-sm font-medium">{labelForScanStatus(latestStatus)}</dd>
+              <div className="min-w-0">
+                <dt className="text-muted-foreground text-xs leading-snug break-words">Status</dt>
+                <dd className="mt-0.5 text-sm font-medium break-words">
+                  {labelForScanStatus(latestStatus)}
+                </dd>
               </div>
-              <div>
-                <dt className="text-muted-foreground text-xs">Finished</dt>
-                <dd className="mt-0.5 text-sm font-medium">{formatDateTime(lastScanFinishedAt)}</dd>
+              <div className="min-w-0">
+                <dt className="text-muted-foreground text-xs leading-snug break-words">Finished</dt>
+                <dd className="mt-0.5 text-sm font-medium break-words">
+                  {formatDateTime(lastScanFinishedAt)}
+                </dd>
               </div>
             </dl>
           ) : (
@@ -278,12 +287,16 @@ export default async function DashboardPage({
       )}
 
       {step ? (
-        <div className="bg-card ring-foreground/10 flex flex-wrap items-center justify-between gap-3 rounded-xl px-4 py-3.5 shadow-xs ring-1">
+        <div className="bg-card ring-foreground/10 flex min-w-0 flex-wrap items-center justify-between gap-3 rounded-xl px-4 py-3.5 shadow-xs ring-1">
           <div className="min-w-0">
-            <p className="font-medium tracking-tight">{step.title}</p>
-            <p className="text-muted-foreground mt-0.5 text-sm leading-relaxed">{step.body}</p>
+            <p className="font-medium tracking-tight break-words">{step.title}</p>
+            <p className="text-muted-foreground mt-0.5 text-sm leading-relaxed break-words">
+              {step.body}
+            </p>
             {changeLine ? (
-              <p className="text-muted-foreground mt-1 text-sm leading-relaxed">{changeLine}</p>
+              <p className="text-muted-foreground mt-1 text-sm leading-relaxed break-words">
+                {changeLine}
+              </p>
             ) : null}
           </div>
           <Link href={step.href} className={cn(buttonVariants(), "min-h-10 shrink-0 px-4")}>
@@ -292,54 +305,17 @@ export default async function DashboardPage({
         </div>
       ) : null}
 
-      <section className="space-y-3">
+      <section className="min-w-0 space-y-3">
         <h2 className="text-foreground text-lg font-semibold tracking-tight">Inbox now</h2>
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          {primaryStats.map((stat) => (
-            <Link
+        <div className="grid min-w-0 grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
+          {inboxStats.map((stat) => (
+            <InboxStatCard
               key={stat.label}
+              label={stat.label}
+              value={stat.value}
               href={stat.href}
-              className="focus-visible:ring-ring block rounded-xl focus-visible:ring-3 focus-visible:outline-none"
-            >
-              <Card className="hover:bg-muted/40 h-full transition-[background-color,box-shadow] duration-150 hover:shadow-sm">
-                <CardContent>
-                  <div className="text-3xl font-semibold tracking-tight tabular-nums">
-                    {stat.value}
-                  </div>
-                  <div className="text-muted-foreground mt-1 text-sm">{stat.label}</div>
-                </CardContent>
-              </Card>
-            </Link>
+            />
           ))}
-        </div>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {secondaryStats.map((stat) => (
-            <Link
-              key={stat.label}
-              href={stat.href}
-              className="focus-visible:ring-ring block rounded-xl focus-visible:ring-3 focus-visible:outline-none"
-            >
-              <Card
-                size="sm"
-                className="hover:bg-muted/40 h-full transition-[background-color,box-shadow] duration-150 hover:shadow-sm"
-              >
-                <CardContent>
-                  <div className="text-2xl font-semibold tracking-tight tabular-nums">
-                    {stat.value}
-                  </div>
-                  <div className="text-muted-foreground mt-1 text-sm">{stat.label}</div>
-                </CardContent>
-              </Card>
-            </Link>
-          ))}
-          <Card size="sm">
-            <CardContent>
-              <div className="text-2xl font-semibold tracking-tight tabular-nums">
-                {countText(figures.important)}
-              </div>
-              <div className="text-muted-foreground mt-1 text-sm">Important</div>
-            </CardContent>
-          </Card>
         </div>
       </section>
 

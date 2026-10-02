@@ -47,14 +47,14 @@ export function ActionItemCard({
   return (
     <article
       className={cn(
-        "bg-card ring-foreground/10 rounded-xl border-l-4 p-4 shadow-xs ring-1 sm:p-5",
+        "bg-card ring-foreground/10 min-w-0 overflow-hidden rounded-xl border-l-4 p-4 shadow-xs ring-1 sm:p-5",
         accentForUrgency(urgencyLabel ?? item.urgency),
       )}
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
+      <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0 flex-1 overflow-hidden">
           <h3
-            className="text-foreground text-base leading-snug font-semibold tracking-tight break-words"
+            className="text-foreground text-base leading-snug font-semibold tracking-tight [overflow-wrap:anywhere] break-words"
             dir="auto"
           >
             <Link href={`/thread/${item.threadId}`} className="hover:underline" title={item.title}>
@@ -62,12 +62,15 @@ export function ActionItemCard({
             </Link>
           </h3>
           {meta ? (
-            <p className="text-muted-foreground mt-0.5 text-sm break-words" dir="auto">
+            <p
+              className="text-muted-foreground mt-0.5 text-sm [overflow-wrap:anywhere] break-words"
+              dir="auto"
+            >
               {meta}
             </p>
           ) : null}
         </div>
-        <div className="flex max-w-full min-w-0 shrink justify-end sm:max-w-[min(100%,20rem)]">
+        <div className="flex max-w-full min-w-0 shrink flex-wrap justify-start gap-1 sm:max-w-[min(100%,20rem)] sm:justify-end">
           <ThreadTags
             category={item.category}
             importance={item.importance}
@@ -83,7 +86,7 @@ export function ActionItemCard({
         </div>
       </div>
 
-      <div className="mt-3 space-y-1">
+      <div className="mt-3 min-w-0 space-y-1 overflow-hidden">
         {doText ? (
           <LabeledField label="Do" dir="auto">
             {doText}

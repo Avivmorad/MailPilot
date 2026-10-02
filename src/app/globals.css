@@ -75,6 +75,9 @@
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
   --radius: 0.75rem;
+  /* App chrome rail widths — keep pad/width in sync via these vars only. */
+  --app-sidebar-width-expanded: 15rem;
+  --app-sidebar-width-collapsed: 4.75rem;
   /* Cool navy-tinted rail so the app chrome reads apart from the canvas. */
   --sidebar: oklch(0.93 0.02 260);
   --sidebar-foreground: oklch(0.22 0.02 260);
@@ -128,17 +131,40 @@
   }
   html {
     @apply font-sans;
+    overflow-x: clip;
   }
   body {
     @apply bg-background text-foreground font-sans antialiased;
     line-height: 1.6;
-    overflow-x: hidden;
+    overflow-x: clip;
+    min-width: 0;
   }
   :lang(he),
   [dir="rtl"],
   [dir="auto"] {
     line-height: 1.7;
     unicode-bidi: isolate;
+  }
+}
+
+@layer components {
+  /**
+   * Shared clickable affordance: no glow/halo. Subtle lift on hover only.
+   * Pair with cursor-pointer + focus-visible rings for a11y.
+   */
+  .ui-interactive {
+    box-shadow: none;
+    transition-property: background-color, border-color, color, transform, opacity;
+    transition-duration: 150ms;
+    transition-timing-function: ease-out;
+  }
+
+  .ui-interactive:hover:not(:disabled):not([aria-disabled="true"]) {
+    transform: translateY(-1px);
+  }
+
+  .ui-interactive:active:not(:disabled):not([aria-disabled="true"]) {
+    transform: translateY(0);
   }
 }
 
@@ -158,5 +184,14 @@
   .motion-safe\:animate-in {
     transition: none !important;
     animation: none !important;
+  }
+
+  .ui-interactive {
+    transition: none !important;
+  }
+
+  .ui-interactive:hover:not(:disabled):not([aria-disabled="true"]),
+  .ui-interactive:active:not(:disabled):not([aria-disabled="true"]) {
+    transform: none !important;
   }
 }

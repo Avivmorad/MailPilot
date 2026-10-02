@@ -28,6 +28,7 @@ import * as scanJobs from "@/lib/scans/jobs";
 import {
   analysisPromptKey,
   executeGmailScan,
+  isRecoverableAnalysisTimeout,
   SCAN_WORK_BUDGET_MS,
   openGmailScan,
   processInitialScan,
@@ -1256,10 +1257,84 @@ describe("processInitialScan", () => {
       expect(store.threads.get("conn-1:t1")?.analysis).toMatchObject({
         status: "action_required",
       });
-      expect(store.threads.has("conn-1:t2")).toBe(false);
+      expect(store.threads.get("conn-1:t2")?.analysis).toBeNull();
+      expect(store.threads.get("conn-1:t2")?.subject).toBeTruthy();
     } finally {
       vi.unstubAllEnvs();
     }
+  });
+
+  it("reaches SUCCESS when a gateway timeout can be retried", async () => {
+    const store = createMemoryStore();
+    const modifyThreadLabels = vi.fn(async () => undefined);
+    const message = parsedMessage();
+    let calls = 0;
+    const analyze = vi.fn(async () => {
+      calls += 1;
+      if (calls === 1) {
+        return {
+          ok: false as const,
+          error: Object.assign(new Error("NVIDIA triage request failed"), { status: 504 }),
+        };
+      }
+      return { ok: true as const, analysis: validAnalysis() };
+    });
+    const result = await runScan({
+      store,
+      gmail: {
+        listMessageRefs: async () => [
+          { id: message.gmailMessageId, threadId: message.gmailThreadId },
+        ],
+        listHistoryChanges: async () => {
+          throw new Error("history should not run on the initial scan");
+        },
+        fetchThread: async () => [message],
+        getProfileHistoryId: async () => "hist-new",
+        loadLabelMap: async () => LABEL_MAP,
+        modifyThreadLabels,
+      },
+      analyze,
+    });
+
+    expect(result.status).toBe("SUCCESS");
+    expect(analyze).toHaveBeenCalledTimes(2);
+    expect(modifyThreadLabels).toHaveBeenCalledTimes(1);
+    expect(store.connection.historyId).toBe("hist-new");
+    expect(store.scanRuns.at(-1)?.failedThreadIds ?? []).toEqual([]);
+    expect(store.actions.size).toBe(1);
+  });
+
+  it("retries one schema rejection and still records a visible partial when it persists", async () => {
+    const store = createMemoryStore();
+    const modifyThreadLabels = vi.fn(async () => undefined);
+    const message = parsedMessage();
+    const analyze = vi.fn(async () => ({
+      ok: false as const,
+      error: Object.assign(new Error("NVIDIA JSON failed schema validation"), { code: "schema" }),
+    }));
+    const result = await runScan({
+      store,
+      gmail: {
+        listMessageRefs: async () => [
+          { id: message.gmailMessageId, threadId: message.gmailThreadId },
+        ],
+        listHistoryChanges: async () => {
+          throw new Error("history should not run on the initial scan");
+        },
+        fetchThread: async () => [message],
+        getProfileHistoryId: async () => "hist-new",
+        loadLabelMap: async () => LABEL_MAP,
+        modifyThreadLabels,
+      },
+      analyze,
+    });
+
+    expect(result.status).toBe("PARTIAL");
+    expect(analyze).toHaveBeenCalledTimes(2);
+    expect(modifyThreadLabels).not.toHaveBeenCalled();
+    expect(store.connection.historyId).toBeNull();
+    expect(store.scanRuns.at(-1)?.failedThreadIds).toEqual(["t1"]);
+    expect(store.threads.get("conn-1:t1")?.analysis).toBeNull();
   });
 
   it("defers an AI request timeout that cannot finish inside the slice", async () => {
@@ -2162,6 +2237,22 @@ describe("triageFailureCode", () => {
         cause: { code: "provider", message: "NVIDIA triage request timed out" },
       }),
     ).toBe("provider_timeout");
+    expect(
+      triageFailureCode({
+        message: "fetch failed",
+        cause: {
+          name: "HeadersTimeoutError",
+          code: "UND_ERR_HEADERS_TIMEOUT",
+          message: "Headers Timeout Error",
+        },
+      }),
+    ).toBe("provider_timeout");
+    const gatewayTimeout = Object.assign(new Error("NVIDIA triage request failed"), {
+      status: 504,
+    });
+    expect(triageFailureCode(gatewayTimeout)).toBe("http_504");
+    expect(isRecoverableAnalysisTimeout(gatewayTimeout)).toBe(true);
+    expect(isRecoverableAnalysisTimeout(new Error("gemini down"))).toBe(false);
     expect(triageFailureCode(new Error("Failed to upsert email thread: check constraint"))).toBe(
       "failed_to_upsert_email_thread",
     );

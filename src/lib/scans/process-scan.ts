@@ -7,7 +7,12 @@ import { threadAnalysisInputFromContext } from "@/lib/ai/types";
 import { createScanUsageRecorder } from "@/lib/ai/usage";
 import { reconcileActionItem } from "@/lib/actions/reconcile-action";
 import { getContextLimits, type ContextLimits } from "@/lib/config/env";
-import { classifyDirection, parseAddressList, parseEmailAddress } from "@/lib/gmail/addresses";
+import {
+  classifyDirection,
+  parseAddressList,
+  parseEmailAddress,
+  type MessageDirection,
+} from "@/lib/gmail/addresses";
 import { mergeUserEmails, safeListSendAsEmails } from "@/lib/gmail/aliases";
 import type { MailPilotLogicalLabel } from "@/lib/gmail/constants";
 import { labelDiff, logicalLabelsForAnalysis } from "@/lib/gmail/label-plan";
@@ -114,7 +119,7 @@ export function triageFailureCode(error: unknown): string {
   if (status) {
     return `http_${status}`;
   }
-  if (nestedMessageMatches(error, /timed out/i)) {
+  if (nestedIndicatesTimeout(error)) {
     return "provider_timeout";
   }
   const code = deepestTriageCode(error);
@@ -148,7 +153,20 @@ const TIMEOUT_RETRY_BUDGET_MS =
 
 export function isRecoverableAnalysisTimeout(error: unknown): boolean {
   const code = triageFailureCode(error);
-  return code === "request_timeout" || code === "provider_timeout";
+  return (
+    code === "request_timeout" ||
+    code === "provider_timeout" ||
+    code === "http_408" ||
+    code === "http_504"
+  );
+}
+
+/**
+ * A schema rejection is one bad model payload. Retry it once before sealing
+ * the scan partial; a second rejection is a real thread failure.
+ */
+function isRetryableAnalysisFailure(error: unknown): boolean {
+  return isRecoverableAnalysisTimeout(error) || triageFailureCode(error) === "schema";
 }
 
 function anotherAttemptFits(budget: { deadlineAt?: number }, attemptMs: number): boolean {
@@ -200,15 +218,39 @@ function nestedNumberField(error: unknown, key: string, depth = 0): number | und
   return nestedNumberField(record.cause, key, depth + 1);
 }
 
-function nestedMessageMatches(error: unknown, pattern: RegExp, depth = 0): boolean {
+const TIMEOUT_ERROR_CODES = new Set([
+  "ETIMEDOUT",
+  "UND_ERR_HEADERS_TIMEOUT",
+  "UND_ERR_BODY_TIMEOUT",
+  "UND_ERR_CONNECT_TIMEOUT",
+  "DEADLINE_EXCEEDED",
+]);
+
+const TIMEOUT_ERROR_NAMES = new Set([
+  "TimeoutError",
+  "HeadersTimeoutError",
+  "BodyTimeoutError",
+  "ConnectTimeoutError",
+]);
+
+function nestedIndicatesTimeout(error: unknown, depth = 0): boolean {
   if (!error || typeof error !== "object" || depth > 4) {
     return false;
   }
   const record = error as Record<string, unknown>;
-  if (typeof record.message === "string" && pattern.test(record.message)) {
+  if (
+    typeof record.message === "string" &&
+    /timed out|\btimeout\b|\btime out\b/i.test(record.message)
+  ) {
     return true;
   }
-  return nestedMessageMatches(record.cause, pattern, depth + 1);
+  if (typeof record.code === "string" && TIMEOUT_ERROR_CODES.has(record.code)) {
+    return true;
+  }
+  if (typeof record.name === "string" && TIMEOUT_ERROR_NAMES.has(record.name)) {
+    return true;
+  }
+  return nestedIndicatesTimeout(record.cause, depth + 1);
 }
 
 export function shouldReuseStoredAnalysis(
@@ -740,27 +782,35 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
               }
               let countTowardCursor = false;
               let analysisPersisted = false;
+              let persistAttempted = false;
+              let chronological: ParsedGmailMessage[] | null = null;
+              let latest: ParsedGmailMessage | null = null;
+              let latestDirection: MessageDirection = "UNKNOWN";
+              let latestAt: string | null = null;
+              let existing: StoredThreadRow | null = null;
+              let analysis: ThreadAnalysis | null = null;
+              let analysisScanId: string | null = null;
               try {
                 const messages = await gmail.fetchThread(gmailThreadId);
                 if (messages.length === 0) {
                   countTowardCursor = true;
                   break;
                 }
-                const chronological = [...messages].sort(
+                chronological = [...messages].sort(
                   (a, b) => Number(a.internalDate ?? 0) - Number(b.internalDate ?? 0),
                 );
-                const latest = chronological[chronological.length - 1];
+                latest = chronological[chronological.length - 1] ?? null;
                 if (!latest) {
                   countTowardCursor = true;
                   break;
                 }
-                const existing = storedByGmailId.get(gmailThreadId) ?? null;
+                existing = storedByGmailId.get(gmailThreadId) ?? null;
                 const context = buildThreadContext(chronological, userEmails);
-                const latestDirection = context.messages.at(-1)?.direction ?? "UNKNOWN";
-                const latestAt = receivedAtIso(latest.internalDate);
+                latestDirection = context.messages.at(-1)?.direction ?? "UNKNOWN";
+                latestAt = receivedAtIso(latest.internalDate);
 
-                let analysis = existing ? analysisFromStoredThread(existing) : null;
-                let analysisScanId = existing?.analysisScanId ?? null;
+                analysis = existing ? analysisFromStoredThread(existing) : null;
+                analysisScanId = existing?.analysisScanId ?? null;
                 const unchanged = shouldReuseStoredAnalysis(
                   existing,
                   latest.gmailMessageId,
@@ -797,7 +847,7 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
                       stopAdmission = true;
                       throw deadline;
                     }
-                    if (attempt === 0 && isRecoverableAnalysisTimeout(outcome.error)) {
+                    if (attempt === 0 && isRetryableAnalysisFailure(outcome.error)) {
                       if (!anotherAttemptFits(requestBudget, TIMEOUT_RETRY_BUDGET_MS)) {
                         stopAdmission = true;
                         throw new GmailDeadlineError();
@@ -824,6 +874,7 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
                       modelName: analysis ? modelName : null,
                       analysisScanId,
                     });
+                    persistAttempted = true;
                     await persistMessages(threadId, chronological);
                     countTowardCursor = true;
                     break;
@@ -867,6 +918,7 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
                 // another provider call or counting a prior scan's cached result.
                 if (analysis && analysisScanId === scanId) threadsAnalyzed += 1;
 
+                persistAttempted = true;
                 await persistMessages(threadId, chronological);
 
                 if (!(await holdsJobLease()) || (await store.getScanStatus(scanId)) !== "RUNNING") {
@@ -926,12 +978,12 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
                 }
                 if (
                   attempt === 0 &&
-                  isRecoverableAnalysisTimeout(error) &&
+                  isRetryableAnalysisFailure(error) &&
                   anotherAttemptFits(requestBudget, TIMEOUT_RETRY_BUDGET_MS)
                 ) {
                   continue;
                 }
-                if (attempt === 0 && isRecoverableAnalysisTimeout(error)) {
+                if (attempt === 0 && isRetryableAnalysisFailure(error)) {
                   stopAdmission = true;
                   throw new GmailDeadlineError();
                 }
@@ -941,6 +993,29 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
                   errorCode: triageFailureCode(error),
                 });
                 failedGmailThreadIds.push(gmailThreadId);
+                if (
+                  !analysisPersisted &&
+                  !persistAttempted &&
+                  chronological &&
+                  latest &&
+                  latestAt
+                ) {
+                  const threadId = await store.upsertThread({
+                    userId,
+                    connectionId,
+                    gmailThreadId,
+                    subject: latest.subject,
+                    participants: participantsOf(chronological),
+                    latestMessageAt: latestAt,
+                    latestMessageDirection: latestDirection,
+                    analysis,
+                    lastAnalyzedMessageId: existing?.lastAnalyzedMessageId ?? null,
+                    promptVersion: analysis ? (existing?.promptVersion ?? null) : null,
+                    modelName: analysis ? modelName : null,
+                    analysisScanId,
+                  });
+                  await persistMessages(threadId, chronological);
+                }
                 countTowardCursor = true;
                 break;
               } finally {

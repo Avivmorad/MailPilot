@@ -154,13 +154,14 @@ These checks do not call Gmail, NVIDIA, Gemini, or a live database. CI
 it with `CRON_SECRET` (`Authorization: Bearer …` or `x-cron-secret`).
 
 Each user has a daily wall-clock time (default 08:00) in their timezone (default
-Asia/Jerusalem). That becomes `next_scan_at` in UTC. Vercel Hobby allows one
-built-in cron per day; this repo keeps a single cron at `0 6 * * *` UTC.
-The cron tick starts a best-effort daily cycle: each invocation
-claims one connection already due, then chains `POST /api/cron/scan-dispatcher`
-for connections still waiting. The chain retries a few times if the next slice
-does not acknowledge. If the queue still remains after the slice cap, the cycle
-logs `scan.dispatch_backlog` and reports Sentry `error_category=backlog` on
+Asia/Jerusalem). That becomes `next_scan_at` in UTC. Settings may still store
+that local time, and the UI does not promise a run at that minute. Vercel Hobby
+allows one built-in cron per day; this repo keeps a single cron at `0 6 * * *`
+UTC. The cron tick starts a best-effort daily cycle: each invocation claims one
+connection already due, then chains `POST /api/cron/scan-dispatcher` for
+connections still waiting. The chain retries a few times if the next slice does
+not acknowledge. If the queue still remains after the slice cap, the cycle logs
+`scan.dispatch_backlog` and reports Sentry `error_category=backlog` on
 `/api/cron/scan-dispatcher`. Do not add a second Hobby cron. Manual Scan now
 and scan-continue slices do not wait for cron.
 

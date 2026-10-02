@@ -28,6 +28,7 @@ import {
 } from "@/lib/scans/progress";
 import { DISPATCH_LEASE_SECONDS } from "@/lib/scans/dispatch-budget";
 import { scanUserMessage } from "@/lib/scans/errors";
+import { BEST_EFFORT_DAILY_NOTE } from "@/lib/settings/schedule-copy";
 import { formatDateTime } from "@/lib/ui/format";
 import { labelForScanStatus } from "@/lib/ui/labels";
 
@@ -628,7 +629,7 @@ export function InitialScanCard({
           ) : (
             <span>No scan yet</span>
           )}
-          {nextScanAt ? <span>Next scan {formatDateTime(nextScanAt)}</span> : null}
+          {nextScanAt ? <span>{BEST_EFFORT_DAILY_NOTE}</span> : null}
         </CardFooter>
       ) : null}
     </Card>

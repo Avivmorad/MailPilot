@@ -17,14 +17,24 @@ export const PRIVACY_POLICY_SECTIONS = [
     body: "MailPriority stores thread and message metadata (ids, headers, timestamps, direction), attachment filenames and types without the file bytes, AI summaries and action cards, scan history, digest snapshots, and your triage settings. Classification calls also store token counts and a priced estimate per call, with no message content. It does not persist full email bodies long-term. Digests in the MVP appear in the app only; MailPriority does not email your digest.",
   },
   {
+    id: "retention",
+    title: "How long MailPriority keeps data",
+    body: "MailPriority keeps your account, triage settings, and analysis data until you delete them. Analysis data means stored threads, message metadata (subjects, snippets, headers, and timestamps), attachment filenames and types without the file bytes, action cards, classification feedback, in-app digests, scan history, and classification token counts. Full email bodies are not stored, and MailPriority does not delete the messages in Gmail. Delete analysis data removes that analysis data, stops a scan that is still running, and clears the Gmail history checkpoint and last successful scan time. Gmail stays connected, and the MailPriority login stays. Delete account does that same analysis deletion, disconnects Gmail and revokes access when Google accepts the revoke, then removes the MailPriority login and the data tied to it.",
+  },
+  {
     id: "your-controls",
     title: "Your controls",
     body: "In Settings you can disconnect Gmail (historical summaries stay until you delete them), delete analysis data (threads, messages, actions, digests, scans, and classification usage; Gmail stays connected), or delete your MailPriority account (revokes Gmail when possible and removes the login). You can also disconnect MailPriority from your Google account permissions.",
   },
   {
+    id: "support",
+    title: "Support",
+    body: "MailPriority does not publish a support email address. While you are signed in, Settings is where you disconnect Gmail, delete analysis data, or delete your account.",
+  },
+  {
     id: "limited-use",
     title: "Limited Use of Gmail data",
-    body: "MailPriority uses Gmail data only to provide or improve the user-facing features in the product: classification, MailPilot/ labels, actions, pending items, and in-app digests. It does not sell Gmail data, use it for advertising, or transfer it to other parties except processors needed to run the product (hosting, and either NVIDIA Build or the Gemini API for classification, depending on which key is configured). Humans do not read your mail as a product feature. A public launch still requires Google OAuth verification for gmail.modify and, because MailPriority stores and transmits Gmail data on servers, Google’s restricted-scope security assessment (CASA) when Google requires it.",
+    body: "MailPriority uses Gmail data only to provide or improve the user-facing features in the product: classification, MailPilot/ labels, actions, pending items, and in-app digests. It does not sell Gmail data, use it for advertising, or transfer it to other parties except processors needed to run the product: Vercel for hosting, Supabase for the account and database, and one classification provider. Classification sends thread text to NVIDIA Build when an NVIDIA API key is configured, and otherwise to Google Gemini. Both NVIDIA Build and Google Gemini are part of the product; a deployment calls only the provider that key selects. Humans do not read your mail as a product feature. A public launch still requires Google OAuth verification for gmail.modify and, because MailPriority stores and transmits Gmail data on servers, Google’s restricted-scope security assessment (CASA) when Google requires it.",
   },
   {
     id: "google",

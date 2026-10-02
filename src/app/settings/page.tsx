@@ -10,6 +10,7 @@ import { TriagePreferencesForm } from "@/components/settings/triage-preferences-
 import { getGmailStatusForUser } from "@/lib/gmail/connections";
 import { getScanRunsForUser } from "@/lib/scans/manual";
 import { getScanPreferences } from "@/lib/settings/preferences";
+import { SETTINGS_PAGE_DESCRIPTION } from "@/lib/settings/schedule-copy";
 import { getSessionUser } from "@/lib/supabase/auth";
 import { requireOnboardingComplete } from "@/lib/onboarding/guard";
 
@@ -35,10 +36,7 @@ export default async function SettingsPage({
 
   return (
     <AppChrome user={user} current="settings" width="narrow">
-      <PageHeader
-        title="Settings"
-        description="Connect Gmail, set the daily scan time, tune triage, and delete analysis data or your account."
-      />
+      <PageHeader title="Settings" description={SETTINGS_PAGE_DESCRIPTION} />
       <GmailConnectionCard status={gmailStatus} gmailFlash={params.gmail} reason={params.reason} />
       <ScanPreferencesForm
         dailyScanTime={preferences.dailyScanTime}

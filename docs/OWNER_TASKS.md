@@ -13,7 +13,8 @@ Live boxes below stay open until their **Done when** line is true. Session progr
 - [x] Session 1, repo cleanup: `package.json` has one `overrides` object, and setup docs say the scan-attribution migration is applied on `mailpilot-dev`.
 - [x] Session 2, scan timeouts: a retryable AI timeout is retried once before the scan is sealed partial, and a thread that still fails stays stored so a later scan can retry it.
 - [x] Session 3, daily dispatch: one Hobby cron chains bounded slices so every due connection in the cycle is claimed, retries the next slice when it does not start, and raises a backlog alert if the queue does not drain.
-- Still open: two live accounts finishing Success (section 8), the live ten-account daily cycle (section 9), privacy copy (section 11), and pointing the app at the host you choose (section 2).
+- [x] Session 4, privacy and schedule copy: local privacy and terms pages state retention and name NVIDIA Build when an NVIDIA API key is configured, otherwise Google Gemini. Settings no longer promises a run at the saved local time. No support email exists in the repo.
+- Still open: two live accounts finishing Success (section 8), the live ten-account daily cycle (section 9), section 11 until you read `https://<host>/privacy` and `https://<host>/terms`, and pointing the app at the host you choose (section 2). A support inbox you can point a recruiter at is still missing.
 
 ## Already done
 
@@ -206,6 +207,8 @@ The schedule is best-effort once a day. Vercel Hobby cron is `0 6 * * *` UTC (09
 6. As user B, confirm nothing from user A disappeared.
 
 ## 11. Read the public privacy and terms pages
+
+Code session 4 updated the local pages. This box stays open until you read them on `<host>`. The pages do not name a support email, because the repo does not have one.
 
 - [ ] `https://<host>/privacy` and `https://<host>/terms` match what the app does.
 

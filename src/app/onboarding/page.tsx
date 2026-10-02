@@ -10,6 +10,7 @@ import { getGmailStatusForUser } from "@/lib/gmail/connections";
 import { getOnboardingStepForUser } from "@/lib/onboarding/load";
 import { getLatestScanRunForUser } from "@/lib/scans/manual";
 import { getScanPreferences } from "@/lib/settings/preferences";
+import { ONBOARDING_CONFIGURE_DESCRIPTION } from "@/lib/settings/schedule-copy";
 import { getSessionUser } from "@/lib/supabase/auth";
 
 export const dynamic = "force-dynamic";
@@ -58,7 +59,7 @@ export default async function OnboardingPage({
         description={
           step === "connect_gmail"
             ? "Connect Gmail first. MailPriority never sends, deletes, or archives mail for you."
-            : "Choose lookback, daily scan time, and optional triage rules, then run the first scan."
+            : ONBOARDING_CONFIGURE_DESCRIPTION
         }
       />
       <ol className="text-muted-foreground flex flex-wrap gap-3 text-sm">

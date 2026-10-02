@@ -4,6 +4,7 @@ import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { DISPATCH_LEASE_SECONDS } from "@/lib/scans/dispatch-budget";
+import { BEST_EFFORT_DAILY_NOTE } from "@/lib/settings/schedule-copy";
 
 const push = vi.fn();
 const refresh = vi.fn();
@@ -622,5 +623,20 @@ describe("InitialScanCard automatic resume", () => {
     });
     expect(screen.getByRole("button", { name: "Scan now" })).toBeEnabled();
     expect(screen.queryByRole("button", { name: "Scanning…" })).not.toBeInTheDocument();
+  });
+
+  it("does not promise the next scan at a saved local time", () => {
+    render(
+      <InitialScanCard
+        connected
+        incremental={false}
+        lastRunAt="2026-09-29T05:00:00.000Z"
+        lastRunStatus="SUCCESS"
+        nextScanAt="2026-09-30T05:00:00.000Z"
+      />,
+    );
+    expect(screen.getByText(BEST_EFFORT_DAILY_NOTE)).toBeInTheDocument();
+    expect(screen.queryByText(/Next scan/)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Scan now" })).toBeEnabled();
   });
 });

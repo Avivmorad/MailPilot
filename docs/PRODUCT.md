@@ -61,20 +61,21 @@ SQL on the project remains the durable operator path. Delete analysis also remov
 
 ## Operating defaults
 
-| Decision             | Choice                                                                   |
-| -------------------- | ------------------------------------------------------------------------ |
-| Users                | Multi-user architecture; test with a single user for now                 |
-| Automatic scan       | Once daily at **08:00**                                                  |
-| Timezone             | **Asia/Jerusalem**                                                       |
-| Initial scan window  | **1 / 2 / 3 / 4 days, 1 / 2 / 3 weeks, or 1 month** (default **7 days**) |
-| Subsequent scans     | Changes since last successful scan (incremental)                         |
-| Summary language     | **English** (`summary`, `short_display_title`)                           |
-| Presentation         | Dashboard **and** in-app digest                                          |
-| Email body retention | Do **not** persist full email bodies long-term                           |
-| Sending replies      | The system **never** sends replies on the user's behalf                  |
+| Decision             | Choice                                                                                                                            |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| Users                | Multi-user architecture; test with a single user for now                                                                          |
+| Automatic scan       | Best-effort once a day (Hobby cron `0 6 * * *` UTC). A stored local time is not when the scan runs. Manual Scan now is unchanged. |
+| Timezone             | **Asia/Jerusalem**                                                                                                                |
+| Initial scan window  | **1 / 2 / 3 / 4 days, 1 / 2 / 3 weeks, or 1 month** (default **7 days**)                                                          |
+| Subsequent scans     | Changes since last successful scan (incremental)                                                                                  |
+| Summary language     | **English** (`summary`, `short_display_title`)                                                                                    |
+| Presentation         | Dashboard **and** in-app digest                                                                                                   |
+| Email body retention | Do **not** persist full email bodies long-term                                                                                    |
+| Sending replies      | The system **never** sends replies on the user's behalf                                                                           |
 
 Stored as `user_triage_settings`: `daily_scan_time = '08:00'`,
-`timezone = 'Asia/Jerusalem'`, `scan_interval_minutes = null`. Manual Scan now
+`timezone = 'Asia/Jerusalem'`, `scan_interval_minutes = null`. That stored time
+is not a promise that the daily scan runs then. Manual Scan now
 lookback values: 1, 2, 3, 4, 7, 14, 21, or 30 days.
 
 Manual Scan now shows live progress (conversations checked / total). A scan that

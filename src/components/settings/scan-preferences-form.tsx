@@ -5,6 +5,10 @@ import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  DAILY_SCAN_CARD_DESCRIPTION,
+  DAILY_SCAN_SAVED_MESSAGE,
+} from "@/lib/settings/schedule-copy";
 
 export function ScanPreferencesForm({
   dailyScanTime,
@@ -35,7 +39,7 @@ export function ScanPreferencesForm({
         setMessage("Could not save scan schedule.");
         return;
       }
-      setMessage("Daily scan time saved. The next scheduled run was updated.");
+      setMessage(DAILY_SCAN_SAVED_MESSAGE);
       router.refresh();
     } catch {
       setError(true);
@@ -49,10 +53,7 @@ export function ScanPreferencesForm({
     <Card>
       <CardHeader>
         <CardTitle>Daily scan</CardTitle>
-        <CardDescription>
-          MailPriority runs an incremental scan once a day at this local time. Manual Scan now is
-          unchanged.
-        </CardDescription>
+        <CardDescription>{DAILY_SCAN_CARD_DESCRIPTION}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <label className="block text-sm">

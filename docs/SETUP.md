@@ -154,9 +154,10 @@ These checks do not call Gmail, NVIDIA, Gemini, or a live database. CI
 it with `CRON_SECRET` (`Authorization: Bearer …` or `x-cron-secret`).
 
 Each user has a daily wall-clock time (default 08:00) in their timezone (default
-Asia/Jerusalem). That becomes `next_scan_at` in UTC. Vercel Hobby allows built-in
-cron once per day; this repo uses `0 6 * * *` UTC. Connections already due at
-that tick run. Bounded retry timestamps can be earlier than the next daily time,
+Asia/Jerusalem). That becomes `next_scan_at` in UTC. Settings may still store
+that local time, and the UI does not promise a run at that minute. Vercel Hobby
+allows built-in cron once per day; this repo uses `0 6 * * *` UTC. Connections
+already due at that tick run. Bounded retry timestamps can be earlier than the next daily time,
 but on Hobby they wait until the next daily invocation. Manual Scan now and
 scan-continue slices do not wait for cron.
 

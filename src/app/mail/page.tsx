@@ -36,6 +36,7 @@ import {
   listRecentThreadsForUser,
   type RecentThreadRow,
 } from "@/lib/threads/queries";
+import { interactiveChipClass } from "@/lib/ui/interactive";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -194,9 +195,10 @@ export default async function MailPage({
                     href={mailViewPath({ tab: item.id, category, uncertain: uncertainOnly })}
                     aria-current={active ? "page" : undefined}
                     className={cn(
-                      "focus-visible:ring-ring flex w-[7.25rem] shrink-0 flex-col rounded-xl border px-3 py-2.5 transition-[background-color,border-color,color,box-shadow] duration-150 focus-visible:ring-3 focus-visible:outline-none sm:w-36",
+                      interactiveChipClass,
+                      "flex w-[7.25rem] shrink-0 flex-col rounded-xl border px-3 py-2.5 sm:w-36",
                       active
-                        ? "border-primary bg-primary/10 text-foreground shadow-sm"
+                        ? "border-primary bg-primary/10 text-foreground"
                         : "border-border bg-card text-muted-foreground hover:border-border hover:bg-muted/40 hover:text-foreground",
                     )}
                   >

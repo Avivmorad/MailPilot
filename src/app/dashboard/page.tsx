@@ -2,13 +2,13 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { ActionItemCard } from "@/components/actions/action-item-card";
+import { InboxStatCard } from "@/components/dashboard/inbox-stat-card";
 import { DigestReportCard } from "@/components/digest/digest-report-card";
 import { GmailConnectionCard } from "@/components/gmail/gmail-connection-card";
 import { AppChrome } from "@/components/layout/app-chrome";
 import { EmptyState } from "@/components/layout/empty-state";
 import { PageHeader } from "@/components/layout/page-header";
 import { buttonVariants } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { listActionsForUser, type ActionListItem } from "@/lib/actions/queries";
 import { getDashboardChangesForUser } from "@/lib/dashboard/queries";
 import { ensureDigestForLatestScan } from "@/lib/digest/build-digest";
@@ -194,15 +194,14 @@ export default async function DashboardPage({
       });
   const showCount = connected && !countsLoadError;
   const countText = (value: number) => (showCount ? String(value) : "—");
-  const primaryStats = [
+  const inboxStats: Array<{ label: string; value: string; href?: string }> = [
     { label: "Actions", value: countText(figures.actions), href: "/mail?tab=open" },
     { label: "Pending", value: countText(figures.pending), href: "/mail?tab=waiting" },
     { label: "For You", value: countText(figures.forYou), href: "/mail?tab=summary" },
     { label: "Ignored", value: countText(figures.ignored), href: "/mail?tab=ignored" },
-  ];
-  const secondaryStats = [
     { label: "Closed", value: countText(figures.closed), href: "/mail?tab=completed" },
     { label: "Snoozed", value: countText(figures.snoozed), href: "/mail?tab=snoozed" },
+    { label: "Important", value: countText(figures.important) },
   ];
   const scanRunning = latestStatus === "RUNNING";
   const lastScanFinishedAt =
@@ -308,58 +307,15 @@ export default async function DashboardPage({
 
       <section className="min-w-0 space-y-3">
         <h2 className="text-foreground text-lg font-semibold tracking-tight">Inbox now</h2>
-        <div className="grid min-w-0 grid-cols-2 gap-3 xl:grid-cols-4">
-          {primaryStats.map((stat) => (
-            <Link
+        <div className="grid min-w-0 grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-4">
+          {inboxStats.map((stat) => (
+            <InboxStatCard
               key={stat.label}
+              label={stat.label}
+              value={stat.value}
               href={stat.href}
-              className="focus-visible:ring-ring block min-w-0 rounded-xl focus-visible:ring-3 focus-visible:outline-none"
-            >
-              <Card className="hover:bg-muted/40 h-full min-w-0 transition-[background-color,box-shadow] duration-150 hover:shadow-sm">
-                <CardContent className="min-w-0">
-                  <div className="text-3xl font-semibold tracking-tight tabular-nums">
-                    {stat.value}
-                  </div>
-                  <div className="text-muted-foreground mt-1 text-sm leading-snug break-words">
-                    {stat.label}
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
+            />
           ))}
-        </div>
-        <div className="grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-3">
-          {secondaryStats.map((stat) => (
-            <Link
-              key={stat.label}
-              href={stat.href}
-              className="focus-visible:ring-ring block min-w-0 rounded-xl focus-visible:ring-3 focus-visible:outline-none"
-            >
-              <Card
-                size="sm"
-                className="hover:bg-muted/40 h-full min-w-0 transition-[background-color,box-shadow] duration-150 hover:shadow-sm"
-              >
-                <CardContent className="min-w-0">
-                  <div className="text-2xl font-semibold tracking-tight tabular-nums">
-                    {stat.value}
-                  </div>
-                  <div className="text-muted-foreground mt-1 text-sm leading-snug break-words">
-                    {stat.label}
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-          ))}
-          <Card size="sm" className="min-w-0">
-            <CardContent className="min-w-0">
-              <div className="text-2xl font-semibold tracking-tight tabular-nums">
-                {countText(figures.important)}
-              </div>
-              <div className="text-muted-foreground mt-1 text-sm leading-snug break-words">
-                Important
-              </div>
-            </CardContent>
-          </Card>
         </div>
       </section>
 

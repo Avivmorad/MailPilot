@@ -21,11 +21,16 @@ export function InboxStatCard({
   const card = (
     <Card
       size="sm"
-      className={cn("h-full min-w-0 gap-0 py-2.5", href ? interactiveCardClass : "shadow-xs")}
+      className={cn(
+        "h-full min-w-0 justify-center gap-0 rounded-lg py-2",
+        href ? interactiveCardClass : "shadow-xs",
+      )}
     >
-      <CardContent className="min-w-0 px-3">
-        <div className="text-xl font-semibold tracking-tight tabular-nums sm:text-2xl">{value}</div>
-        <div className="text-muted-foreground mt-0.5 text-xs leading-snug break-words sm:text-sm">
+      <CardContent className="flex min-w-0 items-baseline gap-2 px-2.5 sm:px-3">
+        <div className="text-lg leading-none font-semibold tracking-tight tabular-nums sm:text-xl">
+          {value}
+        </div>
+        <div className="text-muted-foreground min-w-0 text-xs leading-snug break-words sm:text-sm">
           {label}
         </div>
       </CardContent>

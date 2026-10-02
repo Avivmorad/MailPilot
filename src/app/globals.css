@@ -133,14 +133,14 @@
   --sidebar-border: oklch(1 0 0 / 12%);
   --sidebar-ring: oklch(0.62 0.08 260);
   --ui-glow:
-    0 0 0 1px color-mix(in oklch, var(--primary) 26%, transparent),
-    0 1px 2px color-mix(in oklch, var(--foreground) 8%, transparent),
-    0 0 16px -3px color-mix(in oklch, var(--primary) 32%, transparent);
+    0 0 0 1px color-mix(in oklch, var(--primary) 40%, transparent),
+    0 1px 2px color-mix(in oklch, var(--foreground) 12%, transparent),
+    0 0 20px -1px color-mix(in oklch, var(--primary) 48%, transparent);
   --ui-glow-strong:
-    0 0 0 1px color-mix(in oklch, var(--primary) 48%, transparent),
-    0 1px 3px color-mix(in oklch, var(--foreground) 12%, transparent),
-    0 0 26px -2px color-mix(in oklch, var(--primary) 48%, transparent),
-    0 0 12px 0 color-mix(in oklch, var(--foreground) 14%, transparent);
+    0 0 0 1px color-mix(in oklch, var(--primary) 70%, transparent),
+    0 1px 4px color-mix(in oklch, var(--foreground) 16%, transparent),
+    0 0 36px 0 color-mix(in oklch, var(--primary) 65%, transparent),
+    0 0 16px 2px color-mix(in oklch, var(--foreground) 22%, transparent);
 }
 
 @layer base {

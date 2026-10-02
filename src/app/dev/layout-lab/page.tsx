@@ -80,7 +80,7 @@ export default function LayoutLabPage() {
 
       <section className="min-w-0 space-y-3">
         <h2 className="text-foreground text-lg font-semibold tracking-tight">Inbox now</h2>
-        <div className="grid min-w-0 grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-4">
+        <div className="grid min-w-0 grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
           {inboxStats.map((stat) => (
             <InboxStatCard
               key={stat.label}

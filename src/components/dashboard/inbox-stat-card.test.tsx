@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { InboxStatCard } from "@/components/dashboard/inbox-stat-card";
 
 describe("InboxStatCard", () => {
-  it("renders a navigational tile with glow affordance classes when href is set", () => {
+  it("renders a navigational tile with hover affordance classes when href is set", () => {
     render(<InboxStatCard label="Actions" value="3" href="/mail?tab=open" />);
     const link = screen.getByRole("link", { name: /Actions/i });
     expect(link).toHaveAttribute("href", "/mail?tab=open");

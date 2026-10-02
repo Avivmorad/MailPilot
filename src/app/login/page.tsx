@@ -344,7 +344,7 @@ function LoginForm() {
                 </button>
               </p>
               <p className="text-muted-foreground">
-                Don't have an account?{" "}
+                {"Don't have an account? "}
                 <button
                   type="button"
                   className="text-foreground font-medium underline underline-offset-4"

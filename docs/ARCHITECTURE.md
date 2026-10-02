@@ -169,7 +169,7 @@ Business logic stays in `src/lib/**`. Route map:
 | Cron     | `/api/cron/scan-dispatcher` (`CRON_SECRET`)                                                                                                        |
 | Actions  | `/api/actions`, `/api/actions/[id]`                                                                                                                |
 | Threads  | `/api/threads`, `/api/threads/[id]`, `feedback`                                                                                                    |
-| Settings | `/api/settings`                                                                                                                                    |
+| Settings | `/api/settings` (PATCH triage lists / schedule); Update Now then POST `/api/scans` with default lookback                                           |
 | History  | `/api/digests`, `/api/digests/latest`                                                                                                              |
 | Privacy  | `/api/privacy/delete-analysis`, `delete-account`                                                                                                   |
 

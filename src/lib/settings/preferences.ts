@@ -20,7 +20,7 @@ export function isValidTimeZone(timeZone: string): boolean {
   }
 }
 
-const senderSchema = z
+export const triageSenderSchema = z
   .string()
   .trim()
   .min(3)
@@ -28,7 +28,7 @@ const senderSchema = z
   .transform((value) => normalizeEmail(value))
   .refine((value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value), { message: "invalid_sender" });
 
-const domainSchema = z
+export const triageDomainSchema = z
   .string()
   .trim()
   .max(253)
@@ -38,12 +38,24 @@ const domainSchema = z
     { message: "invalid_domain" },
   );
 
+/** Normalize one VIP/ignored sender email for chip Add. */
+export function parseTriageSender(raw: string): { ok: true; value: string } | { ok: false } {
+  const parsed = triageSenderSchema.safeParse(raw);
+  return parsed.success ? { ok: true, value: parsed.data } : { ok: false };
+}
+
+/** Normalize one ignored domain for chip Add. */
+export function parseTriageDomain(raw: string): { ok: true; value: string } | { ok: false } {
+  const parsed = triageDomainSchema.safeParse(raw);
+  return parsed.success ? { ok: true, value: parsed.data } : { ok: false };
+}
+
 function uniqueStrings(values: string[]): string[] {
   return [...new Set(values)];
 }
 
-const senderListSchema = z.array(senderSchema).max(TRIAGE_LIST_MAX).transform(uniqueStrings);
-const domainListSchema = z.array(domainSchema).max(TRIAGE_LIST_MAX).transform(uniqueStrings);
+const senderListSchema = z.array(triageSenderSchema).max(TRIAGE_LIST_MAX).transform(uniqueStrings);
+const domainListSchema = z.array(triageDomainSchema).max(TRIAGE_LIST_MAX).transform(uniqueStrings);
 
 export const patchScanPreferencesSchema = z
   .object({

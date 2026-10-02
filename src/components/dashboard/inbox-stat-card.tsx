@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 
 /**
  * Dense Inbox now tile: number + label with minimal padding.
- * When `href` is set the whole tile is a navigational control with glow affordance.
+ * When `href` is set the whole tile is a navigational control with hover lift.
  */
 export function InboxStatCard({
   label,

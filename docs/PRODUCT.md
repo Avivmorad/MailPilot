@@ -94,6 +94,21 @@ rediscover failed threads.
 Gmail calls use a rolling one-minute unit budget (default 12,000). Scan now
 returns immediately and keeps running in the background.
 
+## Triage settings
+
+Settings → Triage stores VIP senders, ignored senders, ignored domains, custom
+AI instructions, and whether to write a History entry after a scan
+(`user_triage_settings`). VIP and ignore lists are chip editors in the UI and
+arrays of emails/domains in the API. Custom instructions stay freeform text
+(max 4000 characters).
+
+**Save triage settings** persists the form without starting a scan. **Update
+Now** saves the current form, then starts the same lookback scan as default
+Scan now (last week / `lookbackDays: 7`). Threads in that window are
+reclassified when the triage fingerprint changes (VIP / ignore / custom
+instructions). It does not re-triage the entire mailbox history, auto-send,
+delete, or archive mail. Progress is on the Scan tab.
+
 ## Gmail labels
 
 | Purpose         | Label                       |

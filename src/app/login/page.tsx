@@ -20,7 +20,7 @@ import { createClient } from "@/lib/supabase/client";
 type Mode = "signin" | "signup" | "forgot";
 
 const inputClassName =
-  "w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
+  "w-full min-h-11 rounded-lg border border-border bg-background px-3 py-2.5 text-sm outline-none transition-[border-color,box-shadow] duration-150 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
 
 const QUERY_NOTICES: Record<string, string> = {
   confirmed: "Email confirmed. You can sign in now.",
@@ -207,6 +207,7 @@ function LoginForm() {
               <Button
                 type="button"
                 variant="outline"
+                size="lg"
                 className="w-full"
                 disabled={loading}
                 aria-busy={loading}
@@ -268,7 +269,7 @@ function LoginForm() {
                 />
                 <button
                   type="button"
-                  className="text-foreground text-sm font-medium underline underline-offset-4"
+                  className="text-foreground inline-flex min-h-10 items-center text-sm font-medium underline underline-offset-4"
                   aria-pressed={showPassword}
                   aria-controls="password"
                   onClick={() => setShowPassword((value) => !value)}
@@ -289,7 +290,13 @@ function LoginForm() {
               </p>
             ) : null}
 
-            <Button type="submit" className="w-full" disabled={loading} aria-busy={loading}>
+            <Button
+              type="submit"
+              size="lg"
+              className="w-full"
+              disabled={loading}
+              aria-busy={loading}
+            >
               {loading
                 ? "Please wait…"
                 : mode === "signin"

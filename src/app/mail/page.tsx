@@ -177,9 +177,12 @@ export default async function MailPage({
   return (
     <AppChrome user={user} current="mail">
       <PageHeader title="Mail" description={tabDescription(tab)} />
-      <nav aria-label="Mail views" className="flex items-stretch gap-3 overflow-x-auto pb-1">
+      <nav
+        aria-label="Mail views"
+        className="flex items-stretch gap-2 overflow-x-auto pb-1 sm:gap-3"
+      >
         {MAIL_SECTION_GROUPS.map((group, index) => (
-          <div key={group.label} className="flex min-w-0 items-stretch gap-3">
+          <div key={group.label} className="flex min-w-0 items-stretch gap-2 sm:gap-3">
             {index > 0 ? <div className="bg-border w-px shrink-0" aria-hidden /> : null}
             <div className="flex gap-2">
               {group.items.map((item) => {
@@ -191,19 +194,19 @@ export default async function MailPage({
                     href={mailViewPath({ tab: item.id, category, uncertain: uncertainOnly })}
                     aria-current={active ? "page" : undefined}
                     className={cn(
-                      "focus-visible:ring-ring flex min-w-36 flex-col rounded-xl border px-3 py-2.5 transition-colors focus-visible:ring-3 focus-visible:outline-none",
+                      "focus-visible:ring-ring flex min-w-[7.25rem] flex-col rounded-xl border px-3 py-2.5 transition-[background-color,border-color,color,box-shadow] duration-150 focus-visible:ring-3 focus-visible:outline-none sm:min-w-36",
                       active
-                        ? "border-primary bg-primary/10 text-foreground"
-                        : "border-border bg-card text-muted-foreground hover:text-foreground",
+                        ? "border-primary bg-primary/10 text-foreground shadow-sm"
+                        : "border-border bg-card text-muted-foreground hover:border-border hover:bg-muted/40 hover:text-foreground",
                     )}
                   >
-                    <span className="flex items-center justify-between gap-3">
+                    <span className="flex items-center justify-between gap-2 sm:gap-3">
                       <span className={cn("text-sm", active && "font-medium")}>{meta?.label}</span>
                       <span className="text-foreground text-sm font-semibold tabular-nums">
                         {sectionCount(item.id, figures)}
                       </span>
                     </span>
-                    <span className="mt-1 text-xs">{item.hint}</span>
+                    <span className="mt-1 text-xs leading-snug">{item.hint}</span>
                   </Link>
                 );
               })}

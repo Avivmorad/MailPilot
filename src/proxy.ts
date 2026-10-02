@@ -21,6 +21,8 @@ export const config = {
     "/digests",
     "/digests/:path*",
     "/settings/:path*",
+    "/usage",
+    "/usage/:path*",
     "/onboarding",
     "/onboarding/:path*",
     "/thread/:path*",

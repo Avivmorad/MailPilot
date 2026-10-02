@@ -230,7 +230,7 @@ export default async function DashboardPage({
       ) : null}
 
       {scanRunning ? (
-        <div className="bg-card ring-foreground/10 flex flex-wrap items-center justify-between gap-3 rounded-xl px-4 py-4 ring-1">
+        <div className="bg-card ring-foreground/10 flex flex-wrap items-center justify-between gap-3 rounded-xl px-4 py-4 shadow-xs ring-1">
           <div>
             <p className="font-medium tracking-tight">Live progress</p>
             <p className="text-muted-foreground mt-0.5 text-sm">
@@ -240,12 +240,12 @@ export default async function DashboardPage({
               <p className="text-muted-foreground mt-1 text-sm leading-relaxed">{changeLine}</p>
             ) : null}
           </div>
-          <Link href="/scan" className={buttonVariants()}>
+          <Link href="/scan" className={buttonVariants({ className: "min-h-10 px-4" })}>
             Open scan
           </Link>
         </div>
       ) : (
-        <div className="bg-card ring-foreground/10 rounded-xl px-4 py-4 ring-1">
+        <div className="bg-card ring-foreground/10 rounded-xl px-4 py-4 shadow-xs ring-1">
           <p className="font-medium tracking-tight">Last scan</p>
           {latestScan ? (
             <dl className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -277,7 +277,7 @@ export default async function DashboardPage({
       )}
 
       {step ? (
-        <div className="bg-card ring-foreground/10 flex flex-wrap items-center justify-between gap-3 rounded-xl px-4 py-3 ring-1">
+        <div className="bg-card ring-foreground/10 flex flex-wrap items-center justify-between gap-3 rounded-xl px-4 py-3.5 shadow-xs ring-1">
           <div className="min-w-0">
             <p className="font-medium tracking-tight">{step.title}</p>
             <p className="text-muted-foreground mt-0.5 text-sm leading-relaxed">{step.body}</p>
@@ -285,7 +285,10 @@ export default async function DashboardPage({
               <p className="text-muted-foreground mt-1 text-sm leading-relaxed">{changeLine}</p>
             ) : null}
           </div>
-          <Link href={step.href} className={buttonVariants()}>
+          <Link
+            href={step.href}
+            className={buttonVariants({ className: "min-h-10 shrink-0 px-4" })}
+          >
             {step.label}
           </Link>
         </div>
@@ -300,7 +303,7 @@ export default async function DashboardPage({
               href={stat.href}
               className="focus-visible:ring-ring block rounded-xl focus-visible:ring-3 focus-visible:outline-none"
             >
-              <Card className="hover:bg-muted/40 h-full transition-colors">
+              <Card className="hover:bg-muted/40 h-full transition-[background-color,box-shadow] duration-150 hover:shadow-sm">
                 <CardContent>
                   <div className="text-3xl font-semibold tracking-tight tabular-nums">
                     {stat.value}
@@ -318,7 +321,10 @@ export default async function DashboardPage({
               href={stat.href}
               className="focus-visible:ring-ring block rounded-xl focus-visible:ring-3 focus-visible:outline-none"
             >
-              <Card size="sm" className="hover:bg-muted/40 h-full transition-colors">
+              <Card
+                size="sm"
+                className="hover:bg-muted/40 h-full transition-[background-color,box-shadow] duration-150 hover:shadow-sm"
+              >
                 <CardContent>
                   <div className="text-2xl font-semibold tracking-tight tabular-nums">
                     {stat.value}

@@ -63,4 +63,16 @@ describe("AppHeader", () => {
     const nav = screen.getByRole("navigation", { name: "Main" });
     expect(within(nav).getByText("Settings").className).toMatch(/lg:sr-only/);
   });
+
+  it("labels icon-only chrome controls for accessibility", () => {
+    window.localStorage.setItem(SIDEBAR_STORAGE_KEY, "1");
+    render(<AppHeader email="user@example.com" current="mail" />);
+
+    expect(screen.getByRole("button", { name: "Expand sidebar" })).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "Sign out" }).length).toBeGreaterThan(0);
+    expect(
+      screen.getAllByRole("button", { name: /Switch to (light|dark) mode/ }).length,
+    ).toBeGreaterThan(0);
+    expect(screen.getByRole("link", { name: "Mail" })).toHaveAttribute("aria-label", "Mail");
+  });
 });

@@ -12,6 +12,7 @@ const PROTECTED_PREFIXES = [
   "/history",
   "/digests",
   "/settings",
+  "/usage",
   "/thread",
   "/onboarding",
 ];

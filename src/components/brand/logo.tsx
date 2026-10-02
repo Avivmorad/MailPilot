@@ -27,7 +27,7 @@ export function Logo({ className, showWordmark = true }: LogoProps) {
         <path d="m9.5 8.5 1.5 1.5 3-3" />
       </svg>
       {showWordmark ? (
-        <span className="text-foreground text-base font-bold tracking-tight">MailPriority</span>
+        <span className="text-base font-bold tracking-tight text-inherit">MailPriority</span>
       ) : null}
     </span>
   );

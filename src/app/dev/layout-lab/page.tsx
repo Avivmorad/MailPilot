@@ -76,31 +76,59 @@ export default function LayoutLabPage() {
         </div>
       </section>
 
-      <div className="bg-card ring-foreground/10 min-w-0 rounded-xl px-4 py-4 shadow-xs ring-1">
-        <p className="font-medium tracking-tight">Last scan</p>
-        <dl className="mt-3 grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <div className="min-w-0">
-            <dt className="text-muted-foreground text-xs leading-snug break-words">
-              Emails scanned
-            </dt>
-            <dd className="mt-0.5 text-lg font-semibold tabular-nums">128</dd>
-          </div>
-          <div className="min-w-0">
-            <dt className="text-muted-foreground text-xs leading-snug break-words">
-              Conversations checked
-            </dt>
-            <dd className="mt-0.5 text-lg font-semibold tabular-nums">64</dd>
-          </div>
-          <div className="min-w-0">
-            <dt className="text-muted-foreground text-xs leading-snug break-words">Status</dt>
-            <dd className="mt-0.5 text-sm font-medium">Success</dd>
-          </div>
-          <div className="min-w-0">
-            <dt className="text-muted-foreground text-xs leading-snug break-words">Finished</dt>
-            <dd className="mt-0.5 text-sm font-medium">Just now</dd>
-          </div>
-        </dl>
+      <div className="bg-card ring-foreground/10 flex min-w-0 flex-wrap items-center justify-between gap-3 rounded-xl px-4 py-4 shadow-xs ring-1">
+        <div className="min-w-0">
+          <p className="font-medium tracking-tight">Last scan</p>
+          <p className="text-muted-foreground mt-0.5 text-sm break-normal">
+            Success · Just now · 128 emails
+          </p>
+        </div>
+        <Button data-testid="lab-last-scan-open" className="min-h-10 shrink-0 px-4">
+          Open scan
+        </Button>
       </div>
+
+      <section className="min-w-0 space-y-3" data-testid="lab-scan-panel">
+        <h2 className="text-foreground text-lg font-semibold tracking-tight">Scan tab preview</h2>
+        <div className="bg-card ring-foreground/10 min-w-0 rounded-xl px-4 py-4 shadow-xs ring-1">
+          <p className="font-medium tracking-tight">Initial scan</p>
+          <p className="text-muted-foreground mt-0.5 text-sm">
+            Checking conversations in the background. You can keep using MailPriority.
+          </p>
+          <div className="mt-4 flex min-w-0 flex-col gap-6">
+            <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-center">
+              <div className="bg-muted relative flex size-40 shrink-0 items-center justify-center rounded-full">
+                <span className="text-3xl font-semibold tracking-tight tabular-nums">62%</span>
+              </div>
+              <p className="max-w-sm text-sm leading-relaxed">
+                Checking 310 of 504 conversations (62%). Large scans continue automatically…
+              </p>
+            </div>
+            <dl
+              data-testid="lab-scan-progress-stats"
+              className="grid min-w-0 grid-cols-[repeat(auto-fit,minmax(10rem,1fr))] gap-x-5 gap-y-3"
+            >
+              {[
+                ["Conversations", "310 of 504"],
+                ["Emails scanned", "842"],
+                ["Actions", "12"],
+                ["Pending", "4"],
+                ["For You", "28"],
+                ["Ignored", "91"],
+                ["Important", "3"],
+                ["Updated", "Oct 2, 2026, 3:14 PM"],
+              ].map(([label, value]) => (
+                <div key={label} className="min-w-0">
+                  <dt className="text-muted-foreground text-xs leading-snug whitespace-nowrap">
+                    {label}
+                  </dt>
+                  <dd className="mt-0.5 text-sm font-medium break-normal tabular-nums">{value}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+        </div>
+      </section>
 
       <section className="min-w-0 space-y-3">
         <h2 className="text-foreground text-lg font-semibold tracking-tight">Inbox now</h2>

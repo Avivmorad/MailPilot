@@ -581,20 +581,23 @@ export function InitialScanCard({
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+        <div className="flex min-w-0 flex-col gap-6">
           <ScanProgressBar
             threadsChecked={bar.threadsChecked}
             threadsDiscovered={bar.threadsDiscovered}
             status={bar.status}
             errorCode={bar.errorCode}
           />
-          <dl className="grid min-w-0 flex-1 grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3">
+          <dl
+            data-testid="scan-progress-stats"
+            className="grid min-w-0 grid-cols-[repeat(auto-fit,minmax(10rem,1fr))] gap-x-5 gap-y-3"
+          >
             {factItems.map((item) => (
               <div key={item.label} className="min-w-0">
-                <dt className="text-muted-foreground text-xs leading-snug break-words">
+                <dt className="text-muted-foreground text-xs leading-snug whitespace-nowrap">
                   {item.label}
                 </dt>
-                <dd className="mt-0.5 text-sm font-medium break-words tabular-nums">
+                <dd className="mt-0.5 text-sm font-medium break-normal tabular-nums">
                   {item.value}
                 </dd>
               </div>

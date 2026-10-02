@@ -11,7 +11,7 @@ const BASE_NAV = [
   { href: "dashboard", label: "Dashboard", path: "/dashboard" },
   { href: "scan", label: "Scan", path: "/scan" },
   { href: "mail", label: "Mail", path: "/mail" },
-  { href: "digests", label: "Digests", path: "/digests" },
+  { href: "history", label: "History", path: "/history" },
   { href: "settings", label: "Settings", path: "/settings" },
 ] as const;
 
@@ -21,7 +21,7 @@ const NAV_ICONS = {
   dashboard: LayoutDashboard,
   scan: ScanSearch,
   mail: Inbox,
-  digests: Newspaper,
+  history: Newspaper,
   settings: Settings,
   usage: BarChart3,
 } as const;

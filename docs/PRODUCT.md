@@ -25,7 +25,13 @@ Do not use the archived working name “Inbox Triage AI” in UI or new docs.
 | **Snoozed** | `snoozed`                      | action row `SNOOZED`                          |
 | **Ignored** | `ignored`                      | analysis `ignore`                             |
 
-Status chips for ignored mail say **Ignore**. The tab and digest count say **Ignored**.
+Status chips for ignored mail say **Ignore**. The tab and the History count say **Ignored**.
+
+Category labels (Finance, Security, and the rest of the action topics) filter the
+current Mail tab the same way Actions and Pending switch views. The query is
+`?tab=open&category=finance`. A label matches the topic group for that thread,
+including legacy categories and security notices. **All labels** clears the
+filter and leaves the tab in place. Clicking a category badge opens that filter.
 
 ## MVP scope
 
@@ -34,7 +40,7 @@ Status chips for ignored mail say **Ignore**. The tab and digest count say **Ign
 - Connect one Gmail inbox (separate from app sign-in)
 - Scan threads over a chosen lookback; classify with structured JSON
 - Apply `MailPilot/*` Gmail labels after validated analysis only
-- Dashboard overview + Mail tabs + in-app digest
+- Dashboard overview + Mail tabs + History
 - Incremental History API sync after the first successful scan
 - Daily scheduled scan; resumable scans across Vercel Hobby time slices
 - Privacy: no long-term full email body storage; delete analysis or account
@@ -43,7 +49,7 @@ Status chips for ignored mail say **Ignore**. The tab and digest count say **Ign
 **Out of scope (MVP)**
 
 - Auto-send, auto-delete, or auto-archive mail
-- Email delivery of digests (in-app only; email digest is a later extension)
+- Email digest delivery (History stays in the app; emailing a digest is a later extension)
 - Merging similar notices into a single Gmail thread
 - Scan budget / cost caps (telemetry is observe-only)
 
@@ -69,7 +75,7 @@ SQL on the project remains the durable operator path. Delete analysis also remov
 | Initial scan window  | **1 / 2 / 3 / 4 days, 1 / 2 / 3 weeks, or 1 month** (default **7 days**)                                                          |
 | Subsequent scans     | Changes since last successful scan (incremental)                                                                                  |
 | Summary language     | **English** (`summary`, `short_display_title`)                                                                                    |
-| Presentation         | Dashboard **and** in-app digest                                                                                                   |
+| Presentation         | Dashboard **and** History                                                                                                         |
 | Email body retention | Do **not** persist full email bodies long-term                                                                                    |
 | Sending replies      | The system **never** sends replies on the user's behalf                                                                           |
 
@@ -80,8 +86,8 @@ lookback values: 1, 2, 3, 4, 7, 14, 21, or 30 days.
 
 Manual Scan now shows live progress (conversations checked / total). A scan that
 cannot finish inside one Hobby invocation (~240s of work, 300s `maxDuration`)
-stays `RUNNING`, persists a thread cursor, and continues on the next slice. The
-in-app digest is written when the window finishes with `SUCCESS` or `PARTIAL`.
+stays `RUNNING`, persists a thread cursor, and continues on the next slice. A
+History entry is written when the window finishes with `SUCCESS` or `PARTIAL`.
 The Gmail History API cursor advances only on `SUCCESS`, so a partial scan can
 rediscover failed threads.
 
@@ -101,7 +107,7 @@ Rules:
 
 - Every thread has **one canonical `status`** in the database
   (`action_required`, `waiting`, `informational`, `resolved`, or `ignore`).
-  Mail tabs, action workflow, and digests derive from this — a thread never has
+  Mail tabs, action workflow, and History entries derive from this — a thread never has
   two competing statuses.
 - Gmail **`MailPilot/*` labels are presentation only**. A thread may carry more
   than one at once (e.g. Important + Action Required + Processed).

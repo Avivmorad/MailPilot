@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import type { Category } from "@/lib/ai/categories";
 import type { ActionStatus } from "@/lib/actions/reconcile-action";
 
 export const MAIL_TABS = [
@@ -28,6 +29,22 @@ const ACTION_MAIL_TABS: Record<Exclude<MailTab, "summary" | "ignored">, ActionSt
   completed: "COMPLETED",
   snoozed: "SNOOZED",
 };
+
+export function mailViewPath(input: {
+  tab: MailTab;
+  category?: Category | null;
+  uncertain?: boolean;
+}): string {
+  const params = new URLSearchParams();
+  params.set("tab", input.tab);
+  if (input.category) {
+    params.set("category", input.category);
+  }
+  if (input.uncertain) {
+    params.set("uncertain", "1");
+  }
+  return `/mail?${params.toString()}`;
+}
 
 export function parseMailTab(value: string | null | undefined): MailTab {
   const parsed = mailTabSchema.safeParse(value);

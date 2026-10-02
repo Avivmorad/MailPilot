@@ -16,7 +16,7 @@ import { requireOnboardingComplete } from "@/lib/onboarding/guard";
 
 export const dynamic = "force-dynamic";
 
-export default async function DigestsPage() {
+export default async function HistoryPage() {
   const user = await getSessionUser();
   if (!user) {
     redirect("/login");
@@ -43,29 +43,29 @@ export default async function DigestsPage() {
   const needsGmailRecovery = shouldShowGmailRecoveryCard(gmailStatus);
 
   return (
-    <AppChrome user={user} current="digests" width="narrow">
+    <AppChrome user={user} current="history" width="narrow">
       <PageHeader
-        title="Digests"
+        title="History"
         description="In-app history of period counts and top actions after each successful scan. Email delivery is not in the MVP."
       />
       {loadFailed ? (
         <EmptyState
           variant="error"
-          title="Could not load digests"
-          description="A temporary database error prevented loading your digest history."
+          title="Could not load History"
+          description="A temporary database error prevented loading History."
           action={
-            <Link href="/digests" className={buttonVariants({ variant: "outline", size: "sm" })}>
-              Reload digests
+            <Link href="/history" className={buttonVariants({ variant: "outline", size: "sm" })}>
+              Reload History
             </Link>
           }
         />
       ) : digests.length === 0 && needsGmailRecovery ? (
         <EmptyState
-          title="Connect Gmail to get digests"
-          description="Digests appear after a successful or partial scan. Connect or reconnect Gmail first — existing summaries stay until you delete them."
+          title="Connect Gmail to see History"
+          description="History appears after a successful or partial scan. Connect or reconnect Gmail first — existing summaries stay until you delete them."
           action={
             <a
-              href="/api/gmail/connect?returnTo=/digests"
+              href="/api/gmail/connect?returnTo=/history"
               className={buttonVariants({ size: "sm" })}
             >
               {gmailRecoveryActionLabel(gmailStatus)}
@@ -73,14 +73,14 @@ export default async function DigestsPage() {
           }
         />
       ) : digests.length === 0 ? (
-        <DigestReportCard digest={null} title="Digest history" />
+        <DigestReportCard digest={null} title="History" />
       ) : (
         <div className="space-y-6">
           {digests.map((digest, index) => (
             <DigestReportCard
               key={digest.id}
               digest={digest}
-              title={index === 0 ? "Latest digest" : "Earlier digest"}
+              title={index === 0 ? "Latest summary" : "Earlier summary"}
             />
           ))}
         </div>

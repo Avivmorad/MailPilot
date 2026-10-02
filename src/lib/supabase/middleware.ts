@@ -9,6 +9,7 @@ const PROTECTED_PREFIXES = [
   "/scan",
   "/actions",
   "/mail",
+  "/history",
   "/digests",
   "/settings",
   "/thread",

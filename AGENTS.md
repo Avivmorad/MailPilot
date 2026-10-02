@@ -24,7 +24,7 @@ Historical specification (archived, not source of truth):
 [`docs/archive/PROJECT_SPEC.md`](docs/archive/PROJECT_SPEC.md).
 
 **Current status:** MVP Phases 0–9 are implemented on `main` (auth, Connect
-Gmail, triage, Mail tabs, incremental sync, scheduled scans, in-app digests,
+Gmail, triage, Mail tabs, incremental sync, scheduled scans, the History screen,
 privacy, eval/CI). Email digest delivery is a later extension.
 
 ## Repository rules

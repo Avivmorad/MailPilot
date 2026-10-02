@@ -19,7 +19,7 @@ Setup and env live in [`SETUP.md`](SETUP.md).
 ```text
 Browser (Next.js App Router)
   ├─ Supabase Auth          MailPriority account (no Gmail scopes)
-  └─ App UI                 dashboard, Mail tabs, settings, onboarding
+  └─ App UI                 dashboard, Mail tabs, History, settings, onboarding
 
 Server (Vercel)
   ├─ Connect Gmail          OAuth gmail.modify → encrypted refresh token
@@ -28,7 +28,7 @@ Server (Vercel)
   ├─ Incremental sync       Gmail History API (stale historyId recovery)
   └─ Cron dispatcher        one daily cron; each slice claims one due connection, then chains the rest
 
-Supabase Postgres + RLS     profiles, connections, threads, actions, scans, digests
+Supabase Postgres + RLS     profiles, connections, threads, actions, scans, History entries
 NVIDIA Build or Gemini      structured ThreadAnalysis JSON only
 ```
 
@@ -42,7 +42,7 @@ Manual Scan now and scheduled scans share the same pipeline.
 4. Validate with Zod + invariant post-processing.
 5. Upsert threads, messages (metadata only — no long-term bodies), actions.
 6. Apply `MailPilot/*` labels **only after** validated analysis.
-7. On window finish `SUCCESS` or `PARTIAL`, write the in-app digest when enabled.
+7. On window finish `SUCCESS` or `PARTIAL`, write a History entry when enabled.
 8. Advance Gmail `historyId` only on `SUCCESS`.
 
 Provider HTTP attempts also append one `triage_usage` row (best-effort; must not
@@ -127,7 +127,7 @@ Summary of user-facing tables:
 | Mail      | `email_threads`, `email_messages` (no long-term bodies)     |
 | Work      | `action_items`, classification feedback                     |
 | Scans     | `scan_runs`, `scan_jobs` (+ chunk cursor, leases, progress) |
-| Digest    | `digest_reports` (in-app snapshots)                         |
+| History   | `digest_reports` (History snapshots)                        |
 | Telemetry | `triage_usage` (append-only provider token counts)          |
 
 RLS: `user_id = auth.uid()` on user-accessible tables. Scan writes use the
@@ -170,7 +170,7 @@ Business logic stays in `src/lib/**`. Route map:
 | Actions  | `/api/actions`, `/api/actions/[id]`                              |
 | Threads  | `/api/threads`, `/api/threads/[id]`, `feedback`                  |
 | Settings | `/api/settings`                                                  |
-| Digests  | `/api/digests`, `/api/digests/latest`                            |
+| History  | `/api/digests`, `/api/digests/latest`                            |
 | Privacy  | `/api/privacy/delete-analysis`, `delete-account`                 |
 
 ## Key directories
@@ -182,7 +182,7 @@ Business logic stays in `src/lib/**`. Route map:
 | `src/lib/scans/`         | Process, dispatch, continue, leases, progress          |
 | `src/lib/mail/`          | Tabs, placement, buckets                               |
 | `src/lib/actions/`       | Action workflow reconcile / mutations                  |
-| `src/lib/digest/`        | In-app digest build                                    |
+| `src/lib/digest/`        | History entries (UI route `/history`)                  |
 | `src/lib/privacy/`       | Deletion, public policy                                |
 | `src/lib/observability/` | Structured events, Sentry privacy                      |
 | `src/app/usage/`         | Optional operator Usage screen (feature-flagged)       |

@@ -55,7 +55,7 @@ const features = [
   {
     icon: Inbox,
     title: "Idempotent by design",
-    body: "Re-scanning the same mail never creates duplicate messages, actions, digests, or labels.",
+    body: "Re-scanning the same mail never creates duplicate messages, actions, History entries, or labels.",
   },
 ];
 

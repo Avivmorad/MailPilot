@@ -7,8 +7,10 @@ import { ThreadFeedback } from "@/components/threads/thread-feedback";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LabeledField } from "@/components/ui/labeled-field";
 import { ThreadTags } from "@/components/ui/thread-tags";
+import { normalizeCategory } from "@/lib/ai/categories";
 import { mailBucketForThread } from "@/lib/mail/buckets";
 import { isUncertainClassification } from "@/lib/mail/filters";
+import { mailViewPath } from "@/lib/mail/tabs";
 import { threadPlacementReason } from "@/lib/mail/placement";
 import { requireOnboardingComplete } from "@/lib/onboarding/guard";
 import { getSessionUser } from "@/lib/supabase/auth";
@@ -77,6 +79,14 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
         deadline={thread.deadline}
         actionType={thread.actionType}
         includeLowImportance
+        categoryHref={
+          thread.category
+            ? mailViewPath({
+                tab: backTab,
+                category: normalizeCategory(thread.category),
+              })
+            : undefined
+        }
       />
 
       <Card>

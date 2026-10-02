@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useId, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 
@@ -46,7 +47,15 @@ function HoverHint({ hint, children }: { hint: string; children: ReactNode }) {
   );
 }
 
-export function MetaBadge({ value, kind = "status" }: { value: string; kind?: TagKind }) {
+export function MetaBadge({
+  value,
+  kind = "status",
+  href,
+}: {
+  value: string;
+  kind?: TagKind;
+  href?: string;
+}) {
   if (!isVisibleTag(kind, value)) {
     return null;
   }
@@ -56,13 +65,25 @@ export function MetaBadge({ value, kind = "status" }: { value: string; kind?: Ta
   const badge = (
     <Badge
       variant="secondary"
-      tabIndex={hint ? 0 : undefined}
-      aria-label={hint ? `${label}. ${hint}` : undefined}
-      className={cn(tagClassName(kind, value), hint && "cursor-help")}
+      tabIndex={hint && !href ? 0 : undefined}
+      aria-label={!href && hint ? `${label}. ${hint}` : undefined}
+      className={cn(tagClassName(kind, value), hint && !href && "cursor-help")}
     >
       {label}
     </Badge>
   );
+
+  if (href) {
+    return (
+      <Link
+        href={href}
+        aria-label={`Filter Mail to ${label}`}
+        className="focus-visible:ring-ring inline-flex rounded-4xl focus-visible:ring-3 focus-visible:outline-none"
+      >
+        {badge}
+      </Link>
+    );
+  }
 
   if (!hint) {
     return badge;

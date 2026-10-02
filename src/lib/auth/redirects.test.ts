@@ -29,6 +29,7 @@ describe("auth redirects", () => {
     expect(safeAuthNext("/mail", null)).toBe("/mail");
     expect(safeAuthNext("/settings", null)).toBe("/settings");
     expect(safeAuthNext("/thread/abc-123", null)).toBe("/thread/abc-123");
+    expect(safeAuthNext("/history", null)).toBe("/history");
     expect(safeAuthNext("/digests", null)).toBe("/digests");
   });
 

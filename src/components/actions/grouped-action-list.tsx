@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { ActionItemCard } from "@/components/actions/action-item-card";
 import { EmptyState } from "@/components/layout/empty-state";
 import { CollapsibleTopicGroups } from "@/components/layout/collapsible-topic-groups";
-import type { ActionListItem } from "@/lib/actions/queries";
+import type { ActionListItem } from "@/lib/actions/action-list-item";
 import { groupByTopic } from "@/lib/actions/topics";
 
 export function GroupedActionList({

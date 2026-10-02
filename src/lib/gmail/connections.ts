@@ -1,3 +1,5 @@
+import { cache } from "react";
+
 import { getGmailEnv, isGmailConfigured } from "@/lib/config/env";
 import {
   type GmailConnectionPublic,
@@ -115,7 +117,7 @@ export function gmailStatusErrorMessage(error: {
   return "Could not load Gmail connection status from the database.";
 }
 
-export async function getGmailStatusForUser(userId: string): Promise<GmailStatusPayload> {
+export const getGmailStatusForUser = cache(async (userId: string): Promise<GmailStatusPayload> => {
   const configured = isGmailConfigured();
   if (!configured) {
     return { configured: false, connection: null, loadError: null };
@@ -159,7 +161,7 @@ export async function getGmailStatusForUser(userId: string): Promise<GmailStatus
       loadError: "Could not load Gmail connection status from the database.",
     };
   }
-}
+});
 
 export interface CompleteGmailOAuthResult {
   connection: GmailConnectionPublic;

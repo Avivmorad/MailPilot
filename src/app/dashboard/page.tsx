@@ -10,9 +10,13 @@ import { CollapsibleBlock } from "@/components/layout/collapsible-block";
 import { EmptyState } from "@/components/layout/empty-state";
 import { PageHeader } from "@/components/layout/page-header";
 import { buttonVariants } from "@/components/ui/button";
-import { listActionsForUser, type ActionListItem } from "@/lib/actions/queries";
+import {
+  countActionsForUser,
+  listActionsForUser,
+  type ActionListItem,
+} from "@/lib/actions/queries";
 import { getDashboardChangesForUser } from "@/lib/dashboard/queries";
-import { ensureDigestForLatestScan } from "@/lib/digest/build-digest";
+import { getLatestDigestForUser } from "@/lib/digest/queries";
 import { getGmailStatusForUser } from "@/lib/gmail/connections";
 import { shouldShowGmailRecoveryCard } from "@/lib/gmail/recovery";
 import { getMailFigures, type MailFigures } from "@/lib/mail/figures";
@@ -114,19 +118,20 @@ export default async function DashboardPage({
   let actionsLoadError = false;
   let countsLoadError = false;
 
-  const [figures, openActions, latestScan] = connected
+  const [figures, openActions, openActionCount, latestScan] = connected
     ? await Promise.all([
         getMailFigures(user.id).catch(() => {
           countsLoadError = true;
           return emptyFigures;
         }),
-        listActionsForUser(user.id, "OPEN").catch(() => {
+        listActionsForUser(user.id, "OPEN", ATTENTION_PREVIEW).catch(() => {
           actionsLoadError = true;
           return [] as ActionListItem[];
         }),
+        countActionsForUser(user.id, "OPEN").catch(() => null),
         getLatestScanRunForUser(user.id),
       ])
-    : [emptyFigures, [] as ActionListItem[], null];
+    : [emptyFigures, [] as ActionListItem[], 0, null];
   const latestScanStatus = latestScan ? String(latestScan.status) : "";
   const latestStartedAt = typeof latestScan?.started_at === "string" ? latestScan.started_at : null;
   const since =
@@ -136,11 +141,7 @@ export default async function DashboardPage({
 
   const [latestDigest, dashboardChanges] = connected
     ? await Promise.all([
-        ensureDigestForLatestScan(
-          user.id,
-          latestScan ? String(latestScan.id) : null,
-          latestScan ? String(latestScan.status) : null,
-        ).catch(() => null),
+        getLatestDigestForUser(user.id).catch(() => null),
         getDashboardChangesForUser(user.id, since).catch(() => ({
           summary: {
             since: null,
@@ -168,8 +169,8 @@ export default async function DashboardPage({
         },
       ];
   const latestStatus = latestScan ? String(latestScan.status) : null;
-  const openCount = openActions.length;
-  const attentionItems = openActions.slice(0, ATTENTION_PREVIEW);
+  const openCount = openActionCount ?? figures.actions;
+  const attentionItems = openActions;
   const changeLine = dashboardChanges.line;
   const overdueOpen = dashboardChanges.summary.overdueOpen;
 

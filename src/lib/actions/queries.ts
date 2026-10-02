@@ -1,3 +1,6 @@
+import { cache } from "react";
+
+import type { ActionListItem } from "@/lib/actions/action-list-item";
 import { isNonTaskNotice } from "@/lib/ai/notices";
 import { compareOpenActions } from "@/lib/actions/sort";
 import type { ActionStatus } from "@/lib/actions/reconcile-action";
@@ -5,28 +8,7 @@ import { gmailThreadUrl } from "@/lib/gmail/deep-link";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { displayActionTitle, usableDisplayText } from "@/lib/ui/display-text";
 
-export interface ActionListItem {
-  id: string;
-  threadId: string;
-  status: ActionStatus;
-  title: string;
-  description: string | null;
-  actionSummary: string | null;
-  actionReason: string | null;
-  waitingFor: string | null;
-  snoozedUntil: string | null;
-  deadline: string | null;
-  urgency: string | null;
-  latestMessageAt: string | null;
-  importance: string | null;
-  summary: string | null;
-  sender: string | null;
-  gmailUrl: string;
-  category: string | null;
-  actionType: string | null;
-  confidence: number | null;
-  updatedAt: string | null;
-}
+export type { ActionListItem } from "@/lib/actions/action-list-item";
 
 interface ThreadJoin {
   id: string;
@@ -84,7 +66,7 @@ export function mapActionListItem(
   };
 }
 
-async function gmailEmailForUser(userId: string): Promise<string> {
+const gmailEmailForUser = cache(async (userId: string): Promise<string> => {
   const db = createAdminClient();
   const { data } = await db
     .from("gmail_connections")
@@ -94,7 +76,7 @@ async function gmailEmailForUser(userId: string): Promise<string> {
     .limit(1)
     .maybeSingle();
   return typeof data?.gmail_email === "string" ? data.gmail_email : "";
-}
+});
 
 export class ActionQueryError extends Error {
   constructor(
@@ -121,7 +103,7 @@ export async function listActionsForUser(
     )
     .eq("user_id", userId)
     .eq("status", status)
-    .limit(200);
+    .limit(limit);
   if (error) {
     throw new ActionQueryError(500, "load_failed", "Failed to load actions from the database.");
   }
@@ -144,8 +126,16 @@ export async function listActionsForUser(
 }
 
 export async function countActionsForUser(userId: string, status: ActionStatus): Promise<number> {
-  const items = await listActionsForUser(userId, status, 200);
-  return items.length;
+  const db = createAdminClient();
+  const { count, error } = await db
+    .from("action_items")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .eq("status", status);
+  if (error) {
+    throw new ActionQueryError(500, "load_failed", "Failed to count actions.");
+  }
+  return count ?? 0;
 }
 
 /** Stored action rows by status. Does not apply the open-list notice filter. */

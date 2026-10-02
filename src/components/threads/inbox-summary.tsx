@@ -8,7 +8,7 @@ import { ThreadTags } from "@/components/ui/thread-tags";
 import { groupByTopic } from "@/lib/actions/topics";
 import { threadPlacementReason } from "@/lib/mail/placement";
 import { mailBucketForThread } from "@/lib/mail/buckets";
-import type { RecentThreadRow } from "@/lib/threads/queries";
+import type { RecentThreadRow } from "@/lib/threads/recent-thread";
 import { displayThreadTitle, usableDisplayText } from "@/lib/ui/display-text";
 import { formatRelativeTime } from "@/lib/ui/format";
 

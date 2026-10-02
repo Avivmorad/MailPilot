@@ -161,22 +161,25 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
             thread.messages.map((message) => (
               <div
                 key={message.id}
-                className="border-border/70 border-b py-3 first:pt-0 last:border-0 last:pb-0"
+                className="border-border/70 min-w-0 overflow-hidden border-b py-3 first:pt-0 last:border-0 last:pb-0"
               >
-                <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <p className="text-foreground text-sm font-semibold">
+                <div className="flex min-w-0 flex-wrap items-baseline justify-between gap-2">
+                  <p className="text-foreground min-w-0 text-sm font-semibold [overflow-wrap:anywhere] break-words">
                     {message.senderName ?? message.senderEmail ?? "Unknown"}
                     <span className="text-muted-foreground font-normal">
                       {" "}
                       · {labelForDirection(message.direction)}
                     </span>
                   </p>
-                  <p className="text-muted-foreground text-xs">
+                  <p className="text-muted-foreground shrink-0 text-xs">
                     {formatDateTime(message.receivedAt)}
                   </p>
                 </div>
                 {message.snippet ? (
-                  <p className="text-muted-foreground mt-1 text-sm leading-relaxed" dir="auto">
+                  <p
+                    className="text-muted-foreground mt-1 text-sm leading-relaxed [overflow-wrap:anywhere] break-words"
+                    dir="auto"
+                  >
                     {message.snippet}
                   </p>
                 ) : null}

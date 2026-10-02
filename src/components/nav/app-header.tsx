@@ -50,19 +50,22 @@ export function AppHeader({ email, current }: { email?: string | null; current: 
   return (
     <header
       className={cn(
-        "border-sidebar-border bg-sidebar text-sidebar-foreground sticky top-0 z-40 border-b lg:fixed lg:inset-y-0 lg:flex lg:flex-col lg:border-r lg:border-b-0 motion-safe:lg:transition-[width] motion-safe:lg:duration-200 motion-safe:lg:ease-out",
+        "border-sidebar-border bg-sidebar text-sidebar-foreground sticky top-0 z-40 border-b lg:fixed lg:inset-y-0 lg:left-0 lg:flex lg:flex-col lg:overflow-x-visible lg:overflow-y-auto lg:border-r lg:border-b-0 motion-safe:lg:transition-[width] motion-safe:lg:duration-200 motion-safe:lg:ease-out",
         collapsed ? SIDEBAR_COLLAPSED_WIDTH_CLASS : SIDEBAR_EXPANDED_WIDTH_CLASS,
       )}
     >
       <div
         className={cn(
-          "flex items-center justify-between gap-3 px-4 py-3 lg:py-5",
-          collapsed ? "lg:flex-col lg:gap-3 lg:px-2" : "lg:px-4",
+          "flex items-center justify-between gap-3 px-4 py-3 lg:py-4",
+          collapsed ? "lg:flex-col lg:items-center lg:justify-start lg:gap-2 lg:px-1.5" : "lg:px-4",
         )}
       >
         <Link
           href="/dashboard"
-          className="focus-visible:ring-ring shrink-0 rounded-lg hover:opacity-90 focus-visible:ring-3 focus-visible:outline-none"
+          className={cn(
+            "focus-visible:ring-ring shrink-0 rounded-lg hover:opacity-90 focus-visible:ring-3 focus-visible:outline-none",
+            collapsed && "lg:inline-flex lg:size-10 lg:items-center lg:justify-center",
+          )}
           aria-label="MailPriority home"
         >
           <span className="inline-flex lg:hidden">
@@ -80,7 +83,10 @@ export function AppHeader({ email, current }: { email?: string | null; current: 
           type="button"
           variant="ghost"
           size="icon"
-          className="text-muted-foreground hover:text-foreground hidden shrink-0 lg:inline-flex"
+          className={cn(
+            "text-muted-foreground hover:text-foreground hidden shrink-0 lg:inline-flex",
+            collapsed && "size-9",
+          )}
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           aria-expanded={!collapsed}
           aria-controls="app-sidebar-nav"
@@ -94,8 +100,8 @@ export function AppHeader({ email, current }: { email?: string | null; current: 
         id="app-sidebar-nav"
         aria-label="Main"
         className={cn(
-          "flex [scrollbar-width:none] gap-1 overflow-x-auto px-3 pb-3 [-ms-overflow-style:none] lg:flex-1 lg:flex-col lg:overflow-visible lg:pb-0 [&::-webkit-scrollbar]:hidden",
-          collapsed ? "lg:items-center lg:px-2" : "lg:px-3",
+          "flex [scrollbar-width:none] gap-1 overflow-x-auto px-3 pb-3 [-ms-overflow-style:none] lg:flex-1 lg:flex-col lg:overflow-x-visible lg:overflow-y-visible lg:pb-0 [&::-webkit-scrollbar]:hidden",
+          collapsed ? "lg:items-center lg:gap-1 lg:px-1.5" : "lg:px-3",
         )}
       >
         {nav.map((item) => {
@@ -109,10 +115,13 @@ export function AppHeader({ email, current }: { email?: string | null; current: 
               aria-label={item.label}
               title={item.label}
               className={cn(
-                "focus-visible:ring-ring inline-flex min-h-11 items-center gap-2.5 rounded-lg px-3 text-sm whitespace-nowrap transition-[background-color,color,transform] duration-150 focus-visible:ring-3 focus-visible:outline-none active:translate-y-px lg:min-h-10 lg:w-full",
-                collapsed && "lg:size-10 lg:min-h-10 lg:justify-center lg:px-0",
+                "focus-visible:ring-ring inline-flex min-h-11 min-w-0 items-center gap-2.5 rounded-lg px-3 text-sm whitespace-nowrap transition-[background-color,color,transform] duration-150 focus-visible:ring-3 focus-visible:outline-none active:translate-y-px lg:min-h-10 lg:w-full",
+                collapsed && "lg:size-10 lg:min-h-10 lg:max-w-10 lg:justify-center lg:px-0",
                 active
-                  ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium shadow-sm"
+                  ? cn(
+                      "bg-sidebar-accent text-sidebar-accent-foreground font-medium",
+                      !collapsed && "shadow-sm",
+                    )
                   : "text-muted-foreground hover:bg-sidebar-accent/70 hover:text-foreground",
               )}
             >
@@ -125,7 +134,7 @@ export function AppHeader({ email, current }: { email?: string | null; current: 
       <div
         className={cn(
           "border-sidebar-border mt-auto hidden gap-3 border-t py-4 lg:grid",
-          collapsed ? "lg:justify-items-center lg:px-2" : "lg:px-4",
+          collapsed ? "lg:justify-items-center lg:gap-2 lg:px-1.5" : "lg:px-4",
         )}
       >
         {email && !collapsed ? (
@@ -134,7 +143,7 @@ export function AppHeader({ email, current }: { email?: string | null; current: 
           </span>
         ) : null}
         <div className={cn("flex items-center gap-2", collapsed ? "flex-col" : "justify-between")}>
-          <ThemeToggle className={collapsed ? "size-10" : undefined} />
+          <ThemeToggle className={collapsed ? "size-9" : undefined} />
           <SignOutForm iconOnly={collapsed} />
         </div>
       </div>

@@ -75,4 +75,11 @@ describe("AppHeader", () => {
     ).toBeGreaterThan(0);
     expect(screen.getByRole("link", { name: "Mail" })).toHaveAttribute("aria-label", "Mail");
   });
+
+  it("pins the desktop rail to the viewport left edge when fixed", () => {
+    render(<AppHeader email="user@example.com" current="dashboard" />);
+    const header = screen.getByRole("banner");
+    expect(header.className).toMatch(/lg:left-0/);
+    expect(header.className).toMatch(/lg:fixed/);
+  });
 });

@@ -43,14 +43,14 @@ export function InboxSummary({
             {group.items.map((thread) => {
               const tab = mailBucketForThread({ status: thread.status });
               return (
-                <li key={thread.id} className="px-4 py-3">
-                  <div className="flex flex-wrap items-start justify-between gap-2">
+                <li key={thread.id} className="min-w-0 overflow-hidden px-4 py-3">
+                  <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
                     <Link
                       href={`/thread/${thread.id}`}
-                      className="hover:bg-muted/50 -mx-1 min-w-0 flex-1 rounded-md px-1 transition-colors"
+                      className="hover:bg-muted/50 -mx-1 min-w-0 flex-1 overflow-hidden rounded-md px-1 transition-colors"
                     >
                       <p
-                        className="text-foreground leading-snug font-semibold tracking-tight break-words"
+                        className="text-foreground leading-snug font-semibold tracking-tight [overflow-wrap:anywhere] break-words"
                         dir="auto"
                         title={displayThreadTitle(
                           thread.shortDisplayTitle,
@@ -67,14 +67,14 @@ export function InboxSummary({
                       {usableDisplayText(thread.summary) &&
                       usableDisplayText(thread.shortDisplayTitle) ? (
                         <p
-                          className="text-muted-foreground mt-1 line-clamp-2 text-sm leading-relaxed"
+                          className="text-muted-foreground mt-1 line-clamp-2 text-sm leading-relaxed [overflow-wrap:anywhere] break-words"
                           dir="auto"
                         >
                           {usableDisplayText(thread.summary)}
                         </p>
                       ) : null}
                     </Link>
-                    <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
+                    <div className="flex min-w-0 flex-wrap items-center gap-2 sm:justify-end">
                       <ThreadTags
                         category={thread.category}
                         status={thread.status}
@@ -86,7 +86,7 @@ export function InboxSummary({
                       </span>
                     </div>
                   </div>
-                  <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
+                  <p className="text-muted-foreground mt-1 text-xs leading-relaxed break-words">
                     {threadPlacementReason({ tab })}
                   </p>
                   <ThreadPlacementCorrection threadId={thread.id} tab={tab} />

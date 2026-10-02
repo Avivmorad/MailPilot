@@ -1,6 +1,10 @@
+"use client";
+
 import type { ReactNode } from "react";
 
 import { SkipToContent } from "@/components/layout/skip-to-content";
+import { SIDEBAR_COLLAPSED_PAD_CLASS, SIDEBAR_EXPANDED_PAD_CLASS } from "@/lib/ui/sidebar";
+import { useSidebarCollapsed } from "@/lib/ui/use-sidebar-collapsed";
 import { cn } from "@/lib/utils";
 
 export function AppShell({
@@ -14,8 +18,15 @@ export function AppShell({
   children: ReactNode;
   width?: "wide" | "narrow";
 }) {
+  const [collapsed] = useSidebarCollapsed();
+
   return (
-    <div className="flex min-h-full flex-col lg:pl-60">
+    <div
+      className={cn(
+        "flex min-h-full flex-col lg:transition-[padding]",
+        collapsed ? SIDEBAR_COLLAPSED_PAD_CLASS : SIDEBAR_EXPANDED_PAD_CLASS,
+      )}
+    >
       <SkipToContent />
       {header}
       {banner}

@@ -1,10 +1,24 @@
-import { BarChart3, Inbox, LayoutDashboard, Newspaper, ScanSearch, Settings } from "lucide-react";
+"use client";
+
+import {
+  BarChart3,
+  ChevronLeft,
+  ChevronRight,
+  Inbox,
+  LayoutDashboard,
+  LogOut,
+  Newspaper,
+  ScanSearch,
+  Settings,
+} from "lucide-react";
 import Link from "next/link";
 
 import { Logo } from "@/components/brand/logo";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { isUsageTelemetryUiEnabled } from "@/lib/config/features";
+import { SIDEBAR_COLLAPSED_WIDTH_CLASS, SIDEBAR_EXPANDED_WIDTH_CLASS } from "@/lib/ui/sidebar";
+import { useSidebarCollapsed } from "@/lib/ui/use-sidebar-collapsed";
 import { cn } from "@/lib/utils";
 
 const BASE_NAV = [
@@ -31,25 +45,58 @@ export type AppNavCurrent =
 
 export function AppHeader({ email, current }: { email?: string | null; current: AppNavCurrent }) {
   const nav = isUsageTelemetryUiEnabled() ? [...BASE_NAV, USAGE_NAV] : [...BASE_NAV];
+  const [collapsed, setCollapsed] = useSidebarCollapsed();
 
   return (
-    <header className="border-sidebar-border bg-sidebar text-sidebar-foreground sticky top-0 z-40 border-b lg:fixed lg:inset-y-0 lg:flex lg:w-60 lg:flex-col lg:border-r lg:border-b-0">
-      <div className="flex items-center justify-between gap-3 px-4 py-3 lg:px-4 lg:py-5">
+    <header
+      className={cn(
+        "border-sidebar-border bg-sidebar text-sidebar-foreground sticky top-0 z-40 border-b lg:fixed lg:inset-y-0 lg:flex lg:flex-col lg:border-r lg:border-b-0 lg:transition-[width]",
+        collapsed ? SIDEBAR_COLLAPSED_WIDTH_CLASS : SIDEBAR_EXPANDED_WIDTH_CLASS,
+      )}
+    >
+      <div
+        className={cn(
+          "flex items-center justify-between gap-3 px-4 py-3 lg:py-5",
+          collapsed ? "lg:flex-col lg:gap-3 lg:px-2" : "lg:px-4",
+        )}
+      >
         <Link
           href="/dashboard"
           className="focus-visible:ring-ring shrink-0 rounded-lg hover:opacity-90 focus-visible:ring-3 focus-visible:outline-none"
           aria-label="MailPriority home"
         >
-          <Logo />
+          <span className="inline-flex lg:hidden">
+            <Logo />
+          </span>
+          <span className="hidden lg:inline-flex">
+            <Logo showWordmark={!collapsed} />
+          </span>
         </Link>
         <div className="flex items-center gap-1 lg:hidden">
           <ThemeToggle />
           <SignOutForm />
         </div>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          className="text-muted-foreground hover:text-foreground hidden shrink-0 lg:inline-flex"
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          aria-expanded={!collapsed}
+          aria-controls="app-sidebar-nav"
+          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          onClick={() => setCollapsed(!collapsed)}
+        >
+          {collapsed ? <ChevronRight aria-hidden /> : <ChevronLeft aria-hidden />}
+        </Button>
       </div>
       <nav
+        id="app-sidebar-nav"
         aria-label="Main"
-        className="flex gap-1 overflow-x-auto px-3 pb-3 lg:flex-1 lg:flex-col lg:overflow-visible lg:px-3 lg:pb-0"
+        className={cn(
+          "flex gap-1 overflow-x-auto px-3 pb-3 lg:flex-1 lg:flex-col lg:overflow-visible lg:pb-0",
+          collapsed ? "lg:items-center lg:px-2" : "lg:px-3",
+        )}
       >
         {nav.map((item) => {
           const Icon = NAV_ICONS[item.href];
@@ -59,40 +106,59 @@ export function AppHeader({ email, current }: { email?: string | null; current: 
               key={item.href}
               href={item.path}
               aria-current={active ? "page" : undefined}
+              title={item.label}
               className={cn(
                 "focus-visible:ring-ring inline-flex min-h-10 items-center gap-2 rounded-lg px-3 text-sm whitespace-nowrap transition-colors focus-visible:ring-3 focus-visible:outline-none lg:w-full",
+                collapsed && "lg:w-10 lg:justify-center lg:px-0",
                 active
                   ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
                   : "text-muted-foreground hover:bg-sidebar-accent/70 hover:text-foreground",
               )}
             >
               <Icon className="size-4 shrink-0" aria-hidden />
-              {item.label}
+              <span className={cn(collapsed && "lg:sr-only")}>{item.label}</span>
             </Link>
           );
         })}
       </nav>
-      <div className="border-sidebar-border mt-auto hidden gap-3 border-t px-4 py-4 lg:grid">
-        {email ? (
+      <div
+        className={cn(
+          "border-sidebar-border mt-auto hidden gap-3 border-t py-4 lg:grid",
+          collapsed ? "lg:justify-items-center lg:px-2" : "lg:px-4",
+        )}
+      >
+        {email && !collapsed ? (
           <span className="text-muted-foreground truncate text-sm" title={email}>
             {email}
           </span>
         ) : null}
-        <div className="flex items-center justify-between gap-2">
+        <div className={cn("flex items-center gap-2", collapsed ? "flex-col" : "justify-between")}>
           <ThemeToggle />
-          <SignOutForm />
+          <SignOutForm iconOnly={collapsed} />
         </div>
       </div>
     </header>
   );
 }
 
-function SignOutForm() {
+function SignOutForm({ iconOnly = false }: { iconOnly?: boolean }) {
   return (
     <form action="/auth/signout" method="post">
-      <Button type="submit" variant="outline" size="sm">
-        Sign out
-      </Button>
+      {iconOnly ? (
+        <Button
+          type="submit"
+          variant="outline"
+          size="icon-sm"
+          aria-label="Sign out"
+          title="Sign out"
+        >
+          <LogOut aria-hidden />
+        </Button>
+      ) : (
+        <Button type="submit" variant="outline" size="sm">
+          Sign out
+        </Button>
+      )}
     </form>
   );
 }

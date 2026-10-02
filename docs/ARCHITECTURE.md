@@ -45,6 +45,9 @@ Manual Scan now and scheduled scans share the same pipeline.
 7. On window finish `SUCCESS` or `PARTIAL`, write the in-app digest when enabled.
 8. Advance Gmail `historyId` only on `SUCCESS`.
 
+Provider HTTP attempts also append one `triage_usage` row (best-effort; must not
+fail the scan or skip labels). See **Token / cost telemetry** below.
+
 ### Scan modes
 
 | Mode               | Behavior                                                      |
@@ -116,19 +119,32 @@ See [`tests/fixtures/README.md`](../tests/fixtures/README.md).
 Authoritative SQL is in [`supabase/migrations/`](../supabase/migrations/).
 Summary of user-facing tables:
 
-| Area     | Tables                                                      |
-| -------- | ----------------------------------------------------------- |
-| Account  | `profiles`                                                  |
-| Gmail    | `gmail_connections`, `gmail_labels`                         |
-| Settings | `user_triage_settings`                                      |
-| Mail     | `email_threads`, `email_messages` (no long-term bodies)     |
-| Work     | `action_items`, classification feedback                     |
-| Scans    | `scan_runs`, `scan_jobs` (+ chunk cursor, leases, progress) |
-| Digest   | `digest_reports` (in-app snapshots)                         |
+| Area      | Tables                                                      |
+| --------- | ----------------------------------------------------------- |
+| Account   | `profiles`                                                  |
+| Gmail     | `gmail_connections`, `gmail_labels`                         |
+| Settings  | `user_triage_settings`                                      |
+| Mail      | `email_threads`, `email_messages` (no long-term bodies)     |
+| Work      | `action_items`, classification feedback                     |
+| Scans     | `scan_runs`, `scan_jobs` (+ chunk cursor, leases, progress) |
+| Digest    | `digest_reports` (in-app snapshots)                         |
+| Telemetry | `triage_usage` (append-only provider token counts)          |
 
 RLS: `user_id = auth.uid()` on user-accessible tables. Scan writes use the
 service role (`@/lib/supabase/admin`). One active Gmail mailbox cannot be
 connected to two MailPriority users.
+
+## Token / cost telemetry
+
+- `generateWithNvidia` / `generateWithGemini` return `{ text, usage }` (Zod-parsed
+  provider counts; never store prompts or response text).
+- `processScan` passes `onProviderUsage` → best-effort insert into `triage_usage`.
+- Pricing: `src/lib/ai/pricing.ts` (integer micro-USD; free-tier NVIDIA + Gemini
+  rows are `$0` / `billable: false`).
+- Optional UI: `NEXT_PUBLIC_USAGE_TELEMETRY_UI=1` → `/usage` + nav link
+  (`src/app/usage/`, `src/components/usage/`, `src/lib/ai/usage-queries.ts`).
+  Flag off: redirect to Mail. Table + write path stay.
+- Delete analysis removes `triage_usage` with other analysis data.
 
 ## Security and privacy
 
@@ -159,17 +175,18 @@ Business logic stays in `src/lib/**`. Route map:
 
 ## Key directories
 
-| Path                     | Role                                            |
-| ------------------------ | ----------------------------------------------- |
-| `src/lib/ai/`            | Providers, schemas, prompts, post-process, eval |
-| `src/lib/gmail/`         | OAuth, fetch, parse, history, labels, quota     |
-| `src/lib/scans/`         | Process, dispatch, continue, leases, progress   |
-| `src/lib/mail/`          | Tabs, placement, buckets                        |
-| `src/lib/actions/`       | Action workflow reconcile / mutations           |
-| `src/lib/digest/`        | In-app digest build                             |
-| `src/lib/privacy/`       | Deletion, public policy                         |
-| `src/lib/observability/` | Structured events, Sentry privacy               |
-| `supabase/migrations/`   | Schema source of truth                          |
+| Path                     | Role                                                   |
+| ------------------------ | ------------------------------------------------------ |
+| `src/lib/ai/`            | Providers, schemas, prompts, post-process, eval, usage |
+| `src/lib/gmail/`         | OAuth, fetch, parse, history, labels, quota            |
+| `src/lib/scans/`         | Process, dispatch, continue, leases, progress          |
+| `src/lib/mail/`          | Tabs, placement, buckets                               |
+| `src/lib/actions/`       | Action workflow reconcile / mutations                  |
+| `src/lib/digest/`        | In-app digest build                                    |
+| `src/lib/privacy/`       | Deletion, public policy                                |
+| `src/lib/observability/` | Structured events, Sentry privacy                      |
+| `src/app/usage/`         | Optional operator Usage screen (feature-flagged)       |
+| `supabase/migrations/`   | Schema source of truth                                 |
 
 ## Conventions
 

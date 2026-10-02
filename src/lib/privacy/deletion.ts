@@ -23,6 +23,7 @@ export const deleteAccountRequestSchema = z.object({
 });
 
 export type UserScopedTable =
+  | "triage_usage"
   | "digest_reports"
   | "scan_runs"
   | "classification_feedback"
@@ -50,6 +51,8 @@ export async function deleteAnalysisDataForUser(
   const deleted: Record<string, number> = {};
   const connectionIds = await port.connectionIdsForUser(userId);
   await port.abortActiveScansForUser(userId, connectionIds);
+  // Usage rows reference scan_runs; delete them before scan_runs.
+  deleted.triage_usage = await port.deleteWhereUser("triage_usage", userId);
   deleted.digest_reports = await port.deleteWhereUser("digest_reports", userId);
   deleted.scan_jobs = await port.deleteScanJobsForConnections(connectionIds);
   deleted.scan_runs = await port.deleteWhereUser("scan_runs", userId);

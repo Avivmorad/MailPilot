@@ -8,6 +8,7 @@ describe("public privacy policy", () => {
       " ",
     );
     expect(text).toContain(GMAIL_MODIFY_SCOPE);
+    expect(text).toMatch(/token counts and a priced estimate/i);
     expect(text).toMatch(/does not persist full email bodies/i);
     expect(text).toMatch(/does not send, delete, or archive mail/i);
     expect(text).toMatch(/encrypted at rest/i);

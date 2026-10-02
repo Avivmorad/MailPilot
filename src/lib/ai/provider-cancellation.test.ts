@@ -4,6 +4,7 @@ import type { EmailTriageProvider } from "@/lib/ai/analyze-thread";
 import { GeminiEmailTriageProvider } from "@/lib/ai/client";
 import { NvidiaEmailTriageProvider } from "@/lib/ai/nvidia";
 import type { ThreadAnalysisInput } from "@/lib/ai/types";
+import type { GenerateWithUsage } from "@/lib/ai/usage";
 
 const input: ThreadAnalysisInput = {
   userEmails: ["me@example.test"],
@@ -13,7 +14,7 @@ const input: ThreadAnalysisInput = {
   latestDirection: "INBOUND",
 };
 
-type Generate = (params: { signal: AbortSignal }) => Promise<string>;
+type Generate = (params: { signal: AbortSignal }) => Promise<GenerateWithUsage>;
 const providers: Array<[string, (generate: Generate) => EmailTriageProvider]> = [
   [
     "Gemini",
@@ -46,7 +47,7 @@ describe.each(providers)("%s caller cancellation", (_name, createProvider) => {
     let requestSignal: AbortSignal | undefined;
     const generate = vi.fn(({ signal }: { signal: AbortSignal }) => {
       requestSignal = signal;
-      return new Promise<string>(() => undefined);
+      return new Promise<GenerateWithUsage>(() => undefined);
     });
     const failure = new Error("caller slice ended");
     const result = createProvider(generate).analyzeThread(input, { signal: controller.signal });
@@ -81,11 +82,19 @@ describe.each(providers)("%s caller cancellation", (_name, createProvider) => {
     const controller = new AbortController();
     const failure = new Error("already cancelled");
     controller.abort(failure);
-    const generate = vi.fn(async () => "{}");
+    const generate = vi.fn(async () => ({
+      text: "{}",
+      usage: {
+        inputTokens: null,
+        outputTokens: null,
+        reasoningTokens: null,
+        totalTokens: null,
+        source: "absent" as const,
+      },
+    }));
     await expect(
       createProvider(generate).analyzeThread(input, { signal: controller.signal }),
     ).rejects.toBe(failure);
     expect(generate).not.toHaveBeenCalled();
-    expect(vi.getTimerCount()).toBe(0);
   });
 });

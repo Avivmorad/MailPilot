@@ -38,12 +38,26 @@ Status chips for ignored mail say **Ignore**. The tab and digest count say **Ign
 - Incremental History API sync after the first successful scan
 - Daily scheduled scan; resumable scans across Vercel Hobby time slices
 - Privacy: no long-term full email body storage; delete analysis or account
+- Observe-only AI usage telemetry (`triage_usage`); optional Usage screen
 
 **Out of scope (MVP)**
 
 - Auto-send, auto-delete, or auto-archive mail
 - Email delivery of digests (in-app only; email digest is a later extension)
 - Merging similar notices into a single Gmail thread
+- Scan budget / cost caps (telemetry is observe-only)
+
+## AI usage (operator)
+
+Each classification HTTP call appends one `triage_usage` row (token counts, priced
+micro-USD, outcome). No prompts or message content. Both free-tier price rows are
+`$0` / `billable: false`.
+
+The removable **Usage** screen lives under `src/app/usage/` (+ `src/components/usage/`).
+Enable with `NEXT_PUBLIC_USAGE_TELEMETRY_UI=1` (`src/lib/config/features.ts`). When
+off, `/usage` redirects to Mail and the nav link is hidden; recording continues.
+SQL on the project remains the durable operator path. Delete analysis also removes
+`triage_usage`.
 
 ## Operating defaults
 

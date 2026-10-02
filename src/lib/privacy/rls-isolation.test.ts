@@ -16,6 +16,7 @@ describe("RLS isolation", () => {
       "0009_function_hardening.sql",
       "0010_gmail_mailbox_uniqueness.sql",
       "0011_check_constraints.sql",
+      "20261002000000_triage_usage.sql",
     ]
       .map((name) => readFileSync(path.join(migrationsDir, name), "utf8"))
       .join("\n");
@@ -32,6 +33,7 @@ describe("RLS isolation", () => {
       "digest_reports_select_own",
       "classification_feedback_select_own",
       "scan_jobs_select_own",
+      "triage_usage_select_own",
     ];
     for (const policy of required) {
       expect(sql, policy).toContain(`create policy "${policy}"`);

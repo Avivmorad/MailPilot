@@ -12,6 +12,8 @@ export const config = {
     "/login",
     "/login/:path*",
     "/dashboard/:path*",
+    "/scan",
+    "/scan/:path*",
     "/actions/:path*",
     "/mail/:path*",
     "/digests",

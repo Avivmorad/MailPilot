@@ -1,4 +1,3 @@
-import { Clock3, Inbox, ListChecks } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
@@ -8,7 +7,6 @@ import { GmailConnectionCard } from "@/components/gmail/gmail-connection-card";
 import { AppChrome } from "@/components/layout/app-chrome";
 import { EmptyState } from "@/components/layout/empty-state";
 import { PageHeader } from "@/components/layout/page-header";
-import { InitialScanCard } from "@/components/scans/initial-scan-card";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { listActionsForUser, type ActionListItem } from "@/lib/actions/queries";
@@ -17,9 +15,11 @@ import { ensureDigestForLatestScan } from "@/lib/digest/build-digest";
 import { getGmailStatusForUser } from "@/lib/gmail/connections";
 import { shouldShowGmailRecoveryCard } from "@/lib/gmail/recovery";
 import { getOnboardingStepForUser } from "@/lib/onboarding/load";
-import { getInboxCountsForUser, getLatestScanRunForUser } from "@/lib/scans/manual";
+import { getMailFigures, type MailFigures } from "@/lib/mail/figures";
+import { getLatestScanRunForUser } from "@/lib/scans/manual";
+import { formatDateTime } from "@/lib/ui/format";
+import { labelForScanStatus } from "@/lib/ui/labels";
 import { getSessionUser } from "@/lib/supabase/auth";
-import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -60,22 +60,14 @@ function nextStep({
   processed: number;
   scanRunning: boolean;
 }): { title: string; body: string; href: string; label: string } | null {
-  if (!connected) {
+  if (!connected || scanRunning) {
     return null;
-  }
-  if (scanRunning) {
-    return {
-      title: "Scan in progress",
-      body: "Progress is on the scan panel below. Mail lists update as threads finish.",
-      href: "#scan",
-      label: "View scan",
-    };
   }
   if (processed === 0) {
     return {
       title: "Run your first scan",
       body: "Choose a lookback window and classify recent mail. Actions will land here.",
-      href: "#scan",
+      href: "/scan",
       label: "Scan now",
     };
   }
@@ -122,7 +114,16 @@ export default async function DashboardPage({
   const [params, gmailStatus] = await Promise.all([searchParams, getGmailStatusForUser(user.id)]);
   const connected = gmailStatus.connection?.status === "CONNECTED";
   const showGmailCard = Boolean(params.gmail) || shouldShowGmailRecoveryCard(gmailStatus);
-  const emptyCounts = { processed: 0, important: 0, needAction: 0, waiting: 0, ignored: 0, fyi: 0 };
+  const emptyFigures: MailFigures = {
+    processed: 0,
+    actions: 0,
+    pending: 0,
+    forYou: 0,
+    ignored: 0,
+    important: 0,
+    closed: 0,
+    snoozed: 0,
+  };
   const latestScan = connected ? await getLatestScanRunForUser(user.id) : null;
   const latestScanStatus = latestScan ? String(latestScan.status) : "";
   const latestStartedAt = typeof latestScan?.started_at === "string" ? latestScan.started_at : null;
@@ -133,11 +134,11 @@ export default async function DashboardPage({
   let actionsLoadError = false;
   let countsLoadError = false;
 
-  const [counts, openActions, latestDigest, dashboardChanges] = connected
+  const [figures, openActions, latestDigest, dashboardChanges] = connected
     ? await Promise.all([
-        getInboxCountsForUser(user.id).catch(() => {
+        getMailFigures(user.id).catch(() => {
           countsLoadError = true;
-          return emptyCounts;
+          return emptyFigures;
         }),
         listActionsForUser(user.id, "OPEN").catch(() => {
           actionsLoadError = true;
@@ -161,7 +162,7 @@ export default async function DashboardPage({
         })),
       ])
     : [
-        emptyCounts,
+        emptyFigures,
         [],
         null,
         {
@@ -187,32 +188,26 @@ export default async function DashboardPage({
     : nextStep({
         connected,
         openCount,
-        processed: counts.processed,
+        processed: figures.processed,
         scanRunning: latestStatus === "RUNNING",
       });
-  const stats = [
-    {
-      label: "Actions",
-      value: connected && !actionsLoadError ? String(openCount) : "—",
-      href: "/mail?tab=open",
-      icon: ListChecks,
-      hero: true,
-    },
-    {
-      label: "Pending",
-      value: connected && !countsLoadError ? String(counts.waiting) : "—",
-      href: "/mail?tab=waiting",
-      icon: Clock3,
-      hero: false,
-    },
-    {
-      label: "For You",
-      value: connected && !countsLoadError ? String(counts.fyi) : "—",
-      href: "/mail?tab=summary",
-      icon: Inbox,
-      hero: false,
-    },
+  const showCount = connected && !countsLoadError;
+  const countText = (value: number) => (showCount ? String(value) : "—");
+  const primaryStats = [
+    { label: "Actions", value: countText(figures.actions), href: "/mail?tab=open" },
+    { label: "Pending", value: countText(figures.pending), href: "/mail?tab=waiting" },
+    { label: "For You", value: countText(figures.forYou), href: "/mail?tab=summary" },
+    { label: "Ignored", value: countText(figures.ignored), href: "/mail?tab=ignored" },
   ];
+  const secondaryStats = [
+    { label: "Closed", value: countText(figures.closed), href: "/mail?tab=completed" },
+    { label: "Snoozed", value: countText(figures.snoozed), href: "/mail?tab=snoozed" },
+  ];
+  const scanRunning = latestStatus === "RUNNING";
+  const lastScanFinishedAt =
+    latestScan && !scanRunning
+      ? ((latestScan.finished_at as string | null | undefined) ?? null)
+      : null;
 
   return (
     <AppChrome user={user} current="dashboard">
@@ -234,6 +229,53 @@ export default async function DashboardPage({
         />
       ) : null}
 
+      {scanRunning ? (
+        <div className="bg-card ring-foreground/10 flex flex-wrap items-center justify-between gap-3 rounded-xl px-4 py-4 ring-1">
+          <div>
+            <p className="font-medium tracking-tight">Live progress</p>
+            <p className="text-muted-foreground mt-0.5 text-sm">
+              A scan is running. The circle and the latest numbers are on the Scan tab.
+            </p>
+            {changeLine ? (
+              <p className="text-muted-foreground mt-1 text-sm leading-relaxed">{changeLine}</p>
+            ) : null}
+          </div>
+          <Link href="/scan" className={buttonVariants()}>
+            Open scan
+          </Link>
+        </div>
+      ) : (
+        <div className="bg-card ring-foreground/10 rounded-xl px-4 py-4 ring-1">
+          <p className="font-medium tracking-tight">Last scan</p>
+          {latestScan ? (
+            <dl className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <div>
+                <dt className="text-muted-foreground text-xs">Emails scanned</dt>
+                <dd className="mt-0.5 text-lg font-semibold tabular-nums">
+                  {Number(latestScan.messages_processed ?? 0)}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground text-xs">Conversations checked</dt>
+                <dd className="mt-0.5 text-lg font-semibold tabular-nums">
+                  {Number(latestScan.threads_checked ?? 0)}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground text-xs">Status</dt>
+                <dd className="mt-0.5 text-sm font-medium">{labelForScanStatus(latestStatus)}</dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground text-xs">Finished</dt>
+                <dd className="mt-0.5 text-sm font-medium">{formatDateTime(lastScanFinishedAt)}</dd>
+              </div>
+            </dl>
+          ) : (
+            <p className="text-muted-foreground mt-1 text-sm">No scan yet.</p>
+          )}
+        </div>
+      )}
+
       {step ? (
         <div className="bg-card ring-foreground/10 flex flex-wrap items-center justify-between gap-3 rounded-xl px-4 py-3 ring-1">
           <div className="min-w-0">
@@ -249,33 +291,53 @@ export default async function DashboardPage({
         </div>
       ) : null}
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        {stats.map((stat) => (
-          <Link
-            key={stat.label}
-            href={stat.href}
-            className="block rounded-xl focus-visible:ring-2 focus-visible:ring-offset-2"
-          >
-            <Card
-              size={stat.hero ? "default" : "sm"}
-              className="hover:bg-muted/40 h-full transition-colors"
+      <section className="space-y-3">
+        <h2 className="text-foreground text-lg font-semibold tracking-tight">Inbox now</h2>
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {primaryStats.map((stat) => (
+            <Link
+              key={stat.label}
+              href={stat.href}
+              className="focus-visible:ring-ring block rounded-xl focus-visible:ring-3 focus-visible:outline-none"
             >
-              <CardContent className={cn(stat.hero ? "pt-1" : "")}>
-                <stat.icon className="text-muted-foreground mb-2 size-4" aria-hidden />
-                <div
-                  className={cn(
-                    "font-semibold tracking-tight tabular-nums",
-                    stat.hero ? "text-4xl" : "text-3xl",
-                  )}
-                >
-                  {stat.value}
-                </div>
-                <div className="text-muted-foreground mt-1 text-sm">{stat.label}</div>
-              </CardContent>
-            </Card>
-          </Link>
-        ))}
-      </div>
+              <Card className="hover:bg-muted/40 h-full transition-colors">
+                <CardContent>
+                  <div className="text-3xl font-semibold tracking-tight tabular-nums">
+                    {stat.value}
+                  </div>
+                  <div className="text-muted-foreground mt-1 text-sm">{stat.label}</div>
+                </CardContent>
+              </Card>
+            </Link>
+          ))}
+        </div>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          {secondaryStats.map((stat) => (
+            <Link
+              key={stat.label}
+              href={stat.href}
+              className="focus-visible:ring-ring block rounded-xl focus-visible:ring-3 focus-visible:outline-none"
+            >
+              <Card size="sm" className="hover:bg-muted/40 h-full transition-colors">
+                <CardContent>
+                  <div className="text-2xl font-semibold tracking-tight tabular-nums">
+                    {stat.value}
+                  </div>
+                  <div className="text-muted-foreground mt-1 text-sm">{stat.label}</div>
+                </CardContent>
+              </Card>
+            </Link>
+          ))}
+          <Card size="sm">
+            <CardContent>
+              <div className="text-2xl font-semibold tracking-tight tabular-nums">
+                {countText(figures.important)}
+              </div>
+              <div className="text-muted-foreground mt-1 text-sm">Important</div>
+            </CardContent>
+          </Card>
+        </div>
+      </section>
 
       <section className="space-y-3">
         <div className="flex flex-wrap items-end justify-between gap-2">
@@ -326,7 +388,7 @@ export default async function DashboardPage({
             }
             action={
               connected ? (
-                <Link href="#scan" className={buttonVariants({ size: "sm" })}>
+                <Link href="/scan" className={buttonVariants({ size: "sm" })}>
                   Scan now
                 </Link>
               ) : (
@@ -341,35 +403,6 @@ export default async function DashboardPage({
           />
         )}
       </section>
-
-      <InitialScanCard
-        connected={connected}
-        incremental={Boolean(gmailStatus.connection?.lastSuccessfulScanAt)}
-        latestScan={
-          latestScan
-            ? {
-                id: String(latestScan.id),
-                status: String(latestScan.status),
-                threads_discovered: Number(latestScan.threads_discovered ?? 0),
-                threads_checked: Number(latestScan.threads_checked ?? 0),
-                error_code: (latestScan.error_code as string | null | undefined) ?? null,
-                error_message: (latestScan.error_message as string | null | undefined) ?? null,
-              }
-            : null
-        }
-        lastRunAt={
-          latestStatus === "RUNNING"
-            ? null
-            : ((latestScan?.finished_at as string | null | undefined) ?? null)
-        }
-        lastRunStatus={latestStatus === "RUNNING" ? null : latestStatus}
-        messagesProcessed={
-          latestScan && latestStatus !== "RUNNING"
-            ? Number(latestScan.messages_processed ?? 0)
-            : null
-        }
-        nextScanAt={gmailStatus.connection?.nextScanAt}
-      />
 
       <DigestReportCard digest={latestDigest} variant="compact" />
 

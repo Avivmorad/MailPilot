@@ -103,7 +103,7 @@ export function DigestReportCard({
             title="No digest yet"
             description="Run a scan to generate an in-app digest. Counts come from mail already stored in MailPriority."
             action={
-              <Link href="/dashboard#scan" className={buttonVariants({ size: "sm" })}>
+              <Link href="/scan" className={buttonVariants({ size: "sm" })}>
                 Scan now
               </Link>
             }

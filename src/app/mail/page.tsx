@@ -15,13 +15,59 @@ import {
   isUncertainClassification,
   parseUncertainFilter,
 } from "@/lib/mail/filters";
-import { actionStatusForMailTab, MAIL_TABS, mailTabEmptyCopy, parseMailTab } from "@/lib/mail/tabs";
+import { getMailFigures, type MailFigures } from "@/lib/mail/figures";
+import {
+  actionStatusForMailTab,
+  MAIL_TABS,
+  mailTabEmptyCopy,
+  parseMailTab,
+  type MailTab,
+} from "@/lib/mail/tabs";
 import { getSessionUser } from "@/lib/supabase/auth";
 import { requireOnboardingComplete } from "@/lib/onboarding/guard";
 import { listIgnoredThreadsForUser, listRecentThreadsForUser } from "@/lib/threads/queries";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
+
+const MAIL_SECTION_GROUPS = [
+  {
+    label: "Work",
+    items: [
+      { id: "summary", hint: "Useful updates" },
+      { id: "open", hint: "Needs a next step" },
+      { id: "waiting", hint: "Waiting on someone else" },
+    ],
+  },
+  {
+    label: "Record",
+    items: [
+      { id: "completed", hint: "Tasks you finished" },
+      { id: "snoozed", hint: "Postponed" },
+      { id: "ignored", hint: "Noise and OTPs" },
+    ],
+  },
+] as const;
+
+function sectionCount(tab: MailTab, figures: MailFigures | null): string {
+  if (!figures) {
+    return "—";
+  }
+  switch (tab) {
+    case "summary":
+      return String(figures.forYou);
+    case "open":
+      return String(figures.actions);
+    case "waiting":
+      return String(figures.pending);
+    case "completed":
+      return String(figures.closed);
+    case "snoozed":
+      return String(figures.snoozed);
+    case "ignored":
+      return String(figures.ignored);
+  }
+}
 
 function tabDescription(tab: ReturnType<typeof parseMailTab>): string {
   switch (tab) {
@@ -58,7 +104,7 @@ export default async function MailPage({
 
   let queryError = false;
 
-  const [actionItems, summaryThreads, ignoredThreads, gmailStatus] = await Promise.all([
+  const [actionItems, summaryThreads, ignoredThreads, gmailStatus, figures] = await Promise.all([
     actionStatus
       ? listActionsForUser(user.id, actionStatus).catch(() => {
           queryError = true;
@@ -78,6 +124,7 @@ export default async function MailPage({
         })
       : Promise.resolve([]),
     getGmailStatusForUser(user.id),
+    getMailFigures(user.id).catch(() => null),
   ]);
   const uncertainCount = actionItems.filter((item) =>
     isUncertainClassification(item.confidence),
@@ -94,7 +141,7 @@ export default async function MailPage({
       {gmailRecoveryActionLabel(gmailStatus)}
     </a>
   ) : (
-    <Link href="/dashboard#scan" className={buttonVariants({ size: "sm" })}>
+    <Link href="/scan" className={buttonVariants({ size: "sm" })}>
       Scan now
     </Link>
   );
@@ -102,21 +149,38 @@ export default async function MailPage({
   return (
     <AppChrome user={user} current="mail">
       <PageHeader title="Mail" description={tabDescription(tab)} />
-      <nav aria-label="Mail views" className="bg-muted/70 flex flex-wrap gap-1 rounded-xl p-1">
-        {MAIL_TABS.map((item) => (
-          <Link
-            key={item.id}
-            href={`/mail?tab=${item.id}`}
-            aria-current={tab === item.id ? "page" : undefined}
-            className={cn(
-              "focus-visible:ring-ring inline-flex min-h-10 items-center rounded-lg px-3 py-1.5 text-sm transition-colors focus-visible:ring-3 focus-visible:outline-none",
-              tab === item.id
-                ? "bg-background text-foreground font-medium shadow-xs"
-                : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            {item.label}
-          </Link>
+      <nav aria-label="Mail views" className="flex items-stretch gap-3 overflow-x-auto pb-1">
+        {MAIL_SECTION_GROUPS.map((group, index) => (
+          <div key={group.label} className="flex min-w-0 items-stretch gap-3">
+            {index > 0 ? <div className="bg-border w-px shrink-0" aria-hidden /> : null}
+            <div className="flex gap-2">
+              {group.items.map((item) => {
+                const meta = MAIL_TABS.find((entry) => entry.id === item.id);
+                const active = tab === item.id;
+                return (
+                  <Link
+                    key={item.id}
+                    href={`/mail?tab=${item.id}`}
+                    aria-current={active ? "page" : undefined}
+                    className={cn(
+                      "focus-visible:ring-ring flex min-w-36 flex-col rounded-xl border px-3 py-2.5 transition-colors focus-visible:ring-3 focus-visible:outline-none",
+                      active
+                        ? "border-primary bg-primary/10 text-foreground"
+                        : "border-border bg-card text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    <span className="flex items-center justify-between gap-3">
+                      <span className={cn("text-sm", active && "font-medium")}>{meta?.label}</span>
+                      <span className="text-foreground text-sm font-semibold tabular-nums">
+                        {sectionCount(item.id, figures)}
+                      </span>
+                    </span>
+                    <span className="mt-1 text-xs">{item.hint}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
         ))}
       </nav>
       {queryError ? (

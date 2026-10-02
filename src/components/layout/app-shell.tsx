@@ -15,7 +15,7 @@ export function AppShell({
   width?: "wide" | "narrow";
 }) {
   return (
-    <div className="flex min-h-full flex-col">
+    <div className="flex min-h-full flex-col lg:pl-60">
       <SkipToContent />
       {header}
       {banner}

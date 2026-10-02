@@ -32,6 +32,10 @@ import { BEST_EFFORT_DAILY_NOTE } from "@/lib/settings/schedule-copy";
 import { formatDateTime } from "@/lib/ui/format";
 import { labelForScanStatus } from "@/lib/ui/labels";
 
+function formatCount(value: number | null): string {
+  return value === null ? "—" : String(value);
+}
+
 const POLL_MISS_LIMIT = 3;
 /** Wait this long after a poll settles before the next one. One request at a time. */
 const POLL_INTERVAL_MS = 800;
@@ -168,6 +172,8 @@ export function InitialScanCard({
   lastRunStatus,
   messagesProcessed,
   completeHref = "/dashboard?scan=done",
+  breakdown = null,
+  returnTo = "/dashboard",
 }: {
   connected: boolean;
   incremental: boolean;
@@ -177,6 +183,14 @@ export function InitialScanCard({
   lastRunStatus?: string | null;
   messagesProcessed?: number | null;
   completeHref?: string;
+  breakdown?: {
+    actions: number | null;
+    pending: number | null;
+    forYou: number | null;
+    ignored: number | null;
+    important: number | null;
+  } | null;
+  returnTo?: string;
 }) {
   const router = useRouter();
   const resumeId = latestScan?.status === "RUNNING" ? latestScan.id : null;
@@ -531,8 +545,30 @@ export function InitialScanCard({
 
   const bar = progress
     ? snapshotProgress(progress)
-    : { threadsDiscovered: 0, threadsChecked: 0, status: null, errorCode: null };
+    : {
+        threadsDiscovered: latestScan?.threads_discovered ?? 0,
+        threadsChecked: latestScan?.threads_checked ?? 0,
+        status: lastRunStatus ?? latestScan?.status ?? null,
+        errorCode: latestScan?.error_code ?? null,
+      };
   const statusLabel = lastRunStatus ? labelForScanStatus(lastRunStatus) : null;
+  const updatedAt = progress?.updated_at ?? lastRunAt ?? null;
+  const factItems = [
+    {
+      label: "Conversations",
+      value: `${bar.threadsChecked} of ${bar.threadsDiscovered}`,
+    },
+    {
+      label: "Emails scanned",
+      value: typeof messagesProcessed === "number" ? String(messagesProcessed) : "—",
+    },
+    { label: "Actions", value: breakdown ? formatCount(breakdown.actions) : null },
+    { label: "Pending", value: breakdown ? formatCount(breakdown.pending) : null },
+    { label: "For You", value: breakdown ? formatCount(breakdown.forYou) : null },
+    { label: "Ignored", value: breakdown ? formatCount(breakdown.ignored) : null },
+    { label: "Important", value: breakdown ? formatCount(breakdown.important) : null },
+    { label: "Updated", value: formatDateTime(updatedAt) },
+  ].filter((item): item is { label: string; value: string } => item.value !== null);
 
   return (
     <Card id="scan">
@@ -544,15 +580,23 @@ export function InitialScanCard({
             : "Choose how far back to read. Unchanged threads are skipped."}
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
-        {busy ? (
+      <CardContent className="space-y-5">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
           <ScanProgressBar
             threadsChecked={bar.threadsChecked}
             threadsDiscovered={bar.threadsDiscovered}
             status={bar.status}
             errorCode={bar.errorCode}
           />
-        ) : null}
+          <dl className="grid flex-1 grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3">
+            {factItems.map((item) => (
+              <div key={item.label}>
+                <dt className="text-muted-foreground text-xs">{item.label}</dt>
+                <dd className="mt-0.5 text-sm font-medium tabular-nums">{item.value}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
         <div className="flex flex-wrap items-end gap-3">
           <label className="block min-w-40 flex-1 text-sm">
             <span className="text-muted-foreground mb-1.5 block" id="scan-lookback-label">
@@ -577,6 +621,7 @@ export function InitialScanCard({
           <Button
             type="button"
             size="lg"
+            className="h-11 px-5"
             disabled={!connected || busy}
             aria-busy={busy}
             onClick={() => void runScan()}
@@ -604,7 +649,7 @@ export function InitialScanCard({
             {error && errorCode === "reauth_required" ? (
               <>
                 {" "}
-                <a className="underline" href="/api/gmail/connect?returnTo=/dashboard">
+                <a className="underline" href={`/api/gmail/connect?returnTo=${returnTo}`}>
                   Reconnect Gmail
                 </a>
               </>

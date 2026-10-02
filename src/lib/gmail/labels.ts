@@ -19,7 +19,17 @@ export async function ensureManagedLabels(
   const client = createOAuth2Client();
   client.setCredentials({ access_token: accessToken, refresh_token: refreshToken });
   const gmail = google.gmail({ version: "v1", auth: client });
+  await ensureManagedLabelsWithGmail(connectionId, gmail);
+}
 
+/**
+ * Same as {@link ensureManagedLabels} when a Gmail client is already available
+ * (e.g. during a scan). Idempotent.
+ */
+export async function ensureManagedLabelsWithGmail(
+  connectionId: string,
+  gmail: gmail_v1.Gmail,
+): Promise<void> {
   const existing = await listAllLabels(gmail);
   const byName = new Map(
     existing

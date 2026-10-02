@@ -111,8 +111,9 @@ Rules:
   two competing statuses.
 - Gmail **`MailPilot/*` labels are presentation only**. A thread may carry more
   than one at once (e.g. Important + Action Required + Processed).
-- Labels are created if missing on first connect; mapping stored as
-  `logical_name → gmail_label_id`. Never modify user labels outside `MailPilot/`.
+- Labels are ensured after Connect Gmail (off the OAuth redirect wait) and
+  reconciled on scan if missing; mapping stored as `logical_name → gmail_label_id`.
+  Never modify user labels outside `MailPilot/`.
 - A Gmail inbox may be **actively connected to only one MailPriority user** at a
   time (`0010_gmail_mailbox_uniqueness.sql`).
 

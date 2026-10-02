@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 
 import { describe, expect, it } from "vitest";
 
-import { LAUNCH_APP_ORIGIN } from "@/lib/seo/public-origin";
+import { LAUNCH_APP_ORIGIN } from "@/lib/seo/public-host";
 
 const DOC_PATHS = ["README.md", "AGENTS.md", "docs/PRODUCT.md", "docs/SETUP.md"] as const;
 

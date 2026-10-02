@@ -56,7 +56,9 @@ describe("auth redirects", () => {
   });
 
   it("forwards a Site URL PKCE code to /auth/confirm", () => {
-    const forwarded = oauthCodeConfirmUrl(new URL("https://gmailpilot.vercel.app/?code=abc-123"));
+    const forwarded = oauthCodeConfirmUrl(
+      new URL("https://mail-priority.vercel.app/?code=abc-123"),
+    );
     expect(forwarded?.pathname).toBe("/auth/confirm");
     expect(forwarded?.searchParams.get("code")).toBe("abc-123");
     expect(forwarded?.searchParams.get("next")).toBe("/onboarding");
@@ -78,12 +80,12 @@ describe("auth redirects", () => {
   it("does not intercept Gmail OAuth or the confirm route", () => {
     expect(
       oauthCodeConfirmUrl(
-        new URL("https://gmailpilot.vercel.app/api/gmail/callback?code=gmail-code"),
+        new URL("https://mail-priority.vercel.app/api/gmail/callback?code=gmail-code"),
       ),
     ).toBeNull();
     expect(
       oauthCodeConfirmUrl(
-        new URL("https://gmailpilot.vercel.app/auth/confirm?code=abc&next=/onboarding"),
+        new URL("https://mail-priority.vercel.app/auth/confirm?code=abc&next=/onboarding"),
       ),
     ).toBeNull();
   });

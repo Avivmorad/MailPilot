@@ -15,7 +15,7 @@ labels: bug
 2.
 3.
 
-**Environment** (browser / OS / local vs https://gmailpilot.vercel.app)
+**Environment** (browser / OS / local vs https://mail-priority.vercel.app)
 
 **Notes**
 

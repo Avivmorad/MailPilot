@@ -6,9 +6,10 @@ Operating guidance for AI agents and developers working in this repository.
 
 The user-facing product name is **MailPriority**. The repository, package, and
 Gmail label prefix remain **MailPilot** (`MailPilot/`). The public app is
-`https://mail-priority.vercel.app`. `gmailpilot.vercel.app` redirects there and
-is not the launch host. Live Vercel, Supabase, and Google settings still follow
-[`docs/OWNER_TASKS.md`](docs/OWNER_TASKS.md) sections 2 and 3.
+`https://mail-priority.vercel.app`. `gmailpilot.vercel.app` is detached and
+returns 404. Owner tasks sections 2 and 3 in
+[`docs/OWNER_TASKS.md`](docs/OWNER_TASKS.md) are done. Do not clear those boxes
+unless a new live check fails the Done when line.
 
 Authoritative docs (do not invent different behavior without updating them):
 

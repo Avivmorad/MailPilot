@@ -4,7 +4,8 @@ Gmail inbox triage that answers three questions: **what happened, what do I need
 to do, and what’s pending?**
 
 The GitHub repository and Gmail label prefix stay **MailPilot** (`MailPilot/`).
-The public app is [mail-priority.vercel.app](https://mail-priority.vercel.app). [gmailpilot.vercel.app](https://gmailpilot.vercel.app) redirects there and is not the launch host.
+The public app is [mail-priority.vercel.app](https://mail-priority.vercel.app).
+`gmailpilot.vercel.app` is detached and returns 404.
 
 ## Live demo
 

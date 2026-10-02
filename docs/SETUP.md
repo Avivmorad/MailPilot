@@ -42,9 +42,8 @@ Supabase Auth, **no** Gmail scopes.
    Continue with Google from local falls back to the production Site URL.
    The launch host is `https://mail-priority.vercel.app`. Production
    `GOOGLE_REDIRECT_URI` is `https://mail-priority.vercel.app/api/gmail/callback`.
-   `https://gmailpilot.vercel.app` redirects to the launch host. Do not submit
-   that redirecting host as the Google consent-screen homepage. Live Vercel,
-   Supabase, and Google still need to be pointed at the launch host.
+   `gmailpilot.vercel.app` is detached and returns 404. Do not submit that
+   host as the Google consent-screen homepage.
 5. Sign-in returns to `/auth/confirm` (PKCE), then `/onboarding`. Gmail stays
    disconnected until Connect Gmail.
 

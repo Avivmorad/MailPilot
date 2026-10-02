@@ -5,12 +5,12 @@ What MailPriority does and how triage behaves. For how it is built, see
 
 ## Naming
 
-| Surface                        | Name                                                                                                                              |
-| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
-| Product / UI / privacy / terms | **MailPriority**                                                                                                                  |
-| GitHub repo, npm package       | **MailPilot**                                                                                                                     |
-| Gmail label prefix             | **`MailPilot/`** (do not rename to MailPriority)                                                                                  |
-| Public URL                     | [mail-priority.vercel.app](https://mail-priority.vercel.app). `gmailpilot.vercel.app` redirects there and is not the launch host. |
+| Surface                        | Name                                                                                                               |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------ |
+| Product / UI / privacy / terms | **MailPriority**                                                                                                   |
+| GitHub repo, npm package       | **MailPilot**                                                                                                      |
+| Gmail label prefix             | **`MailPilot/`** (do not rename to MailPriority)                                                                   |
+| Public URL                     | [mail-priority.vercel.app](https://mail-priority.vercel.app). `gmailpilot.vercel.app` is detached and returns 404. |
 
 Do not use the archived working name “Inbox Triage AI” in UI or new docs.
 

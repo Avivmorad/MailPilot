@@ -2,9 +2,9 @@
 
 Console and live checks only. App code stays in separate sessions. Check a box only when its **Done when** line is true.
 
-Supabase migrations `0007`–`0012` and `20260929174644_analysis_scan_attribution` are applied on `mailpilot-dev`. Vercel has the required env vars. The chosen public host is `https://mail-priority.vercel.app`. The Gmail redirect URI last recorded in Google is still `https://gmailpilot.vercel.app/api/gmail/callback` until section 3 is done. Sign-in, Connect Gmail, and a last-week Scan now already ran on the live app (699 conversations, finished partial: a few threads were not analyzed).
+Supabase migrations `0007`–`0012` and `20260929174644_analysis_scan_attribution` are applied on `mailpilot-dev`. Vercel has the required env vars. The public host is `https://mail-priority.vercel.app`. The Gmail redirect URI on record is `https://mail-priority.vercel.app/api/gmail/callback`. Sign-in, Connect Gmail, and a last-week Scan now already ran on the live app (699 conversations, finished partial: a few threads were not analyzed).
 
-Do the sections in order. Section 8's scan-timeout code is in the tree; its live Success boxes stay open. Section 9's dispatch code is in the tree; its ten-account live check is still open. The other sections can start now.
+Do the sections in order. Section 8's scan-timeout code is in the tree; its live Success boxes stay open. Section 9's dispatch code is in the tree; its ten-account live check is still open. Sections 1–3 are done. Do not clear those boxes unless a new live check fails the **Done when** line.
 
 ## Code sessions
 
@@ -14,7 +14,7 @@ Live boxes below stay open until their **Done when** line is true. Session progr
 - [x] Session 2, scan timeouts: a retryable AI timeout is retried once before the scan is sealed partial, and a thread that still fails stays stored so a later scan can retry it.
 - [x] Session 3, daily dispatch: one Hobby cron chains bounded slices so every due connection in the cycle is claimed, retries the next slice when it does not start, and raises a backlog alert if the queue does not drain.
 - [x] Session 4, privacy and schedule copy: local privacy and terms pages state retention and name NVIDIA Build when an NVIDIA API key is configured, otherwise Google Gemini. Settings no longer promises a run at the saved local time. No support email exists in the repo.
-- Still open: two live accounts finishing Success (section 8), the live ten-account daily cycle (section 9), section 11 until you read `https://<host>/privacy` and `https://<host>/terms`, and pointing the app at the host you choose (section 2). A support inbox you can point a recruiter at is still missing.
+- Still open: Google’s restricted-scope review (section 4), custom SMTP (section 5), a production database (section 6), two live Success scans (section 8), the ten-account daily cycle (section 9), and reading privacy and terms on the host (section 11). A support inbox a recruiter can read is still missing.
 
 ## Already done
 
@@ -28,9 +28,11 @@ Connect Gmail stays a separate step from Continue with Google. Do not remove the
 
 ## 1. Finish Google sign-in on mailpilot-dev
 
-- [ ] In Supabase **mailpilot-dev** → Authentication → Providers → Google: enable it and paste that web client id and secret (dashboard only).
+- [x] In Supabase **mailpilot-dev** → Authentication → Providers → Google: enable it and paste that web client id and secret (dashboard only).
 
 **Done when:** The Google provider shows Enabled, and a fresh Continue with Google sign-in still lands in the app with Gmail disconnected.
+
+Continue with Google already lands signed in, and Gmail stays disconnected until Connect Gmail.
 
 1. Open [Supabase](https://supabase.com/dashboard) → project **mailpilot-dev**.
 2. Go to Authentication → Providers (or Sign In / Providers) → Google.
@@ -41,41 +43,36 @@ Connect Gmail stays a separate step from Continue with Google. Do not remove the
 
 ## 2. Lock one public domain
 
-- [ ] Pick the one host that will be the public app, and confirm it does not redirect elsewhere.
+- [x] Pick the one host that will be the public app, and confirm it does not redirect elsewhere.
 
-**Done when:** One host loads MailPriority, `https://<host>/privacy` and `https://<host>/terms` open on that same host, and Google Search Console shows the property as verified.
+**Done when:** One host loads MailPriority, `https://mail-priority.vercel.app/privacy` and `https://mail-priority.vercel.app/terms` open on that same host, and Google Search Console shows the property as verified.
 
-The chosen host is `https://mail-priority.vercel.app`. Call it `<host>` below. `gmailpilot.vercel.app` redirects there. Google rejects a consent-screen homepage that redirects, so do not submit `gmailpilot.vercel.app`. This box stays open until `<host>` loads without redirecting and Search Console shows it verified. The Gmail callback last recorded in Google is still `https://gmailpilot.vercel.app/api/gmail/callback` until section 3.
-
-1. In a private window, open `https://mail-priority.vercel.app`. The address bar must stay on that host. `https://gmailpilot.vercel.app` should leave the bar.
-2. The host is already chosen. Do not pick a second one.
-3. In [Google Search Console](https://search.google.com/search-console), add the URL-prefix property `https://<host>/` and complete the verification method Google shows (DNS record or HTML file).
-4. Leave every later URL on `<host>` until this box is checked. Do not submit Google verification against a host that still redirects.
+The host is `https://mail-priority.vercel.app`. It loads MailPriority with no redirect. `/privacy` and `/terms` stay on that host. Search Console has the URL-prefix property `https://mail-priority.vercel.app/` verified. `public/googled943d3f3a32f577e.html` is deployed and returns the verification token. `gmailpilot.vercel.app` is no longer attached to the Vercel project and returns 404. Later URLs in this file use `https://mail-priority.vercel.app`.
 
 ## 3. Point every setting at that host
 
-- [ ] Vercel domain, env, Supabase URLs, and both Google callbacks use `<host>` only.
+- [x] Vercel domain, env, Supabase URLs, and both Google callbacks use `https://mail-priority.vercel.app` only.
 
-**Done when:** Continue with Google and Connect Gmail both return to `https://<host>/...`, and the consent screen links open without a redirect.
+**Done when:** Continue with Google and Connect Gmail both return to `https://mail-priority.vercel.app/...`, and the consent screen links open without a redirect.
 
-1. Vercel → this project → Settings → Domains. Attach `<host>`. Remove the other `*.vercel.app` alias, or stop it from redirecting. Production should serve `<host>` directly.
+1. Vercel → this project → Settings → Domains. `https://mail-priority.vercel.app` is attached. `gmailpilot.vercel.app` is removed and returns 404.
 2. Vercel → Settings → Environment Variables, Production:
-   - `NEXT_PUBLIC_APP_URL` = `https://<host>`
-   - `GOOGLE_REDIRECT_URI` = `https://<host>/api/gmail/callback`
-3. Redeploy production so those values are in the running build.
+   - `NEXT_PUBLIC_APP_URL` = `https://mail-priority.vercel.app`
+   - `GOOGLE_REDIRECT_URI` = `https://mail-priority.vercel.app/api/gmail/callback`
+3. Production was redeployed with those values.
 4. Supabase **mailpilot-dev** → Authentication → URL Configuration:
-   - Site URL = `https://<host>`
-   - Redirect URLs include `http://localhost:3000/auth/confirm`, `http://localhost:3000/**`, and `https://<host>/auth/confirm`
-5. Google Cloud → APIs & Services → Credentials → the Web client. Authorized redirect URIs must include both:
+   - Site URL = `https://mail-priority.vercel.app`
+   - Redirect URLs include `http://localhost:3000/auth/confirm`, `http://localhost:3000/**`, and `https://mail-priority.vercel.app/auth/confirm`
+5. Google Cloud → APIs & Services → Credentials → the Web client. Authorized redirect URIs include:
    - `https://kssolktnbxjppyqmodck.supabase.co/auth/v1/callback`
-   - `https://<host>/api/gmail/callback`
+   - `https://mail-priority.vercel.app/api/gmail/callback`
    - `http://localhost:3000/api/gmail/callback`
 6. Google Cloud → OAuth consent screen (Google Auth platform → Branding):
-   - App home page = `https://<host>`
-   - Privacy policy = `https://<host>/privacy`
-   - Terms of service = `https://<host>/terms`
-7. Open each of those three links. The address bar must stay on `<host>`.
-8. Sign out, use Continue with Google, then Connect Gmail. Both must finish on `<host>`.
+   - App home page = `https://mail-priority.vercel.app`
+   - Privacy policy = `https://mail-priority.vercel.app/privacy`
+   - Terms of service = `https://mail-priority.vercel.app/terms`
+7. Those three links stay on `https://mail-priority.vercel.app`.
+8. Continue with Google and Connect Gmail both finish on `https://mail-priority.vercel.app`.
 
 ## 4. Submit Google’s restricted-scope review
 
@@ -85,32 +82,32 @@ The chosen host is `https://mail-priority.vercel.app`. Call it `<host>` below. `
 
 Testing mode only allows listed test users, and those grants expire after seven days. `gmail.modify` is a restricted scope. Because this server stores Gmail data, Google also requires its restricted-scope security assessment (CASA) when it asks.
 
-1. Finish sections 2 and 3 first. Record a demo only on `<host>`.
+1. Sections 2 and 3 are done. On Branding, delete the unused authorized domain `gmailpilot.vercel.app` if it is still listed. Leave `mail-priority.vercel.app` and `kssolktnbxjppyqmodck.supabase.co`. Record the demo only on `https://mail-priority.vercel.app`.
 2. Google Cloud → OAuth consent screen. Set user type to External, app name **MailPriority**, and a support email you actually read.
 3. Add the scope `https://www.googleapis.com/auth/gmail.modify`. Leave Continue with Google out of this scope list. That button is Supabase sign-in and must not request Gmail scopes.
 4. Scopes page → Prepare for verification / Submit for verification. Use the homepage, privacy, and terms URLs from section 3.
 5. Record a silent or narrated demo that shows, in order:
-   - Opening `https://<host>`
+   - Opening `https://mail-priority.vercel.app`
    - Creating or signing in to the MailPriority account
    - Clicking Connect Gmail and the Google consent screen that names Gmail access
    - A finished scan and the `MailPilot/` labels in Gmail
-   - Opening `https://<host>/privacy`
+   - Opening `https://mail-priority.vercel.app/privacy`
 6. Upload that video where the verification form asks for it. In the written explanation, say the app reads mail and applies labels, and that it does not send, delete, or archive mail.
-7. If Google assigns a security assessment, complete it with the lab they name. Use the same `<host>` and the production data path you will actually launch.
+7. If Google assigns a security assessment, complete it with the lab they name. Use `https://mail-priority.vercel.app` and the production data path you will actually launch.
 8. Add no new public users while the app is still in Testing.
 
 ## 5. Send signup and password-reset mail from your own sender
 
 - [ ] Custom SMTP is on, and an address outside the project team can sign up, confirm, and reset a password.
 
-**Done when:** That outside inbox receives the confirm message and the reset message from your sender, both links open `<host>`, and the new user is still not Gmail-connected until they click Connect Gmail.
+**Done when:** That outside inbox receives the confirm message and the reset message from your sender, both links open `https://mail-priority.vercel.app`, and the new user is still not Gmail-connected until they click Connect Gmail.
 
 Supabase’s default sender is for testing. It restricts who can receive mail and is limited to about two messages an hour.
 
 1. Create a sender in Resend, SendGrid, or Google Workspace. Verify the domain those messages come from.
 2. Supabase → Authentication → Emails → SMTP Settings. Turn on custom SMTP and enter the host, port, username, password, sender email, and sender name from that provider.
 3. Authentication → Emails → Templates. Leave `{{ .ConfirmationURL }}` in the confirm and reset templates.
-4. From a browser that is not your usual admin profile, open `https://<host>` and create an account with an address that is not a project member.
+4. From a browser that is not your usual admin profile, open `https://mail-priority.vercel.app` and create an account with an address that is not a project member.
 5. Open the message, confirm the account, and land signed in.
 6. Use Forgot password for that same address, set a new password, and sign in with it.
 7. On that account, stop before Connect Gmail and confirm the dashboard still asks to connect.
@@ -142,7 +139,7 @@ Supabase’s default sender is for testing. It restricts who can receive mail an
 5. Set the new project’s Site URL and redirect URLs exactly as in section 3.
 6. Copy the new project’s URL, anon key, and service role key into Vercel Production as `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY`. Redeploy. Leave local `.env.local` on `mailpilot-dev`.
 7. Database → Backups: take a backup. If the plan has no backups, dump the database and restore it into a throwaway project, then confirm `profiles` exists there. Delete the throwaway project afterward.
-8. Email each current tester: disconnect Gmail if it is still connected on dev, sign in on `https://<host>`, and Connect Gmail again. Old refresh tokens do not move to the new project.
+8. Email each current tester: disconnect Gmail if it is still connected on dev, sign in on `https://mail-priority.vercel.app`, and Connect Gmail again. Old refresh tokens do not move to the new project.
 
 ## 7. Turn on leaked-password protection
 
@@ -157,9 +154,9 @@ Supabase’s default sender is for testing. It restricts who can receive mail an
 
 ## 8. Prove two first scans finish
 
-The scan-timeout code is in the tree. These boxes stay open until two live accounts finish Success on the host. The last live run was still partial; that proof was not re-run here.
+The scan-timeout code is in the tree. These boxes stay open until two live accounts finish Success on `https://mail-priority.vercel.app`. The last live run was still partial; that proof was not re-run here.
 
-- [ ] On `<host>`, two different Gmail accounts each finish a seven-day Scan now as Success.
+- [ ] On `https://mail-priority.vercel.app`, two different Gmail accounts each finish a seven-day Scan now as Success.
 - [ ] Mail shows separate Actions, For You, and Ignored lists, and Gmail shows the `MailPilot/` labels.
 - [ ] A second Scan new mail on each account does not duplicate threads or actions.
 - [ ] A thread that fails stays visible and can be scanned again.
@@ -167,7 +164,7 @@ The scan-timeout code is in the tree. These boxes stay open until two live accou
 **Done when:** Each account’s dashboard footer says `Last run … · Success` and does not say `Partial` or `Some conversations need another scan`.
 
 1. Use two Gmail accounts that are allowed to connect (test users until section 4 is approved).
-2. Sign each into its own MailPriority user on `<host>`. Connect Gmail on each.
+2. Sign each into its own MailPriority user on `https://mail-priority.vercel.app`. Connect Gmail on each.
 3. On the dashboard, set the lookback to 7 days and click **Scan now**. Leave the tab open until it stops.
 4. Pass only if the footer status is Success. Partial, Cancelled, or a timeout message fails this task.
 5. Open Mail. Confirm the lists are labeled Actions, For You, and Ignored, and that a thread is not in two of those lists at once.
@@ -186,7 +183,7 @@ The schedule is best-effort once a day. Vercel Hobby cron is `0 6 * * *` UTC (09
 **Done when:** After one daily cycle, all ten accounts show a new Last run, and none are stuck without a run while others succeeded.
 
 1. Connect at least ten Gmail accounts (extra test users are fine) so each is due.
-2. Wait for the Hobby cron at 06:00 UTC, or run it once from Vercel → Cron Jobs. A manual call is `POST https://<host>/api/cron/scan-dispatcher` with the `CRON_SECRET` from Vercel env. Do not paste that secret into git or chat.
+2. Wait for the Hobby cron at 06:00 UTC, or run it once from Vercel → Cron Jobs. A manual call is `POST https://mail-priority.vercel.app/api/cron/scan-dispatcher` with the `CRON_SECRET` from Vercel env. Do not paste that secret into git or chat.
 3. Open each of the ten accounts and confirm Last run moved forward.
 4. If some accounts are still waiting, confirm the app retries them on a later slice of the same cycle. A backlog that never drains fails this task.
 5. Do not add more than the one Hobby cron. Hobby will not run a per-user schedule.
@@ -194,7 +191,7 @@ The schedule is best-effort once a day. Vercel Hobby cron is `0 6 * * *` UTC (09
 ## 10. Check isolation, revoke, and deletion on production
 
 - [ ] Two live users cannot see each other’s mail.
-- [ ] Revoke and reconnect works on `<host>`.
+- [ ] Revoke and reconnect works on `https://mail-priority.vercel.app`.
 - [ ] Delete analysis data and Delete account do what they say.
 
 **Done when:** User B’s threads never appear for user A, reconnect scans again, analysis deletion clears Mail, and account deletion signs the user out.
@@ -208,13 +205,13 @@ The schedule is best-effort once a day. Vercel Hobby cron is `0 6 * * *` UTC (09
 
 ## 11. Read the public privacy and terms pages
 
-Code session 4 updated the local pages. This box stays open until you read them on `<host>`. The pages do not name a support email, because the repo does not have one.
+Code session 4 updated the local pages. This box stays open until you read them on `https://mail-priority.vercel.app`. The pages do not name a support email, because the repo does not have one.
 
-- [ ] `https://<host>/privacy` and `https://<host>/terms` match what the app does.
+- [ ] `https://mail-priority.vercel.app/privacy` and `https://mail-priority.vercel.app/terms` match what the app does.
 
 **Done when:** You can point a recruiter at a support contact, a retention statement, and the AI processors actually in use (NVIDIA Build, Gemini, or both).
 
-1. Open both pages on `<host>` while logged out.
+1. Open both pages on `https://mail-priority.vercel.app` while logged out.
 2. Check that they name a support contact you read, say what is deleted when someone uses Delete analysis data or Delete account, and name the AI provider that production keys actually call.
 3. If a sentence is wrong, leave the pages as they are and send that sentence to a code session. Do not edit production text only in the Supabase dashboard.
 
@@ -231,7 +228,7 @@ Code session 4 updated the local pages. This box stays open until you read them 
 
 ## 13. Open signups
 
-- [ ] Sections 1–12 are checked, and CI is green on the commit that is deployed to `<host>`.
+- [ ] Sections 1–12 are checked, and CI is green on the commit that is deployed to `https://mail-priority.vercel.app`.
 
 **Done when:** A person who is not on the test-user list can sign up or sign in, connect Gmail, finish a successful first scan, see Mail and `MailPilot/` labels, run Scan new mail, and disconnect or delete their data.
 

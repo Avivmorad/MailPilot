@@ -24,7 +24,7 @@ export function CollapsibleTopicGroups({
   variant?: "plain" | "panel";
 }) {
   const topicIds = useMemo(() => groups.map((group) => group.topic), [groups]);
-  const [collapsed, setCollapsed] = useCollapsedIds(storageKey);
+  const [collapsed, setCollapsed] = useCollapsedIds(storageKey, { defaultIds: topicIds });
 
   const allCollapsed = topicIds.length > 0 && topicIds.every((id) => collapsed.includes(id));
 

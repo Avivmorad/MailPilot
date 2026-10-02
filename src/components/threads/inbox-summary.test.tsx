@@ -1,6 +1,6 @@
 /** @vitest-environment jsdom */
 
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("next/navigation", () => ({
@@ -11,7 +11,13 @@ import { InboxSummary } from "@/components/threads/inbox-summary";
 
 afterEach(() => {
   cleanup();
+  window.localStorage.clear();
 });
+
+function expandCategory(name: RegExp) {
+  const header = screen.getByRole("button", { name });
+  fireEvent.click(header);
+}
 
 describe("InboxSummary", () => {
   it("explains why a summary thread is in that tab and offers a correction", () => {
@@ -32,6 +38,7 @@ describe("InboxSummary", () => {
       />,
     );
 
+    expandCategory(/Travel & Transport/);
     expect(screen.getByText(/useful update/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Actions" })).toBeInTheDocument();
   });
@@ -54,6 +61,7 @@ describe("InboxSummary", () => {
       />,
     );
 
+    expandCategory(/Other/);
     expect(screen.getByText("Invoice 1042")).toBeInTheDocument();
     expect(screen.queryByText("Thread")).not.toBeInTheDocument();
   });
@@ -76,6 +84,7 @@ describe("InboxSummary", () => {
       />,
     );
 
+    expandCategory(/Other/);
     expect(screen.getByText("Board packet")).toBeInTheDocument();
     expect(screen.queryByText(/^null$/i)).not.toBeInTheDocument();
   });

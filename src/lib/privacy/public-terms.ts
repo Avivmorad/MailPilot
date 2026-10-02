@@ -2,7 +2,7 @@ export const TERMS_SECTIONS = [
   {
     id: "the-service",
     title: "The service",
-    body: "MailPriority is an inbox triage product. After you create an account and connect Gmail, MailPriority can scan a window of mail you choose, classify threads, apply MailPilot/ labels, and show actions, pending items, and an in-app digest. MailPriority does not send, delete, or archive mail for you.",
+    body: "MailPriority is an inbox triage product. After you create an account and connect Gmail, MailPriority can scan a window of mail you choose, classify threads, apply MailPilot/ labels, and show actions, pending items, and the History screen. MailPriority does not send, delete, or archive mail for you.",
   },
   {
     id: "your-account",

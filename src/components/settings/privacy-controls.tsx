@@ -90,7 +90,7 @@ export function PrivacyControls() {
         <section className="space-y-2">
           <h3 className="text-sm font-medium">Delete analysis data</h3>
           <p className="text-muted-foreground text-sm">
-            Removes stored messages, threads, actions, digests, and scan history. Does not
+            Removes stored messages, threads, actions, History entries, and scan history. Does not
             disconnect Gmail or delete your MailPriority login.
           </p>
           <label className="block text-sm" htmlFor="confirm-delete-analysis">

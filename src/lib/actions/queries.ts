@@ -147,3 +147,34 @@ export async function countActionsForUser(userId: string, status: ActionStatus):
   const items = await listActionsForUser(userId, status, 200);
   return items.length;
 }
+
+/** Stored action rows by status. Does not apply the open-list notice filter. */
+export async function countActionRowsByStatus(
+  userId: string,
+  statuses: readonly ActionStatus[],
+): Promise<Record<ActionStatus, number>> {
+  const db = createAdminClient();
+  const entries = await Promise.all(
+    statuses.map(async (status) => {
+      const { count, error } = await db
+        .from("action_items")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", userId)
+        .eq("status", status);
+      if (error) {
+        throw new ActionQueryError(500, "load_failed", "Failed to count actions.");
+      }
+      return [status, count ?? 0] as const;
+    }),
+  );
+  const counts: Record<ActionStatus, number> = {
+    OPEN: 0,
+    WAITING: 0,
+    COMPLETED: 0,
+    SNOOZED: 0,
+  };
+  for (const [status, count] of entries) {
+    counts[status] = count;
+  }
+  return counts;
+}

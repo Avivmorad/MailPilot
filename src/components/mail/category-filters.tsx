@@ -1,0 +1,77 @@
+import Link from "next/link";
+
+import { CATEGORY_LABELS, type Category } from "@/lib/ai/categories";
+import { mailViewPath, type MailTab } from "@/lib/mail/tabs";
+import { cn } from "@/lib/utils";
+
+export function MailCategoryFilters({
+  tab,
+  options,
+  active,
+  total,
+  uncertain = false,
+}: {
+  tab: MailTab;
+  options: Array<{ category: Category; count: number }>;
+  active: Category | null;
+  total: number;
+  uncertain?: boolean;
+}) {
+  if (options.length === 0) {
+    return null;
+  }
+
+  return (
+    <nav aria-label="Label filters" className="flex items-stretch gap-2 overflow-x-auto pb-1">
+      <LabelFilterLink
+        href={mailViewPath({ tab, uncertain })}
+        label="All labels"
+        count={total}
+        active={active === null}
+      />
+      {options.map((option) => (
+        <LabelFilterLink
+          key={option.category}
+          href={
+            active === option.category
+              ? mailViewPath({ tab, uncertain })
+              : mailViewPath({ tab, category: option.category, uncertain })
+          }
+          label={CATEGORY_LABELS[option.category]}
+          count={option.count}
+          active={active === option.category}
+        />
+      ))}
+    </nav>
+  );
+}
+
+function LabelFilterLink({
+  href,
+  label,
+  count,
+  active,
+}: {
+  href: string;
+  label: string;
+  count: number;
+  active: boolean;
+}) {
+  return (
+    <Link
+      href={href}
+      aria-current={active ? "page" : undefined}
+      className={cn(
+        "focus-visible:ring-ring flex min-w-36 shrink-0 flex-col rounded-xl border px-3 py-2.5 transition-colors focus-visible:ring-3 focus-visible:outline-none",
+        active
+          ? "border-primary bg-primary/10 text-foreground"
+          : "border-border bg-card text-muted-foreground hover:text-foreground",
+      )}
+    >
+      <span className="flex items-center justify-between gap-3">
+        <span className={cn("text-sm whitespace-nowrap", active && "font-medium")}>{label}</span>
+        <span className="text-foreground text-sm font-semibold tabular-nums">{count}</span>
+      </span>
+    </Link>
+  );
+}

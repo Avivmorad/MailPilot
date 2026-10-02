@@ -18,12 +18,14 @@ export function InboxSummary({
   emptyTitle = "No classified mail yet",
   emptyDescription = "Run a scan to see useful updates. Receipts, OTPs, and marketing are in Ignored.",
   emptyAction,
+  categoryHrefFor,
 }: {
   threads: RecentThreadRow[];
   storageKey?: string;
   emptyTitle?: string;
   emptyDescription?: string;
   emptyAction?: ReactNode;
+  categoryHrefFor?: (thread: RecentThreadRow) => string;
 }) {
   if (threads.length === 0) {
     return <EmptyState title={emptyTitle} description={emptyDescription} action={emptyAction} />;
@@ -42,13 +44,13 @@ export function InboxSummary({
               const tab = mailBucketForThread({ status: thread.status });
               return (
                 <li key={thread.id} className="px-4 py-3">
-                  <Link
-                    href={`/thread/${thread.id}`}
-                    className="hover:bg-muted/50 -mx-4 -mt-3 block px-4 pt-3 transition-colors"
-                  >
-                    <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <Link
+                      href={`/thread/${thread.id}`}
+                      className="hover:bg-muted/50 -mx-1 min-w-0 flex-1 rounded-md px-1 transition-colors"
+                    >
                       <p
-                        className="text-foreground min-w-0 flex-1 leading-snug font-semibold tracking-tight break-words"
+                        className="text-foreground leading-snug font-semibold tracking-tight break-words"
                         dir="auto"
                         title={displayThreadTitle(
                           thread.shortDisplayTitle,
@@ -62,27 +64,28 @@ export function InboxSummary({
                           thread.subject,
                         )}
                       </p>
-                      <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
-                        <ThreadTags
-                          category={thread.category}
-                          status={thread.status}
-                          importance={thread.importance}
-                        />
-                        <span className="text-muted-foreground text-xs">
-                          {formatRelativeTime(thread.latestMessageAt)}
-                        </span>
-                      </div>
+                      {usableDisplayText(thread.summary) &&
+                      usableDisplayText(thread.shortDisplayTitle) ? (
+                        <p
+                          className="text-muted-foreground mt-1 line-clamp-2 text-sm leading-relaxed"
+                          dir="auto"
+                        >
+                          {usableDisplayText(thread.summary)}
+                        </p>
+                      ) : null}
+                    </Link>
+                    <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
+                      <ThreadTags
+                        category={thread.category}
+                        status={thread.status}
+                        importance={thread.importance}
+                        categoryHref={categoryHrefFor?.(thread)}
+                      />
+                      <span className="text-muted-foreground text-xs">
+                        {formatRelativeTime(thread.latestMessageAt)}
+                      </span>
                     </div>
-                    {usableDisplayText(thread.summary) &&
-                    usableDisplayText(thread.shortDisplayTitle) ? (
-                      <p
-                        className="text-muted-foreground mt-1 line-clamp-2 text-sm leading-relaxed"
-                        dir="auto"
-                      >
-                        {usableDisplayText(thread.summary)}
-                      </p>
-                    ) : null}
-                  </Link>
+                  </div>
                   <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
                     {threadPlacementReason({ tab })}
                   </p>

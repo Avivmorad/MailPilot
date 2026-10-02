@@ -31,7 +31,7 @@ function DigestCounts({ digest }: { digest: DigestReport }) {
 
 export function DigestReportCard({
   digest,
-  title = "Latest digest",
+  title = "Latest summary",
   variant = "full",
 }: {
   digest: DigestReport | null;
@@ -42,9 +42,9 @@ export function DigestReportCard({
     if (!digest) {
       return (
         <p className="text-muted-foreground text-sm">
-          No digest yet. After a scan, period counts and top actions will appear here.{" "}
-          <Link href="/digests" className="text-primary font-medium hover:underline">
-            Digest history
+          No history yet. After a scan, period counts and top actions will appear here.{" "}
+          <Link href="/history" className="text-primary font-medium hover:underline">
+            History
           </Link>
         </p>
       );
@@ -53,7 +53,7 @@ export function DigestReportCard({
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Latest digest</CardTitle>
+          <CardTitle>Latest summary</CardTitle>
           <CardDescription>
             {formatDateTime(digest.periodStart)} – {formatDateTime(digest.periodEnd)}
             {digest.actionCount > 0
@@ -81,10 +81,10 @@ export function DigestReportCard({
               ))}
             </ul>
           ) : (
-            <p className="text-muted-foreground text-sm">No actions in this digest.</p>
+            <p className="text-muted-foreground text-sm">No actions in this summary.</p>
           )}
-          <Link href="/digests" className={buttonVariants({ variant: "outline", size: "sm" })}>
-            Full digest
+          <Link href="/history" className={buttonVariants({ variant: "outline", size: "sm" })}>
+            View History
           </Link>
         </CardContent>
       </Card>
@@ -100,10 +100,10 @@ export function DigestReportCard({
         </CardHeader>
         <CardContent>
           <EmptyState
-            title="No digest yet"
-            description="Run a scan to generate an in-app digest. Counts come from mail already stored in MailPriority."
+            title="No history yet"
+            description="Run a scan to add an entry to History. Counts come from mail already stored in MailPriority."
             action={
-              <Link href="/dashboard#scan" className={buttonVariants({ size: "sm" })}>
+              <Link href="/scan" className={buttonVariants({ size: "sm" })}>
                 Scan now
               </Link>
             }
@@ -159,7 +159,7 @@ export function DigestReportCard({
             </ul>
           </div>
         ) : (
-          <p className="text-muted-foreground text-sm">No actions in this digest.</p>
+          <p className="text-muted-foreground text-sm">No actions in this summary.</p>
         )}
       </CardContent>
     </Card>

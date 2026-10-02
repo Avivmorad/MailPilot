@@ -17,7 +17,13 @@ import {
 import { accentForUrgency } from "@/lib/ui/labels";
 import { cn } from "@/lib/utils";
 
-export function ActionItemCard({ item }: { item: ActionListItem }) {
+export function ActionItemCard({
+  item,
+  categoryHref,
+}: {
+  item: ActionListItem;
+  categoryHref?: string;
+}) {
   const urgencyLabel = displayUrgencyForDeadline(item.deadline, item.urgency);
   const doText =
     item.actionSummary && item.actionSummary.trim() === item.title.trim()
@@ -69,6 +75,7 @@ export function ActionItemCard({ item }: { item: ActionListItem }) {
             deadline={item.deadline}
             actionType={item.actionType}
             showStatus={false}
+            categoryHref={categoryHref}
           />
           {isUncertainClassification(item.confidence) ? (
             <p className="mt-1 text-right text-xs text-amber-800 dark:text-amber-200">Uncertain</p>

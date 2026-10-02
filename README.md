@@ -17,19 +17,19 @@ while the integration is in Testing.
 
 ## Project status
 
-| Area                    | Status                                                                                                                                                                                 |
-| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Implemented on `main`   | Auth, Connect Gmail, scanning, structured classification (NVIDIA or Gemini), Mail tabs, labels, History API sync, resumable jobs, scheduled dispatch, in-app digests, privacy/deletion |
-| Automatically tested    | CI: format, lint, typecheck, unit, mocked integration, eval-scorecard, production build (no live Gmail/AI/DB)                                                                          |
-| Deployed                | Vercel serves landing, privacy, and terms from `main`                                                                                                                                  |
-| Live owner verification | Sign-in, Connect Gmail, reconnect, disconnect, and one last-week Scan now ran on production. Remaining checks: [`docs/OWNER_TASKS.md`](docs/OWNER_TASKS.md)                            |
-| License                 | No code license selected. **Owner decision required.**                                                                                                                                 |
+| Area                    | Status                                                                                                                                                                                     |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Implemented on `main`   | Auth, Connect Gmail, scanning, structured classification (NVIDIA or Gemini), Mail tabs, labels, History API sync, resumable jobs, scheduled dispatch, the History screen, privacy/deletion |
+| Automatically tested    | CI: format, lint, typecheck, unit, mocked integration, eval-scorecard, production build (no live Gmail/AI/DB)                                                                              |
+| Deployed                | Vercel serves landing, privacy, and terms from `main`                                                                                                                                      |
+| Live owner verification | Sign-in, Connect Gmail, reconnect, disconnect, and one last-week Scan now ran on production. Remaining checks: [`docs/OWNER_TASKS.md`](docs/OWNER_TASKS.md)                                |
+| License                 | No code license selected. **Owner decision required.**                                                                                                                                     |
 
 ## What it does
 
 Connects one Gmail inbox, scans a chosen lookback, classifies threads with
 validated structured JSON, applies `MailPilot/*` labels, and shows For You,
-Actions, Pending, and an in-app digest. It never auto-sends, deletes, or
+Actions, Pending, and the History screen. It never auto-sends, deletes, or
 archives mail. OTP / login-FYI notices are not open tasks.
 
 Defaults: daily scan 08:00 Asia/Jerusalem; lookback 1–4 days, 1–3 weeks, or 1
@@ -54,7 +54,7 @@ Historical full specification (not source of truth):
 ```text
 Browser (Next.js App Router)
   ├─ Supabase Auth          MailPriority account (no Gmail scopes)
-  └─ App UI                 dashboard, Mail tabs, settings, onboarding
+  └─ App UI                 dashboard, Mail tabs, History, settings, onboarding
 
 Server (Vercel)
   ├─ Connect Gmail          OAuth gmail.modify → encrypted refresh token
@@ -62,7 +62,7 @@ Server (Vercel)
   ├─ Incremental sync       Gmail History API
   └─ Cron dispatcher        due connections, job lease, chunk resume
 
-Supabase Postgres + RLS     threads, actions, scans, digests
+Supabase Postgres + RLS     threads, actions, scans, History entries
 NVIDIA Build or Gemini      ThreadAnalysis JSON only
 ```
 

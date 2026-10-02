@@ -140,7 +140,7 @@ export function TriagePreferencesForm({
             onChange={(event) => setDigest(event.target.checked)}
             disabled={busy}
           />
-          Generate an in-app digest after each successful or partial scan
+          Add an entry to History after each successful or partial scan
         </label>
         <Button type="button" disabled={busy} onClick={() => void save()}>
           {busy ? "Saving…" : "Save triage settings"}

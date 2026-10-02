@@ -18,6 +18,8 @@ describe("AppHeader", () => {
       "href",
       "/dashboard",
     );
+    expect(screen.getByRole("link", { name: "Scan" })).toHaveAttribute("href", "/scan");
+    expect(screen.getByRole("link", { name: "History" })).toHaveAttribute("href", "/history");
     expect(screen.getByRole("link", { name: "Mail" })).toHaveAttribute("aria-current", "page");
     expect(screen.getByRole("link", { name: "Dashboard" })).not.toHaveAttribute("aria-current");
   });

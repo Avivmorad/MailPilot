@@ -17,6 +17,7 @@ export const SAFE_AUTH_NEXT_PATHS = [
   "/onboarding",
   "/dashboard",
   "/mail",
+  "/history",
   "/digests",
   "/settings",
   "/actions",

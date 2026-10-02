@@ -1,4 +1,5 @@
 import { ensureManagedLabels } from "@/lib/gmail/labels";
+import { GMAIL_CONNECT_RETRY_DELAYS_MS } from "@/lib/gmail/retry";
 import { nextDailyScanAt } from "@/lib/scans/schedule";
 import { getScanPreferences } from "@/lib/settings/preferences";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -34,7 +35,10 @@ export async function runGmailPostConnectSetup(input: {
   }
 
   try {
-    await ensureManagedLabels(input.connectionId, input.accessToken, input.refreshToken);
+    // Empty connect delays so a Gmail 429 fails fast instead of 60s backoff.
+    await ensureManagedLabels(input.connectionId, input.accessToken, input.refreshToken, {
+      delaysMs: GMAIL_CONNECT_RETRY_DELAYS_MS,
+    });
   } catch {
     // Connection is still valid; labels can be reconciled on the next scan.
   }

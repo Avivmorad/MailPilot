@@ -15,6 +15,7 @@ import {
 } from "@/lib/gmail/addresses";
 import { mergeUserEmails, safeListSendAsEmails } from "@/lib/gmail/aliases";
 import type { MailPilotLogicalLabel } from "@/lib/gmail/constants";
+import { isLabelMapComplete } from "@/lib/gmail/labels";
 import { labelDiff, logicalLabelsForAnalysis } from "@/lib/gmail/label-plan";
 import type { ParsedGmailMessage } from "@/lib/gmail/parser";
 import { GmailConnectError } from "@/lib/gmail/oauth";
@@ -652,8 +653,16 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
       };
     }
 
-    const labelMap =
+    let labelMap =
       threadIds.length > 0 ? await gmail.loadLabelMap() : new Map<MailPilotLogicalLabel, string>();
+    if (
+      threadIds.length > 0 &&
+      !isLabelMapComplete(labelMap) &&
+      typeof gmail.ensureManagedLabels === "function"
+    ) {
+      await gmail.ensureManagedLabels();
+      labelMap = await gmail.loadLabelMap();
+    }
     let progressWrites = Promise.resolve();
     let threadsChecked = cursor;
     const finishedIndexes = new Set<number>();

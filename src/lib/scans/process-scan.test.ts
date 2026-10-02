@@ -479,6 +479,51 @@ async function runScan(options: {
 }
 
 describe("processInitialScan", () => {
+  it("repairs missing managed labels before applying them", async () => {
+    const store = createMemoryStore();
+    const ensureManagedLabels = vi.fn(async () => undefined);
+    let loads = 0;
+    await runScan({
+      store,
+      gmail: {
+        getProfileHistoryId: async () => "100",
+        listMessageRefs: async () => [{ id: "m1", threadId: "t1" }],
+        listHistoryChanges: async () => ({ ok: true, refs: [], latestHistoryId: "100" }),
+        fetchThread: async () => [parsedMessage()],
+        loadLabelMap: async () => {
+          loads += 1;
+          if (loads === 1) {
+            return new Map<MailPilotLogicalLabel, string>([["important", "L_IMP"]]);
+          }
+          return LABEL_MAP;
+        },
+        ensureManagedLabels,
+        modifyThreadLabels: async () => undefined,
+      },
+      analyze: async () => ({ ok: true, analysis: validAnalysis() }),
+    });
+    expect(ensureManagedLabels).toHaveBeenCalledTimes(1);
+    expect(loads).toBe(2);
+  });
+
+  it("does not call ensureManagedLabels when the map is already complete", async () => {
+    const ensureManagedLabels = vi.fn(async () => undefined);
+    await runScan({
+      store: createMemoryStore(),
+      gmail: {
+        getProfileHistoryId: async () => "100",
+        listMessageRefs: async () => [{ id: "m1", threadId: "t1" }],
+        listHistoryChanges: async () => ({ ok: true, refs: [], latestHistoryId: "100" }),
+        fetchThread: async () => [parsedMessage()],
+        loadLabelMap: async () => LABEL_MAP,
+        ensureManagedLabels,
+        modifyThreadLabels: async () => undefined,
+      },
+      analyze: async () => ({ ok: true, analysis: validAnalysis() }),
+    });
+    expect(ensureManagedLabels).not.toHaveBeenCalled();
+  });
+
   it("keeps live message progress separate from the durable checkpoint counters", async () => {
     const store = createMemoryStore();
     const update = store.updateScanRun.bind(store);

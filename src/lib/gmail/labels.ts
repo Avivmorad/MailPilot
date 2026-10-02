@@ -7,6 +7,14 @@ import { GMAIL_UNITS } from "@/lib/gmail/quota";
 import { withGmailRetry } from "@/lib/gmail/retry";
 import type { GmailRequestBudget } from "@/lib/gmail/request-budget";
 
+export interface EnsureManagedLabelsOptions extends GmailRequestBudget {
+  delaysMs?: number[];
+}
+
+export function isLabelMapComplete(labelMap: Map<MailPilotLogicalLabel, string>): boolean {
+  return MAILPILOT_LABELS.every((spec) => labelMap.has(spec.logicalName));
+}
+
 /**
  * Ensure managed MailPilot labels exist in Gmail and persist the
  * logical_name -> gmail_label_id mapping. Idempotent.
@@ -15,22 +23,24 @@ export async function ensureManagedLabels(
   connectionId: string,
   accessToken: string,
   refreshToken: string,
+  options: EnsureManagedLabelsOptions = {},
 ): Promise<void> {
   const client = createOAuth2Client();
   client.setCredentials({ access_token: accessToken, refresh_token: refreshToken });
   const gmail = google.gmail({ version: "v1", auth: client });
-  await ensureManagedLabelsWithGmail(connectionId, gmail);
+  await ensureManagedLabelsWithClient(gmail, connectionId, options);
 }
 
 /**
  * Same as {@link ensureManagedLabels} when a Gmail client is already available
  * (e.g. during a scan). Idempotent.
  */
-export async function ensureManagedLabelsWithGmail(
-  connectionId: string,
+export async function ensureManagedLabelsWithClient(
   gmail: gmail_v1.Gmail,
+  connectionId: string,
+  options: EnsureManagedLabelsOptions = {},
 ): Promise<void> {
-  const existing = await listAllLabels(gmail);
+  const existing = await listAllLabels(gmail, options);
   const byName = new Map(
     existing
       .filter((label) => typeof label.name === "string" && typeof label.id === "string")
@@ -43,7 +53,7 @@ export async function ensureManagedLabelsWithGmail(
     let gmailLabelId = byName.get(spec.gmailLabelName);
     if (!gmailLabelId) {
       const created = await withGmailRetry(
-        (options) =>
+        (retryOptions) =>
           gmail.users.labels.create(
             {
               userId: "me",
@@ -53,9 +63,9 @@ export async function ensureManagedLabelsWithGmail(
                 messageListVisibility: "show",
               },
             },
-            options,
+            retryOptions,
           ),
-        { units: GMAIL_UNITS.labelsCreate },
+        { ...options, units: GMAIL_UNITS.labelsCreate, delaysMs: options.delaysMs },
       );
       if (!created.data.id) {
         throw new Error(`Failed to create Gmail label ${spec.gmailLabelName}`);
@@ -79,11 +89,27 @@ export async function ensureManagedLabelsWithGmail(
   }
 }
 
-async function listAllLabels(gmail: gmail_v1.Gmail): Promise<gmail_v1.Schema$Label[]> {
+/**
+ * Connection-first alias for {@link ensureManagedLabelsWithClient} (label reconcile).
+ */
+export async function ensureManagedLabelsWithGmail(
+  connectionId: string,
+  gmail: gmail_v1.Gmail,
+  options: EnsureManagedLabelsOptions = {},
+): Promise<void> {
+  return ensureManagedLabelsWithClient(gmail, connectionId, options);
+}
+
+async function listAllLabels(
+  gmail: gmail_v1.Gmail,
+  options: EnsureManagedLabelsOptions = {},
+): Promise<gmail_v1.Schema$Label[]> {
   const res = await withGmailRetry(
-    (options) => gmail.users.labels.list({ userId: "me" }, options),
+    (retryOptions) => gmail.users.labels.list({ userId: "me" }, retryOptions),
     {
+      ...options,
       units: GMAIL_UNITS.labelsList,
+      delaysMs: options.delaysMs,
     },
   );
   return res.data.labels ?? [];

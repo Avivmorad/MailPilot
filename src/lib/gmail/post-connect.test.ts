@@ -47,7 +47,9 @@ describe("runGmailPostConnectSetup", () => {
     expect(from).toHaveBeenCalledWith("gmail_connections");
     expect(update).toHaveBeenCalledWith({ next_scan_at: "2026-10-03T08:00:00.000Z" });
     expect(updateEq).toHaveBeenCalledWith("id", "conn-1");
-    expect(ensureManagedLabels).toHaveBeenCalledWith("conn-1", "access", "refresh");
+    expect(ensureManagedLabels).toHaveBeenCalledWith("conn-1", "access", "refresh", {
+      delaysMs: [],
+    });
   });
 
   it("skips scheduling when next_scan_at is already set", async () => {
@@ -62,7 +64,9 @@ describe("runGmailPostConnectSetup", () => {
 
     expect(getScanPreferences).not.toHaveBeenCalled();
     expect(from).not.toHaveBeenCalled();
-    expect(ensureManagedLabels).toHaveBeenCalledWith("conn-1", "access", "refresh");
+    expect(ensureManagedLabels).toHaveBeenCalledWith("conn-1", "access", "refresh", {
+      delaysMs: [],
+    });
   });
 
   it("still ensures labels if schedule setup fails", async () => {
@@ -77,6 +81,8 @@ describe("runGmailPostConnectSetup", () => {
         nextScanAt: null,
       }),
     ).resolves.toBeUndefined();
-    expect(ensureManagedLabels).toHaveBeenCalledWith("conn-1", "access", "refresh");
+    expect(ensureManagedLabels).toHaveBeenCalledWith("conn-1", "access", "refresh", {
+      delaysMs: [],
+    });
   });
 });

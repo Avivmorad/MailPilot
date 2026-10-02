@@ -1,8 +1,11 @@
 import type { gmail_v1 } from "googleapis";
 
 import { listSendAsEmails } from "@/lib/gmail/aliases";
-import { loadOrEnsureLabelIdMap } from "@/lib/gmail/label-reconcile";
-import { modifyThreadLabels } from "@/lib/gmail/labels";
+import {
+  ensureManagedLabelsWithClient,
+  loadLabelIdMap,
+  modifyThreadLabels,
+} from "@/lib/gmail/labels";
 import { listHistoryChanges } from "@/lib/gmail/history-list";
 import { fetchAndParseThread, fetchProfileHistoryId, listMessageRefs } from "@/lib/gmail/messages";
 import type { ScanGmailPort } from "@/lib/scans/types";
@@ -21,8 +24,9 @@ export function createGmailScanPort(
       listHistoryChanges(gmail, startHistoryId, requestBudget),
     fetchThread: (threadId) => fetchAndParseThread(gmail, threadId, requestBudget),
     getProfileHistoryId: () => fetchProfileHistoryId(gmail, requestBudget),
-    // Reconcile if post-connect label setup was deferred or interrupted.
-    loadLabelMap: () => loadOrEnsureLabelIdMap(connectionId, gmail),
+    loadLabelMap: () => loadLabelIdMap(connectionId),
+    // Create missing labels if post-connect after() setup did not finish.
+    ensureManagedLabels: () => ensureManagedLabelsWithClient(gmail, connectionId, requestBudget),
     modifyThreadLabels: (threadId, addLabelIds, removeLabelIds) =>
       modifyThreadLabels(gmail, threadId, addLabelIds, removeLabelIds, requestBudget),
     listSendAsEmails: () => listSendAsEmails(gmail, requestBudget),

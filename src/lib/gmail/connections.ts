@@ -11,6 +11,7 @@ import {
   revokeRefreshToken,
 } from "@/lib/gmail/oauth";
 import { runGmailPostConnectSetup } from "@/lib/gmail/post-connect";
+import { GMAIL_CONNECT_RETRY_DELAYS_MS } from "@/lib/gmail/retry";
 import { unwrapSecretWithRotation, encryptSecret } from "@/lib/security/encryption";
 import { cancelActiveJobsForConnection } from "@/lib/scans/jobs";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -190,7 +191,10 @@ export async function completeGmailOAuth(
     throw new GmailConnectError("persist", "Failed to persist profile for Gmail connection");
   }
 
-  const identity = await fetchGmailIdentity(tokens.accessToken, tokens.refreshToken);
+  // Interactive connect uses empty retry delays so a Gmail 429 fails fast.
+  const identity = await fetchGmailIdentity(tokens.accessToken, tokens.refreshToken, {
+    delaysMs: GMAIL_CONNECT_RETRY_DELAYS_MS,
+  });
 
   let encryptedRefreshToken: string;
   try {

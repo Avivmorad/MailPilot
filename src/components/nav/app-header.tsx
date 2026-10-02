@@ -3,18 +3,24 @@ import Link from "next/link";
 import { Logo } from "@/components/brand/logo";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { Button } from "@/components/ui/button";
+import { isUsageTelemetryUiEnabled } from "@/lib/config/features";
 import { cn } from "@/lib/utils";
 
-const NAV = [
+const BASE_NAV = [
   { href: "dashboard", label: "Dashboard", path: "/dashboard" },
   { href: "mail", label: "Mail", path: "/mail" },
   { href: "digests", label: "Digests", path: "/digests" },
   { href: "settings", label: "Settings", path: "/settings" },
 ] as const;
 
-export type AppNavCurrent = (typeof NAV)[number]["href"] | "thread" | "onboarding";
+const USAGE_NAV = { href: "usage", label: "Usage", path: "/usage" } as const;
+
+export type AppNavCurrent =
+  (typeof BASE_NAV)[number]["href"] | typeof USAGE_NAV.href | "thread" | "onboarding";
 
 export function AppHeader({ email, current }: { email?: string | null; current: AppNavCurrent }) {
+  const nav = isUsageTelemetryUiEnabled() ? [...BASE_NAV, USAGE_NAV] : [...BASE_NAV];
+
   return (
     <header className="border-border/70 bg-background/85 sticky top-0 z-40 border-b backdrop-blur-md">
       <div className="mx-auto flex w-full max-w-6xl items-center gap-3 px-4 py-3 sm:px-6">
@@ -29,7 +35,7 @@ export function AppHeader({ email, current }: { email?: string | null; current: 
           aria-label="Main"
           className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto sm:gap-2"
         >
-          {NAV.map((item) => (
+          {nav.map((item) => (
             <Link
               key={item.href}
               href={item.path}

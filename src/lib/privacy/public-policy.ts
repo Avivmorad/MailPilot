@@ -14,12 +14,12 @@ export const PRIVACY_POLICY_SECTIONS = [
   {
     id: "what-we-store",
     title: "What MailPriority stores",
-    body: "MailPriority stores thread and message metadata (ids, headers, timestamps, direction), attachment filenames and types without the file bytes, AI summaries and action cards, scan history, digest snapshots, and your triage settings. It does not persist full email bodies long-term. Digests in the MVP appear in the app only; MailPriority does not email your digest.",
+    body: "MailPriority stores thread and message metadata (ids, headers, timestamps, direction), attachment filenames and types without the file bytes, AI summaries and action cards, scan history, digest snapshots, and your triage settings. Classification calls also store token counts and a priced estimate per call, with no message content. It does not persist full email bodies long-term. Digests in the MVP appear in the app only; MailPriority does not email your digest.",
   },
   {
     id: "your-controls",
     title: "Your controls",
-    body: "In Settings you can disconnect Gmail (historical summaries stay until you delete them), delete analysis data (threads, messages, actions, digests, and scans; Gmail stays connected), or delete your MailPriority account (revokes Gmail when possible and removes the login). You can also disconnect MailPriority from your Google account permissions.",
+    body: "In Settings you can disconnect Gmail (historical summaries stay until you delete them), delete analysis data (threads, messages, actions, digests, scans, and classification usage; Gmail stays connected), or delete your MailPriority account (revokes Gmail when possible and removes the login). You can also disconnect MailPriority from your Google account permissions.",
   },
   {
     id: "limited-use",

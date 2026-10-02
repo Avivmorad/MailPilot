@@ -406,7 +406,10 @@ function deletionPortForStores(
         if (store.userId !== userId) {
           continue;
         }
-        if (table === "email_threads") {
+        if (table === "triage_usage") {
+          // Memory scan stores do not retain usage rows.
+          continue;
+        } else if (table === "email_threads") {
           removed += store.threads.size;
           store.threads.clear();
         } else if (table === "email_messages") {

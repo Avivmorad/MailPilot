@@ -1,6 +1,7 @@
 import { assertThreadAnalysisInvariants, postProcessThreadAnalysis } from "@/lib/ai/post-process";
 import { threadAnalysisSchema, type ThreadAnalysis } from "@/lib/ai/schemas";
 import type { ThreadAnalysisInput } from "@/lib/ai/types";
+import type { ProviderUsageEvent } from "@/lib/ai/usage";
 
 export type { ThreadAnalysisInput } from "@/lib/ai/types";
 export { threadAnalysisInputFromContext } from "@/lib/ai/types";
@@ -14,6 +15,11 @@ export interface EmailTriageProvider {
 
 export interface TriageRequestOptions {
   signal?: AbortSignal;
+  /**
+   * Optional observe-only hook fired once per HTTP attempt inside the provider.
+   * Receives token counts and outcome only — never prompts or response text.
+   */
+  onProviderUsage?: (event: ProviderUsageEvent) => void | Promise<void>;
 }
 
 export class ThreadTriageError extends Error {

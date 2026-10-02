@@ -13,6 +13,13 @@ import {
   type ThreadAnalysis,
 } from "@/lib/ai/schemas";
 import type { ThreadAnalysisInput } from "@/lib/ai/types";
+import {
+  ABSENT_USAGE,
+  emitProviderUsage,
+  parseGeminiUsage,
+  usageOutcomeFromProviderError,
+  type GenerateWithUsage,
+} from "@/lib/ai/usage";
 import { getGeminiEnv, isNvidiaConfigured, type GeminiEnv } from "@/lib/config/env";
 
 const MAX_ATTEMPTS = 2;
@@ -27,7 +34,7 @@ export interface GeminiGenerateParams {
   signal: AbortSignal;
 }
 
-export type GeminiGenerateFn = (params: GeminiGenerateParams) => Promise<string>;
+export type GeminiGenerateFn = (params: GeminiGenerateParams) => Promise<GenerateWithUsage>;
 
 function sleep(ms: number, signal?: AbortSignal): Promise<void> {
   signal?.throwIfAborted();
@@ -65,7 +72,7 @@ function retryDelayMs(error: unknown, attempt: number): number | null {
   return Math.min(500 * 2 ** attempt, 8_000);
 }
 
-export async function generateWithGemini(params: GeminiGenerateParams): Promise<string> {
+export async function generateWithGemini(params: GeminiGenerateParams): Promise<GenerateWithUsage> {
   const ai = new GoogleGenAI({
     apiKey: params.apiKey,
     httpOptions: { timeout: GEMINI_REQUEST_TIMEOUT_MS, retryOptions: { attempts: 1 } },
@@ -81,7 +88,8 @@ export async function generateWithGemini(params: GeminiGenerateParams): Promise<
       responseJsonSchema: params.responseJsonSchema,
     },
   });
-  return response.text ?? "";
+  const usage = parseGeminiUsage(response.usageMetadata);
+  return { text: response.text ?? "", usage };
 }
 
 export class GeminiEmailTriageProvider implements EmailTriageProvider {
@@ -103,7 +111,7 @@ export class GeminiEmailTriageProvider implements EmailTriageProvider {
     for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt += 1) {
       options.signal?.throwIfAborted();
       try {
-        return await this.completeOnce(input, options);
+        return await this.completeOnce(input, options, attempt);
       } catch (error) {
         if (options.signal?.aborted) throw options.signal.reason;
         lastError = error;
@@ -123,6 +131,7 @@ export class GeminiEmailTriageProvider implements EmailTriageProvider {
   private async completeOnce(
     input: ThreadAnalysisInput,
     options: TriageRequestOptions,
+    attempt: number,
   ): Promise<ThreadAnalysis> {
     const controller = new AbortController();
     const cancel = () => controller.abort(options.signal?.reason);
@@ -133,9 +142,11 @@ export class GeminiEmailTriageProvider implements EmailTriageProvider {
       controller.signal.addEventListener("abort", rejectOnAbort, { once: true });
     });
     let timer: ReturnType<typeof setTimeout> | undefined;
-    let content: string;
+    const startedAt = Date.now();
+    let content = "";
+    let usage = ABSENT_USAGE;
     try {
-      content = await Promise.race([
+      const generated = await Promise.race([
         this.generate({
           apiKey: this.apiKey,
           model: this.model,
@@ -152,13 +163,35 @@ export class GeminiEmailTriageProvider implements EmailTriageProvider {
         }),
         interrupted,
       ]);
+      content = generated.text;
+      usage = generated.usage;
+    } catch (error) {
+      await emitProviderUsage(options.onProviderUsage, {
+        provider: "gemini",
+        model: this.model,
+        attempt,
+        outcome: usageOutcomeFromProviderError(error, options.signal),
+        durationMs: Date.now() - startedAt,
+        usage: ABSENT_USAGE,
+      });
+      throw error;
     } finally {
       clearTimeout(timer);
       options.signal?.removeEventListener("abort", cancel);
       controller.signal.removeEventListener("abort", rejectOnAbort!);
     }
 
+    const durationMs = Date.now() - startedAt;
+    const baseEvent = {
+      provider: "gemini" as const,
+      model: this.model,
+      attempt,
+      durationMs,
+      usage,
+    };
+
     if (!content) {
+      await emitProviderUsage(options.onProviderUsage, { ...baseEvent, outcome: "schema" });
       throw new ThreadTriageError("schema", "Gemini returned an empty triage payload");
     }
 
@@ -166,13 +199,16 @@ export class GeminiEmailTriageProvider implements EmailTriageProvider {
     try {
       json = JSON.parse(content) as unknown;
     } catch (error) {
+      await emitProviderUsage(options.onProviderUsage, { ...baseEvent, outcome: "schema" });
       throw new ThreadTriageError("schema", "Gemini returned non-JSON triage payload", error);
     }
 
     const parsed = threadAnalysisSchema.safeParse(json);
     if (!parsed.success) {
+      await emitProviderUsage(options.onProviderUsage, { ...baseEvent, outcome: "schema" });
       throw new ThreadTriageError("schema", "Gemini JSON failed schema validation", parsed.error);
     }
+    await emitProviderUsage(options.onProviderUsage, { ...baseEvent, outcome: "ok" });
     return parsed.data;
   }
 }

@@ -10,6 +10,14 @@ import {
   type ThreadAnalysis,
 } from "@/lib/ai/schemas";
 import type { ThreadAnalysisInput } from "@/lib/ai/types";
+import {
+  ABSENT_USAGE,
+  emitProviderUsage,
+  nvidiaContentFromPayload,
+  parseNvidiaUsage,
+  usageOutcomeFromProviderError,
+  type GenerateWithUsage,
+} from "@/lib/ai/usage";
 import { getNvidiaEnv, type NvidiaEnv } from "@/lib/config/env";
 
 const MAX_ATTEMPTS = 2;
@@ -23,7 +31,7 @@ export type NvidiaGenerateFn = (params: {
   userPrompt: string;
   responseJsonSchema: unknown;
   signal: AbortSignal;
-}) => Promise<string>;
+}) => Promise<GenerateWithUsage>;
 
 function sleep(ms: number, signal?: AbortSignal): Promise<void> {
   signal?.throwIfAborted();
@@ -58,7 +66,9 @@ export function nvidiaReasoningEffortForModel(model: string): "low" | undefined 
   return model.toLowerCase().includes("gpt-oss") ? "low" : undefined;
 }
 
-export async function generateWithNvidia(params: Parameters<NvidiaGenerateFn>[0]): Promise<string> {
+export async function generateWithNvidia(
+  params: Parameters<NvidiaGenerateFn>[0],
+): Promise<GenerateWithUsage> {
   const reasoningEffort = nvidiaReasoningEffortForModel(params.model);
   const response = await fetch(`${params.baseUrl.replace(/\/$/, "")}/chat/completions`, {
     method: "POST",
@@ -86,10 +96,11 @@ export async function generateWithNvidia(params: Parameters<NvidiaGenerateFn>[0]
   if (!response.ok) {
     throw Object.assign(new Error("NVIDIA triage request failed"), { status: response.status });
   }
-  const payload = (await response.json()) as {
-    choices?: Array<{ message?: { content?: string | null } }>;
-  };
-  return payload.choices?.[0]?.message?.content ?? "";
+  const payload: unknown = await response.json();
+  // Parse usage first; never retain reasoning_content or other message fields.
+  const usage = parseNvidiaUsage(payload);
+  const text = nvidiaContentFromPayload(payload);
+  return { text, usage };
 }
 
 export class NvidiaEmailTriageProvider implements EmailTriageProvider {
@@ -109,7 +120,7 @@ export class NvidiaEmailTriageProvider implements EmailTriageProvider {
     for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt += 1) {
       options.signal?.throwIfAborted();
       try {
-        return await this.completeOnce(input, options);
+        return await this.completeOnce(input, options, attempt);
       } catch (error) {
         if (options.signal?.aborted) throw options.signal.reason;
         lastError = error;
@@ -129,6 +140,7 @@ export class NvidiaEmailTriageProvider implements EmailTriageProvider {
   private async completeOnce(
     input: ThreadAnalysisInput,
     options: TriageRequestOptions,
+    attempt: number,
   ): Promise<ThreadAnalysis> {
     const controller = new AbortController();
     const cancel = () => controller.abort(options.signal?.reason);
@@ -139,9 +151,11 @@ export class NvidiaEmailTriageProvider implements EmailTriageProvider {
       controller.signal.addEventListener("abort", rejectOnAbort, { once: true });
     });
     let timer: ReturnType<typeof setTimeout> | undefined;
-    let content: string;
+    const startedAt = Date.now();
+    let content = "";
+    let usage = ABSENT_USAGE;
     try {
-      content = await Promise.race([
+      const generated = await Promise.race([
         this.generate({
           apiKey: this.env.NVIDIA_API_KEY,
           baseUrl: this.env.NVIDIA_BASE_URL,
@@ -159,13 +173,35 @@ export class NvidiaEmailTriageProvider implements EmailTriageProvider {
         }),
         interrupted,
       ]);
+      content = generated.text;
+      usage = generated.usage;
+    } catch (error) {
+      await emitProviderUsage(options.onProviderUsage, {
+        provider: "nvidia",
+        model: this.env.NVIDIA_MODEL,
+        attempt,
+        outcome: usageOutcomeFromProviderError(error, options.signal),
+        durationMs: Date.now() - startedAt,
+        usage: ABSENT_USAGE,
+      });
+      throw error;
     } finally {
       clearTimeout(timer);
       options.signal?.removeEventListener("abort", cancel);
       controller.signal.removeEventListener("abort", rejectOnAbort!);
     }
 
+    const durationMs = Date.now() - startedAt;
+    const baseEvent = {
+      provider: "nvidia" as const,
+      model: this.env.NVIDIA_MODEL,
+      attempt,
+      durationMs,
+      usage,
+    };
+
     if (!content) {
+      await emitProviderUsage(options.onProviderUsage, { ...baseEvent, outcome: "schema" });
       throw new ThreadTriageError("schema", "NVIDIA returned an empty triage payload");
     }
 
@@ -173,13 +209,16 @@ export class NvidiaEmailTriageProvider implements EmailTriageProvider {
     try {
       json = JSON.parse(extractJsonText(content)) as unknown;
     } catch (error) {
+      await emitProviderUsage(options.onProviderUsage, { ...baseEvent, outcome: "schema" });
       throw new ThreadTriageError("schema", "NVIDIA returned non-JSON triage payload", error);
     }
 
     const parsed = threadAnalysisSchema.safeParse(json);
     if (!parsed.success) {
+      await emitProviderUsage(options.onProviderUsage, { ...baseEvent, outcome: "schema" });
       throw new ThreadTriageError("schema", "NVIDIA JSON failed schema validation", parsed.error);
     }
+    await emitProviderUsage(options.onProviderUsage, { ...baseEvent, outcome: "ok" });
     return parsed.data;
   }
 }

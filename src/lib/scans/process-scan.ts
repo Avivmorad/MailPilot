@@ -4,6 +4,7 @@ import { tryAnalyzeThread, type EmailTriageProvider } from "@/lib/ai/analyze-thr
 import { TRIAGE_PROMPT_VERSION } from "@/lib/ai/prompts";
 import { threadAnalysisSchema, type ThreadAnalysis } from "@/lib/ai/schemas";
 import { threadAnalysisInputFromContext } from "@/lib/ai/types";
+import { createScanUsageRecorder } from "@/lib/ai/usage";
 import { reconcileActionItem } from "@/lib/actions/reconcile-action";
 import { getContextLimits, type ContextLimits } from "@/lib/config/env";
 import { classifyDirection, parseAddressList, parseEmailAddress } from "@/lib/gmail/addresses";
@@ -638,6 +639,12 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
     };
 
     const analysisKey = analysisPromptKey(settings);
+    const onProviderUsage = createScanUsageRecorder({
+      userId,
+      connectionId,
+      scanId,
+      promptVersion: analysisKey,
+    });
     const remaining = Math.max(0, threadIds.length - cursor);
     const workerCount = Math.min(Math.max(1, limits.AI_MAX_CONCURRENCY), Math.max(1, remaining));
     const persistMessages = async (
@@ -771,7 +778,7 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
                           customInstructions: settings.customAiInstructions,
                         }),
                         provider,
-                        { signal },
+                        { signal, onProviderUsage },
                       ),
                     {
                       ...requestBudget,

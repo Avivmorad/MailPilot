@@ -16,6 +16,7 @@ import { tryAnalyzeThread, type EmailTriageProvider } from "@/lib/ai/analyze-thr
 import { NVIDIA_REQUEST_TIMEOUT_MS, NvidiaEmailTriageProvider } from "@/lib/ai/nvidia";
 import { TRIAGE_PROMPT_VERSION } from "@/lib/ai/prompts";
 import { threadAnalysisSchema, type ThreadAnalysis } from "@/lib/ai/schemas";
+import { ABSENT_USAGE } from "@/lib/ai/usage";
 import type { MailPilotLogicalLabel } from "@/lib/gmail/constants";
 import { listMessageRefs as listGmailMessageRefs } from "@/lib/gmail/messages";
 import type { ParsedGmailMessage } from "@/lib/gmail/parser";
@@ -1309,9 +1310,12 @@ describe("processInitialScan", () => {
       () => {
         calls += 1;
         if (calls === 1) {
-          return new Promise<string>(() => undefined);
+          return new Promise<{ text: string; usage: typeof ABSENT_USAGE }>(() => undefined);
         }
-        return Promise.resolve(JSON.stringify(validAnalysis()));
+        return Promise.resolve({
+          text: JSON.stringify(validAnalysis()),
+          usage: ABSENT_USAGE,
+        });
       },
     );
     try {
@@ -1354,7 +1358,7 @@ describe("processInitialScan", () => {
         NVIDIA_MODEL: "openai/gpt-oss-20b",
         NVIDIA_BASE_URL: "https://example.invalid/v1",
       },
-      () => new Promise<string>(() => undefined),
+      () => new Promise<{ text: string; usage: typeof ABSENT_USAGE }>(() => undefined),
     );
     try {
       const result = runScan({
@@ -1403,7 +1407,7 @@ describe("processInitialScan", () => {
       },
       () => {
         calls += 1;
-        return new Promise<string>(() => undefined);
+        return new Promise<{ text: string; usage: typeof ABSENT_USAGE }>(() => undefined);
       },
     );
     // Enough for a second provider timeout, not for refetch + analysis + label write.

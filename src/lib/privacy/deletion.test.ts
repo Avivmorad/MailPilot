@@ -16,6 +16,7 @@ function createMemoryPort(ownerId: string): AccountDeletionPort & {
   abortedScansFor: Array<{ userId: string; connectionIds: string[] }>;
 } {
   const rows: Record<string, Array<{ userId: string; connectionId?: string }>> = {
+    triage_usage: [{ userId: ownerId }, { userId: "other-user" }],
     digest_reports: [{ userId: ownerId }, { userId: "other-user" }],
     scan_runs: [{ userId: ownerId }, { userId: "other-user" }],
     classification_feedback: [{ userId: ownerId }],
@@ -103,6 +104,9 @@ describe("deleteAnalysisDataForUser", () => {
     expect(callOrder.indexOf("abort")).toBeLessThan(
       callOrder.findIndex((step) => step.startsWith("delete:")),
     );
+    expect(callOrder.indexOf("delete:triage_usage")).toBeLessThan(
+      callOrder.indexOf("delete:scan_runs"),
+    );
   });
 
   it("removes only the authenticated user's analysis rows and keeps the other user", async () => {
@@ -110,9 +114,11 @@ describe("deleteAnalysisDataForUser", () => {
     const deleted = await deleteAnalysisDataForUser("user-1", port);
 
     expect(deleted.email_threads).toBe(1);
+    expect(deleted.triage_usage).toBe(1);
     expect(deleted.digest_reports).toBe(1);
     expect(deleted.scan_jobs).toBe(1);
     expect(port.rows.email_threads).toEqual([{ userId: "other-user" }]);
+    expect(port.rows.triage_usage).toEqual([{ userId: "other-user" }]);
     expect(port.rows.digest_reports).toEqual([{ userId: "other-user" }]);
     expect(port.rows.scan_jobs).toEqual([{ userId: "other-user", connectionId: "conn-other" }]);
     expect(port.historyResetFor).toEqual(["user-1"]);

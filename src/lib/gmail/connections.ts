@@ -305,6 +305,18 @@ export async function completeGmailOAuth(
   };
 }
 
+/** Disconnect, then delete stored threads, actions, History, and scan rows. */
+export async function disconnectGmailAndClearAnalysis(
+  userId: string,
+  deps: {
+    disconnect: (userId: string) => Promise<void>;
+    purge: (userId: string) => Promise<void>;
+  },
+): Promise<void> {
+  await deps.disconnect(userId);
+  await deps.purge(userId);
+}
+
 export async function disconnectGmailForUser(userId: string): Promise<void> {
   const db = createAdminClient();
   const { data, error } = await db

@@ -19,12 +19,12 @@ export const PRIVACY_POLICY_SECTIONS = [
   {
     id: "retention",
     title: "How long MailPriority keeps data",
-    body: "MailPriority keeps your account, triage settings, and analysis data until you delete them. Analysis data means stored threads, message metadata (subjects, snippets, headers, and timestamps), attachment filenames and types without the file bytes, action cards, classification feedback, History entries, scan history, and classification token counts. Full email bodies are not stored, and MailPriority does not delete the messages in Gmail. Delete analysis data removes that analysis data, stops a scan that is still running, and clears the Gmail history checkpoint and last successful scan time. Gmail stays connected, and the MailPriority login stays. Delete account does that same analysis deletion, disconnects Gmail and revokes access when Google accepts the revoke, then removes the MailPriority login and the data tied to it.",
+    body: "MailPriority keeps your account, triage settings, and analysis data until you disconnect Gmail or delete them. Analysis data means stored threads, message metadata (subjects, snippets, headers, and timestamps), attachment filenames and types without the file bytes, action cards, classification feedback, History entries, scan history, and classification token counts. Full email bodies are not stored, and MailPriority does not delete the messages in Gmail. Disconnecting Gmail revokes access when Google accepts the revoke and removes that analysis data. MailPilot/ labels already applied in Gmail stay there. Delete analysis data removes that analysis data, stops a scan that is still running, and clears the Gmail history checkpoint and last successful scan time. Gmail stays connected, and the MailPriority login stays. Delete account does that same analysis deletion, disconnects Gmail and revokes access when Google accepts the revoke, then removes the MailPriority login and the data tied to it.",
   },
   {
     id: "your-controls",
     title: "Your controls",
-    body: "In Settings you can disconnect Gmail (historical summaries stay until you delete them), delete analysis data (threads, messages, actions, History entries, scans, and classification usage; Gmail stays connected), or delete your MailPriority account (revokes Gmail when possible and removes the login). You can also disconnect MailPriority from your Google account permissions.",
+    body: "In Settings you can disconnect Gmail (stops scanning and removes stored threads, messages, actions, History entries, scans, and classification usage; messages in Gmail stay), delete analysis data (the same stored mail, while Gmail stays connected), or delete your MailPriority account (revokes Gmail when possible and removes the login). You can also disconnect MailPriority from your Google account permissions.",
   },
   {
     id: "support",

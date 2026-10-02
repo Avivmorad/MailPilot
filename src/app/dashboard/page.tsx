@@ -110,17 +110,10 @@ export default async function DashboardPage({
     closed: 0,
     snoozed: 0,
   };
-  const latestScan = connected ? await getLatestScanRunForUser(user.id) : null;
-  const latestScanStatus = latestScan ? String(latestScan.status) : "";
-  const latestStartedAt = typeof latestScan?.started_at === "string" ? latestScan.started_at : null;
-  const since =
-    (latestScanStatus === "SUCCESS" || latestScanStatus === "PARTIAL") && latestStartedAt
-      ? latestStartedAt
-      : (gmailStatus.connection?.lastSuccessfulScanAt ?? null);
   let actionsLoadError = false;
   let countsLoadError = false;
 
-  const [figures, openActions, latestDigest, dashboardChanges] = connected
+  const [figures, openActions, latestScan] = connected
     ? await Promise.all([
         getMailFigures(user.id).catch(() => {
           countsLoadError = true;
@@ -130,6 +123,18 @@ export default async function DashboardPage({
           actionsLoadError = true;
           return [] as ActionListItem[];
         }),
+        getLatestScanRunForUser(user.id),
+      ])
+    : [emptyFigures, [] as ActionListItem[], null];
+  const latestScanStatus = latestScan ? String(latestScan.status) : "";
+  const latestStartedAt = typeof latestScan?.started_at === "string" ? latestScan.started_at : null;
+  const since =
+    (latestScanStatus === "SUCCESS" || latestScanStatus === "PARTIAL") && latestStartedAt
+      ? latestStartedAt
+      : (gmailStatus.connection?.lastSuccessfulScanAt ?? null);
+
+  const [latestDigest, dashboardChanges] = connected
+    ? await Promise.all([
         ensureDigestForLatestScan(
           user.id,
           latestScan ? String(latestScan.id) : null,
@@ -148,8 +153,6 @@ export default async function DashboardPage({
         })),
       ])
     : [
-        emptyFigures,
-        [],
         null,
         {
           summary: {

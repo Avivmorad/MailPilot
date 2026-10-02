@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 import {
   applyTheme,
@@ -8,12 +8,12 @@ import {
   THEME_STORAGE_KEY,
   themeIsDark,
 } from "@/lib/ui/theme";
+import { mockMatchMedia } from "@/test/match-media";
 
 afterEach(() => {
   window.localStorage.clear();
   document.documentElement.className = "";
   document.documentElement.style.colorScheme = "";
-  vi.restoreAllMocks();
 });
 
 describe("theme", () => {
@@ -57,15 +57,7 @@ describe("theme", () => {
   });
 
   it("applyTheme persists preference and updates the document", () => {
-    vi.spyOn(window, "matchMedia").mockImplementation(
-      () =>
-        ({
-          matches: true,
-          media: "(prefers-color-scheme: dark)",
-          addEventListener: () => {},
-          removeEventListener: () => {},
-        }) as MediaQueryList,
-    );
+    mockMatchMedia(true);
 
     expect(applyTheme("light")).toBe(false);
     expect(window.localStorage.getItem(THEME_STORAGE_KEY)).toBe("light");

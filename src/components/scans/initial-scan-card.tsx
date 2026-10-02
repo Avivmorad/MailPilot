@@ -588,11 +588,15 @@ export function InitialScanCard({
             status={bar.status}
             errorCode={bar.errorCode}
           />
-          <dl className="grid flex-1 grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3">
+          <dl className="grid min-w-0 flex-1 grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3">
             {factItems.map((item) => (
-              <div key={item.label}>
-                <dt className="text-muted-foreground text-xs">{item.label}</dt>
-                <dd className="mt-0.5 text-sm font-medium tabular-nums">{item.value}</dd>
+              <div key={item.label} className="min-w-0">
+                <dt className="text-muted-foreground text-xs leading-snug break-words">
+                  {item.label}
+                </dt>
+                <dd className="mt-0.5 text-sm font-medium break-words tabular-nums">
+                  {item.value}
+                </dd>
               </div>
             ))}
           </dl>

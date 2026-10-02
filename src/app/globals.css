@@ -75,6 +75,9 @@
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
   --radius: 0.75rem;
+  /* App chrome rail widths — keep pad/width in sync via these vars only. */
+  --app-sidebar-width-expanded: 15rem;
+  --app-sidebar-width-collapsed: 4.75rem;
   /* Cool navy-tinted rail so the app chrome reads apart from the canvas. */
   --sidebar: oklch(0.93 0.02 260);
   --sidebar-foreground: oklch(0.22 0.02 260);
@@ -127,10 +130,13 @@
   }
   html {
     @apply font-sans;
+    overflow-x: clip;
   }
   body {
     @apply bg-background text-foreground font-sans antialiased;
     line-height: 1.6;
+    overflow-x: clip;
+    min-width: 0;
   }
   :lang(he),
   [dir="rtl"],

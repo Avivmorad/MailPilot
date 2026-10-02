@@ -302,6 +302,34 @@ describe("InitialScanCard polling", () => {
     expect(screen.queryByText(/Retries queued/)).not.toBeInTheDocument();
   });
 
+  it("keeps progress stats in a min-width auto-fit grid without mid-word breaks", () => {
+    render(
+      <InitialScanCard
+        connected
+        incremental={false}
+        latestScan={runningScan()}
+        messagesProcessed={42}
+        breakdown={{
+          actions: 1,
+          pending: 2,
+          forYou: 3,
+          ignored: 4,
+          important: 0,
+        }}
+      />,
+    );
+    const stats = screen.getByTestId("scan-progress-stats");
+    expect(stats.className).toContain("minmax(10rem,1fr)");
+    expect(stats.className).not.toContain("grid-cols-2");
+    expect(stats.className).not.toContain("sm:grid-cols-3");
+    for (const label of ["Conversations", "Emails scanned", "Updated"]) {
+      const dt = screen.getByText(label);
+      expect(dt.tagName).toBe("DT");
+      expect(dt.className).toContain("whitespace-nowrap");
+      expect(dt.className).not.toContain("break-words");
+    }
+  });
+
   it("names the lookback control and scan actions", () => {
     render(<InitialScanCard connected incremental={false} />);
     expect(screen.getByRole("combobox", { name: "Lookback window" })).toBeEnabled();

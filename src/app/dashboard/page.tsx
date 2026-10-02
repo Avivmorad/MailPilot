@@ -229,62 +229,36 @@ export default async function DashboardPage({
         />
       ) : null}
 
-      {scanRunning ? (
-        <div className="bg-card ring-foreground/10 flex min-w-0 flex-wrap items-center justify-between gap-3 rounded-xl px-4 py-4 shadow-xs ring-1">
-          <div className="min-w-0">
-            <p className="font-medium tracking-tight">Live progress</p>
+      <div className="bg-card ring-foreground/10 flex min-w-0 flex-wrap items-center justify-between gap-3 rounded-xl px-4 py-4 shadow-xs ring-1">
+        <div className="min-w-0">
+          <p className="font-medium tracking-tight">
+            {scanRunning ? "Live progress" : "Last scan"}
+          </p>
+          {scanRunning ? (
             <p className="text-muted-foreground mt-0.5 text-sm break-words">
-              A scan is running. The circle and the latest numbers are on the Scan tab.
+              A scan is running. Progress lives on the Scan tab.
             </p>
-            {changeLine ? (
-              <p className="text-muted-foreground mt-1 text-sm leading-relaxed break-words">
-                {changeLine}
-              </p>
-            ) : null}
-          </div>
-          <Link href="/scan" className={cn(buttonVariants(), "min-h-10 shrink-0 px-4")}>
-            Open scan
-          </Link>
-        </div>
-      ) : (
-        <div className="bg-card ring-foreground/10 min-w-0 rounded-xl px-4 py-4 shadow-xs ring-1">
-          <p className="font-medium tracking-tight">Last scan</p>
-          {latestScan ? (
-            <dl className="mt-3 grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              <div className="min-w-0">
-                <dt className="text-muted-foreground text-xs leading-snug break-words">
-                  Emails scanned
-                </dt>
-                <dd className="mt-0.5 text-lg font-semibold tabular-nums">
-                  {Number(latestScan.messages_processed ?? 0)}
-                </dd>
-              </div>
-              <div className="min-w-0">
-                <dt className="text-muted-foreground text-xs leading-snug break-words">
-                  Conversations checked
-                </dt>
-                <dd className="mt-0.5 text-lg font-semibold tabular-nums">
-                  {Number(latestScan.threads_checked ?? 0)}
-                </dd>
-              </div>
-              <div className="min-w-0">
-                <dt className="text-muted-foreground text-xs leading-snug break-words">Status</dt>
-                <dd className="mt-0.5 text-sm font-medium break-words">
-                  {labelForScanStatus(latestStatus)}
-                </dd>
-              </div>
-              <div className="min-w-0">
-                <dt className="text-muted-foreground text-xs leading-snug break-words">Finished</dt>
-                <dd className="mt-0.5 text-sm font-medium break-words">
-                  {formatDateTime(lastScanFinishedAt)}
-                </dd>
-              </div>
-            </dl>
+          ) : latestScan ? (
+            <p className="text-muted-foreground mt-0.5 text-sm break-normal">
+              {labelForScanStatus(latestStatus)}
+              {lastScanFinishedAt ? ` · ${formatDateTime(lastScanFinishedAt)}` : ""}
+              {` · ${Number(latestScan.messages_processed ?? 0)} emails`}
+            </p>
           ) : (
-            <p className="text-muted-foreground mt-1 text-sm">No scan yet.</p>
+            <p className="text-muted-foreground mt-0.5 text-sm">
+              No scan yet. Progress and lookback controls live on the Scan tab.
+            </p>
           )}
+          {changeLine ? (
+            <p className="text-muted-foreground mt-1 text-sm leading-relaxed break-words">
+              {changeLine}
+            </p>
+          ) : null}
         </div>
-      )}
+        <Link href="/scan" className={cn(buttonVariants(), "min-h-10 shrink-0 px-4")}>
+          {scanRunning || latestScan ? "Open scan" : "Scan now"}
+        </Link>
+      </div>
 
       {step ? (
         <div className="bg-card ring-foreground/10 flex min-w-0 flex-wrap items-center justify-between gap-3 rounded-xl px-4 py-3.5 shadow-xs ring-1">

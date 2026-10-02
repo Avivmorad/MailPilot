@@ -2,9 +2,16 @@
 
 Console and live checks only. App code stays in separate sessions. Check a box only when its **Done when** line is true.
 
-Supabase migrations `0007`–`0012` are applied on `mailpilot-dev`. Vercel has the required env vars. The Gmail redirect URI on record is `https://gmailpilot.vercel.app/api/gmail/callback`. Sign-in, Connect Gmail, and a last-week Scan now already ran on the live app (699 conversations, finished partial: a few threads were not analyzed).
+Supabase migrations `0007`–`0012` and `20260929174644_analysis_scan_attribution` are applied on `mailpilot-dev`. Vercel has the required env vars. The Gmail redirect URI on record is `https://gmailpilot.vercel.app/api/gmail/callback`. Sign-in, Connect Gmail, and a last-week Scan now already ran on the live app (699 conversations, finished partial: a few threads were not analyzed).
 
 Do the sections in order. Sections 8 and 9 wait on app changes; the others can start now.
+
+## Code sessions
+
+Live boxes below stay open until their **Done when** line is true. Session progress is also in `IgnoreFolder/plan_to_publish.md`.
+
+- [x] Session 1, repo cleanup: `package.json` has one `overrides` object, and setup docs say the scan-attribution migration is applied on `mailpilot-dev`.
+- Still open: scan reliability (section 8), daily dispatch (section 9), privacy copy (section 11), and pointing the app at the host you choose (section 2).
 
 ## Already done
 
@@ -35,7 +42,7 @@ Connect Gmail stays a separate step from Continue with Google. Do not remove the
 
 **Done when:** One host loads MailPriority, `https://<host>/privacy` and `https://<host>/terms` open on that same host, and Google Search Console shows the property as verified.
 
-`gmailpilot.vercel.app` and `mail-priority.vercel.app` have both been used. Google rejects a consent-screen homepage that redirects to a different domain. Docs and the Gmail callback still say `gmailpilot.vercel.app`.
+`gmailpilot.vercel.app` and `mail-priority.vercel.app` have both been used. Google rejects a consent-screen homepage that redirects to a different domain. Docs now record that `gmailpilot.vercel.app` redirects to `mail-priority.vercel.app`. The Gmail callback on record is still `https://gmailpilot.vercel.app/api/gmail/callback`. The launch host is not chosen.
 
 1. In a private window, open `https://gmailpilot.vercel.app` and `https://mail-priority.vercel.app`. Note which host stays in the address bar.
 2. Choose the host you can keep. Call it `<host>` in the steps below.

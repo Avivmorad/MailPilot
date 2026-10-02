@@ -4,11 +4,11 @@ Gmail inbox triage that answers three questions: **what happened, what do I need
 to do, and what’s pending?**
 
 The GitHub repository and Gmail label prefix stay **MailPilot** (`MailPilot/`).
-The public app is [gmailpilot.vercel.app](https://gmailpilot.vercel.app).
+The deployed app is on Vercel. [gmailpilot.vercel.app](https://gmailpilot.vercel.app) currently redirects to [mail-priority.vercel.app](https://mail-priority.vercel.app). The launch host is not chosen.
 
 ## Live demo
 
-**App:** [gmailpilot.vercel.app](https://gmailpilot.vercel.app)
+**App:** [gmailpilot.vercel.app](https://gmailpilot.vercel.app) (redirects to [mail-priority.vercel.app](https://mail-priority.vercel.app); launch host not chosen)
 
 The landing page is public. Inbox features need a MailPriority account and a
 separate Gmail connection. Google OAuth may be limited to configured test users

@@ -40,6 +40,9 @@ Supabase Auth, **no** Gmail scopes.
    `http://localhost:3000/auth/confirm`, `http://localhost:3000/**`, and
    `https://gmailpilot.vercel.app/auth/confirm`. Without the localhost entries,
    Continue with Google from local falls back to the production Site URL.
+   `https://gmailpilot.vercel.app` currently redirects to
+   `https://mail-priority.vercel.app`. The launch host is not chosen. Do not
+   submit a redirecting host as the Google consent-screen homepage.
 5. Sign-in returns to `/auth/confirm` (PKCE), then `/onboarding`. Gmail stays
    disconnected until Connect Gmail.
 
@@ -108,7 +111,7 @@ Apply SQL in the Supabase SQL Editor, in this order:
 10. `supabase/migrations/0010_gmail_mailbox_uniqueness.sql` — one inbox per MailPriority user
 11. `supabase/migrations/0011_check_constraints.sql` — status, confidence, counter checks
 12. `supabase/migrations/0012_scan_chunk_resume.sql` — resume large scans across Hobby slices
-13. `supabase/migrations/20260929174644_analysis_scan_attribution.sql` — attribute each saved analysis to the scan that wrote it. Apply before deploying matching app code. Existing analysis stays unattributed. Not recorded as applied on `mailpilot-dev` yet.
+13. `supabase/migrations/20260929174644_analysis_scan_attribution.sql` — attribute each saved analysis to the scan that wrote it. Applied on `mailpilot-dev`. Existing analysis from before that migration stays unattributed. Apply this file on any new project before deploying the matching app code.
 
 RLS is required on user-accessible tables (`user_id = auth.uid()`). See
 [`supabase/README.md`](../supabase/README.md).

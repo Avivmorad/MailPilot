@@ -25,6 +25,7 @@ export function createGmailScanPort(
     fetchThread: (threadId) => fetchAndParseThread(gmail, threadId, requestBudget),
     getProfileHistoryId: () => fetchProfileHistoryId(gmail, requestBudget),
     loadLabelMap: () => loadLabelIdMap(connectionId),
+    // Create missing labels if post-connect after() setup did not finish.
     ensureManagedLabels: () => ensureManagedLabelsWithClient(gmail, connectionId, requestBudget),
     modifyThreadLabels: (threadId, addLabelIds, removeLabelIds) =>
       modifyThreadLabels(gmail, threadId, addLabelIds, removeLabelIds, requestBudget),

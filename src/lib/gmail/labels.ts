@@ -31,6 +31,10 @@ export async function ensureManagedLabels(
   await ensureManagedLabelsWithClient(gmail, connectionId, options);
 }
 
+/**
+ * Same as {@link ensureManagedLabels} when a Gmail client is already available
+ * (e.g. during a scan). Idempotent.
+ */
 export async function ensureManagedLabelsWithClient(
   gmail: gmail_v1.Gmail,
   connectionId: string,
@@ -83,6 +87,17 @@ export async function ensureManagedLabelsWithClient(
       throw new Error(`Failed to store label mapping for ${spec.logicalName}`);
     }
   }
+}
+
+/**
+ * Connection-first alias for {@link ensureManagedLabelsWithClient} (label reconcile).
+ */
+export async function ensureManagedLabelsWithGmail(
+  connectionId: string,
+  gmail: gmail_v1.Gmail,
+  options: EnsureManagedLabelsOptions = {},
+): Promise<void> {
+  return ensureManagedLabelsWithClient(gmail, connectionId, options);
 }
 
 async function listAllLabels(

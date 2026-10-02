@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
-  afterMock,
   ensureManagedLabels,
   exchangeAuthorizationCode,
   fetchGmailIdentity,
@@ -13,9 +12,6 @@ const {
   updateEq,
   fromMock,
 } = vi.hoisted(() => {
-  const afterMock = vi.fn((task: () => void) => {
-    task();
-  });
   const ensureManagedLabels = vi.fn(async () => undefined);
   const exchangeAuthorizationCode = vi.fn();
   const fetchGmailIdentity = vi.fn();
@@ -55,7 +51,6 @@ const {
     throw new Error(`unexpected table ${table}`);
   });
   return {
-    afterMock,
     ensureManagedLabels,
     exchangeAuthorizationCode,
     fetchGmailIdentity,
@@ -68,10 +63,6 @@ const {
     fromMock,
   };
 });
-
-vi.mock("next/server", () => ({
-  after: (task: () => void) => afterMock(task),
-}));
 
 vi.mock("@/lib/config/env", () => ({
   getGmailEnv: () => ({
@@ -129,7 +120,6 @@ import { GMAIL_CONNECT_RETRY_DELAYS_MS } from "@/lib/gmail/retry";
 
 describe("completeGmailOAuth", () => {
   beforeEach(() => {
-    afterMock.mockClear();
     ensureManagedLabels.mockReset();
     ensureManagedLabels.mockResolvedValue(undefined);
     exchangeAuthorizationCode.mockReset();
@@ -140,6 +130,8 @@ describe("completeGmailOAuth", () => {
     upsertSelectSingle.mockReset();
     updateEq.mockReset();
     updateEq.mockResolvedValue({ error: null });
+    getScanPreferences.mockClear();
+    nextDailyScanAt.mockClear();
 
     exchangeAuthorizationCode.mockResolvedValue({
       accessToken: "access-token",
@@ -164,23 +156,10 @@ describe("completeGmailOAuth", () => {
     });
   });
 
-  it("returns as soon as the connection is saved and schedules labels via after()", async () => {
-    let resolveLabels: (() => void) | undefined;
-    const labelsStarted = new Promise<void>((resolve) => {
-      ensureManagedLabels.mockImplementation(
-        () =>
-          new Promise((done) => {
-            resolve();
-            resolveLabels = () => done(undefined);
-          }),
-      );
-    });
+  it("returns as soon as the connection is saved and defers labels to runPostConnectSetup", async () => {
+    const result = await completeGmailOAuth("user-1", "auth-code");
 
-    const resultPromise = completeGmailOAuth("user-1", "auth-code");
-    await labelsStarted;
-    const result = await resultPromise;
-
-    expect(result).toMatchObject({
+    expect(result.connection).toMatchObject({
       id: "conn-1",
       gmailEmail: "user@example.com",
       status: "CONNECTED",
@@ -188,17 +167,22 @@ describe("completeGmailOAuth", () => {
     expect(fetchGmailIdentity).toHaveBeenCalledWith("access-token", "refresh-token", {
       delaysMs: GMAIL_CONNECT_RETRY_DELAYS_MS,
     });
-    expect(afterMock).toHaveBeenCalledTimes(1);
+    expect(ensureManagedLabels).not.toHaveBeenCalled();
+
+    await result.runPostConnectSetup();
+
     expect(ensureManagedLabels).toHaveBeenCalledWith("conn-1", "access-token", "refresh-token", {
       delaysMs: GMAIL_CONNECT_RETRY_DELAYS_MS,
     });
-    resolveLabels?.();
+    expect(getScanPreferences).toHaveBeenCalledWith("user-1");
+    expect(updateEq).toHaveBeenCalledWith("id", "conn-1");
   });
 
   it("still completes connect when deferred label creation fails", async () => {
     ensureManagedLabels.mockRejectedValue(new Error("quota"));
     const result = await completeGmailOAuth("user-1", "auth-code");
-    expect(result.id).toBe("conn-1");
-    expect(afterMock).toHaveBeenCalledTimes(1);
+    expect(result.connection.id).toBe("conn-1");
+    await expect(result.runPostConnectSetup()).resolves.toBeUndefined();
+    expect(ensureManagedLabels).toHaveBeenCalledTimes(1);
   });
 });

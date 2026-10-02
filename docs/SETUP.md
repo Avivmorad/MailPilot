@@ -62,7 +62,8 @@ Server OAuth with `gmail.modify`.
    `/onboarding`.
 
 Scope: `https://www.googleapis.com/auth/gmail.modify` (read mail and apply
-labels). `MailPilot/*` labels are created on first connect if missing.
+labels). `MailPilot/*` labels are ensured after Connect Gmail (off the OAuth
+redirect critical path) and reconciled again on the next scan if missing.
 
 ## Environment variables
 

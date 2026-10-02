@@ -2,7 +2,7 @@
 
 Console and live checks only. App code stays in separate sessions. Check a box only when its **Done when** line is true.
 
-Supabase migrations `0007`–`0012` and `20260929174644_analysis_scan_attribution` are applied on `mailpilot-dev`. Vercel has the required env vars. The Gmail redirect URI on record is `https://gmailpilot.vercel.app/api/gmail/callback`. Sign-in, Connect Gmail, and a last-week Scan now already ran on the live app (699 conversations, finished partial: a few threads were not analyzed).
+Supabase migrations `0007`–`0012` and `20260929174644_analysis_scan_attribution` are applied on `mailpilot-dev`. Vercel has the required env vars. The chosen public host is `https://mail-priority.vercel.app`. The Gmail redirect URI last recorded in Google is still `https://gmailpilot.vercel.app/api/gmail/callback` until section 3 is done. Sign-in, Connect Gmail, and a last-week Scan now already ran on the live app (699 conversations, finished partial: a few threads were not analyzed).
 
 Do the sections in order. Section 8's scan-timeout code is in the tree; its live Success boxes stay open. Section 9's dispatch code is in the tree; its ten-account live check is still open. The other sections can start now.
 
@@ -45,10 +45,10 @@ Connect Gmail stays a separate step from Continue with Google. Do not remove the
 
 **Done when:** One host loads MailPriority, `https://<host>/privacy` and `https://<host>/terms` open on that same host, and Google Search Console shows the property as verified.
 
-`gmailpilot.vercel.app` and `mail-priority.vercel.app` have both been used. Google rejects a consent-screen homepage that redirects to a different domain. Docs now record that `gmailpilot.vercel.app` redirects to `mail-priority.vercel.app`. The Gmail callback on record is still `https://gmailpilot.vercel.app/api/gmail/callback`. The launch host is not chosen.
+The chosen host is `https://mail-priority.vercel.app`. Call it `<host>` below. `gmailpilot.vercel.app` redirects there. Google rejects a consent-screen homepage that redirects, so do not submit `gmailpilot.vercel.app`. This box stays open until `<host>` loads without redirecting and Search Console shows it verified. The Gmail callback last recorded in Google is still `https://gmailpilot.vercel.app/api/gmail/callback` until section 3.
 
-1. In a private window, open `https://gmailpilot.vercel.app` and `https://mail-priority.vercel.app`. Note which host stays in the address bar.
-2. Choose the host you can keep. Call it `<host>` in the steps below.
+1. In a private window, open `https://mail-priority.vercel.app`. The address bar must stay on that host. `https://gmailpilot.vercel.app` should leave the bar.
+2. The host is already chosen. Do not pick a second one.
 3. In [Google Search Console](https://search.google.com/search-console), add the URL-prefix property `https://<host>/` and complete the verification method Google shows (DNS record or HTML file).
 4. Leave every later URL on `<host>` until this box is checked. Do not submit Google verification against a host that still redirects.
 

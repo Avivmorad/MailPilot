@@ -5,10 +5,10 @@ Operating guidance for AI agents and developers working in this repository.
 ## Source of truth
 
 The user-facing product name is **MailPriority**. The repository, package, and
-Gmail label prefix remain **MailPilot** (`MailPilot/`). The deployed app is on
-Vercel. `gmailpilot.vercel.app` currently redirects to `mail-priority.vercel.app`.
-The launch host is not chosen; do not treat either name as the verified public
-domain until [`docs/OWNER_TASKS.md`](docs/OWNER_TASKS.md) section 2 is done.
+Gmail label prefix remain **MailPilot** (`MailPilot/`). The public app is
+`https://mail-priority.vercel.app`. `gmailpilot.vercel.app` redirects there and
+is not the launch host. Live Vercel, Supabase, and Google settings still follow
+[`docs/OWNER_TASKS.md`](docs/OWNER_TASKS.md) sections 2 and 3.
 
 Authoritative docs (do not invent different behavior without updating them):
 

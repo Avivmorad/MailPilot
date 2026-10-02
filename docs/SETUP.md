@@ -36,13 +36,15 @@ Supabase Auth, **no** Gmail scopes.
 3. In Supabase (Authentication → Providers → Google) enable Google and enter the
    Web client ID and secret. Never commit the secret.
 4. Authentication → URL Configuration: Site URL =
-   `https://gmailpilot.vercel.app`. Redirect URLs must include
+   `https://mail-priority.vercel.app`. Redirect URLs must include
    `http://localhost:3000/auth/confirm`, `http://localhost:3000/**`, and
-   `https://gmailpilot.vercel.app/auth/confirm`. Without the localhost entries,
+   `https://mail-priority.vercel.app/auth/confirm`. Without the localhost entries,
    Continue with Google from local falls back to the production Site URL.
-   `https://gmailpilot.vercel.app` currently redirects to
-   `https://mail-priority.vercel.app`. The launch host is not chosen. Do not
-   submit a redirecting host as the Google consent-screen homepage.
+   The launch host is `https://mail-priority.vercel.app`. Production
+   `GOOGLE_REDIRECT_URI` is `https://mail-priority.vercel.app/api/gmail/callback`.
+   `https://gmailpilot.vercel.app` redirects to the launch host. Do not submit
+   that redirecting host as the Google consent-screen homepage. Live Vercel,
+   Supabase, and Google still need to be pointed at the launch host.
 5. Sign-in returns to `/auth/confirm` (PKCE), then `/onboarding`. Gmail stays
    disconnected until Connect Gmail.
 

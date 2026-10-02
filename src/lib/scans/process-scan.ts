@@ -135,8 +135,15 @@ export function triageFailureCode(error: unknown): string {
   return "unknown";
 }
 
-/** A second provider attempt must be able to finish before the slice deadline. */
+/** Provider calls abort themselves after this long. */
 const ANALYSIS_TIMEOUT_RETRY_MS = 25_000;
+
+/**
+ * A retry repeats the whole thread: Gmail fetch, one provider attempt, then
+ * the label write. Each Gmail call can consume a full request timeout.
+ */
+const TIMEOUT_RETRY_BUDGET_MS =
+  GMAIL_REQUEST_TIMEOUT_MS + ANALYSIS_TIMEOUT_RETRY_MS + GMAIL_REQUEST_TIMEOUT_MS;
 
 export function isRecoverableAnalysisTimeout(error: unknown): boolean {
   const code = triageFailureCode(error);
@@ -148,6 +155,17 @@ function anotherAttemptFits(budget: { deadlineAt?: number }, attemptMs: number):
     return true;
   }
   return budget.deadlineAt - Date.now() >= attemptMs;
+}
+
+function nestedDeadline(error: unknown): GmailDeadlineError | undefined {
+  let current: unknown = error;
+  for (let depth = 0; current && typeof current === "object" && depth < 5; depth += 1) {
+    if (current instanceof GmailDeadlineError) {
+      return current;
+    }
+    current = (current as { cause?: unknown }).cause;
+  }
+  return undefined;
 }
 
 function deepestTriageCode(error: unknown): string | undefined {
@@ -714,6 +732,7 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
                 return;
               }
               let countTowardCursor = false;
+              let analysisPersisted = false;
               try {
                 const messages = await gmail.fetchThread(gmailThreadId);
                 if (messages.length === 0) {
@@ -766,8 +785,13 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
                     return;
                   }
                   if (!outcome.ok) {
+                    const deadline = nestedDeadline(outcome.error);
+                    if (deadline) {
+                      stopAdmission = true;
+                      throw deadline;
+                    }
                     if (attempt === 0 && isRecoverableAnalysisTimeout(outcome.error)) {
-                      if (!anotherAttemptFits(requestBudget, ANALYSIS_TIMEOUT_RETRY_MS)) {
+                      if (!anotherAttemptFits(requestBudget, TIMEOUT_RETRY_BUDGET_MS)) {
                         stopAdmission = true;
                         throw new GmailDeadlineError();
                       }
@@ -829,6 +853,7 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
                   modelName: analysis ? modelName : null,
                   analysisScanId,
                 });
+                analysisPersisted = Boolean(analysis);
 
                 // Thread upsert commits analysis and attribution in one row.
                 // Replay outside the durable prefix recovers this count without
@@ -878,18 +903,24 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
                 countTowardCursor = true;
                 break;
               } catch (error) {
+                const deadline =
+                  error instanceof GmailDeadlineError ? error : nestedDeadline(error);
                 if (
-                  error instanceof GmailDeadlineError ||
+                  deadline ||
                   isGmailAuthError(error) ||
                   (error instanceof GmailConnectError && error.reason === "reauth_required")
                 ) {
                   stopAdmission = true;
-                  throw error;
+                  throw deadline ?? error;
+                }
+                if (analysisPersisted && isRecoverableAnalysisTimeout(error)) {
+                  stopAdmission = true;
+                  throw new GmailDeadlineError();
                 }
                 if (
                   attempt === 0 &&
                   isRecoverableAnalysisTimeout(error) &&
-                  anotherAttemptFits(requestBudget, GMAIL_REQUEST_TIMEOUT_MS)
+                  anotherAttemptFits(requestBudget, TIMEOUT_RETRY_BUDGET_MS)
                 ) {
                   continue;
                 }

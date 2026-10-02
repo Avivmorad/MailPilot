@@ -30,6 +30,8 @@ describe("vercel.json crons", () => {
       "utf8",
     );
     expect(dispatcher).toMatch(/export const maxDuration = 300;/);
+    expect(dispatcher).toContain("runDispatchCycle");
+    expect(dispatcher).toContain("after(");
     expect(scans).toMatch(/export const maxDuration = 300;/);
     expect(cont).toMatch(/export const maxDuration = 300;/);
     expect(scans).not.toMatch(/maxDuration = 800/);

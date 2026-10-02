@@ -5,14 +5,14 @@ Setup and env live in [`SETUP.md`](SETUP.md).
 
 ## Stack
 
-| Layer       | Choice                                                                  |
-| ----------- | ----------------------------------------------------------------------- |
-| App         | Next.js (App Router), React, TypeScript, Tailwind CSS, shadcn/ui        |
-| Data / auth | Supabase Postgres + RLS; Supabase Auth for the app account              |
-| Gmail       | Separate Google OAuth (`gmail.modify`); refresh tokens AES-256-GCM      |
-| AI          | NVIDIA Build when `NVIDIA_API_KEY` is set; otherwise Google Gemini      |
-| Hosting     | Vercel (Hobby-safe: one connection per cron run, `maxDuration` 300s)    |
-| CI          | GitHub Actions: format, lint, typecheck, unit, integration, eval, build |
+| Layer       | Choice                                                                                              |
+| ----------- | --------------------------------------------------------------------------------------------------- |
+| App         | Next.js (App Router), React, TypeScript, Tailwind CSS, shadcn/ui                                    |
+| Data / auth | Supabase Postgres + RLS; Supabase Auth for the app account                                          |
+| Gmail       | Separate Google OAuth (`gmail.modify`); refresh tokens AES-256-GCM                                  |
+| AI          | NVIDIA Build when `NVIDIA_API_KEY` is set; otherwise Google Gemini                                  |
+| Hosting     | Vercel (Hobby-safe: one connection per invocation, daily cycle chains the rest, `maxDuration` 300s) |
+| CI          | GitHub Actions: format, lint, typecheck, unit, integration, eval, build                             |
 
 ## System overview
 
@@ -26,7 +26,7 @@ Server (Vercel)
   ├─ Scan pipeline          Gmail fetch → MIME/thread parse → triage JSON
   │                         → Zod + post-process → Postgres upserts → labels
   ├─ Incremental sync       Gmail History API (stale historyId recovery)
-  └─ Cron dispatcher        claims due connections, 270s lease, chunk resume
+  └─ Cron dispatcher        one daily cron; each slice claims one due connection, then chains the rest
 
 Supabase Postgres + RLS     profiles, connections, threads, actions, scans, digests
 NVIDIA Build or Gemini      structured ThreadAnalysis JSON only
@@ -50,17 +50,17 @@ fail the scan or skip labels). See **Token / cost telemetry** below.
 
 ### Scan modes
 
-| Mode               | Behavior                                                      |
-| ------------------ | ------------------------------------------------------------- |
-| Initial / lookback | Gmail `newer_than` for 1–30 day windows (default 7)           |
-| Incremental        | Gmail History API since last successful `historyId`           |
-| Scheduled          | Dispatcher claims connections where `next_scan_at` ≤ now      |
-| Chunk resume       | `RUNNING` scan keeps a thread cursor across ~240s work slices |
+| Mode               | Behavior                                                                   |
+| ------------------ | -------------------------------------------------------------------------- |
+| Initial / lookback | Gmail `newer_than` for 1–30 day windows (default 7)                        |
+| Incremental        | Gmail History API since last successful `historyId`                        |
+| Scheduled          | One daily cron; each slice claims one due connection, then chains the rest |
+| Chunk resume       | `RUNNING` scan keeps a thread cursor across ~240s work slices              |
 
 Constraints:
 
 - At most one `RUNNING` scan per Gmail connection (`0008_scan_admission.sql`).
-- Job lease ~270s; Hobby `maxDuration` 300s.
+- Job lease ~270s; Hobby `maxDuration` 300s. One daily cron chains slices until the due queue drains or a backlog alert fires.
 - Gmail unit budget: rolling one-minute window (default 12,000 units).
 - Failed or invalid AI does **not** apply Gmail labels.
 

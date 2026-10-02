@@ -14,7 +14,8 @@ export const SENTRY_TAG_KEYS = [
 export type SentryTagKey = (typeof SENTRY_TAG_KEYS)[number];
 export type SentryProviderTag = "gmail" | "gemini" | "supabase" | "unknown";
 export type SentryScanTypeTag = "initial" | "manual" | "recovery" | "scheduled";
-export type SentryErrorCategoryTag = "reauth" | "quota" | "ai" | "partial" | "store" | "unknown";
+export type SentryErrorCategoryTag =
+  "reauth" | "quota" | "ai" | "partial" | "store" | "backlog" | "unknown";
 
 export type SentrySafeTags = Partial<
   Record<SentryTagKey, string> & {
@@ -41,7 +42,7 @@ const ALLOWED_TAG_VALUES: Record<SentryTagKey, ReadonlySet<string>> = {
   ]),
   provider: new Set(["gmail", "gemini", "supabase", "unknown"]),
   scan_type: new Set(["initial", "manual", "recovery", "scheduled"]),
-  error_category: new Set(["reauth", "quota", "ai", "partial", "store", "unknown"]),
+  error_category: new Set(["reauth", "quota", "ai", "partial", "store", "backlog", "unknown"]),
 };
 
 export function sentryEnvironment(
@@ -90,6 +91,9 @@ export function sentryErrorCategoryFromError(error: unknown): SentryErrorCategor
   }
   if (/partial_thread_failures|thread_failures:/i.test(message)) {
     return "partial";
+  }
+  if (/dispatch_backlog/i.test(message)) {
+    return "backlog";
   }
   if (/supabase|schema cache|scan_runs|Failed to/i.test(message)) {
     return "store";

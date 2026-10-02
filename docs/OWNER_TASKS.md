@@ -4,15 +4,17 @@ Console and live checks only. App code stays in separate sessions. Check a box o
 
 Supabase migrations `0007`–`0012` and `20260929174644_analysis_scan_attribution` are applied on `mailpilot-dev`. Vercel has the required env vars. The Gmail redirect URI on record is `https://gmailpilot.vercel.app/api/gmail/callback`. Sign-in, Connect Gmail, and a last-week Scan now already ran on the live app (699 conversations, finished partial: a few threads were not analyzed).
 
-Do the sections in order. Sections 8 and 9 wait on app changes; the others can start now.
+Do the sections in order. Section 8's scan-timeout code is in the tree; its live Success boxes stay open. Section 9's dispatch code is in the tree; its ten-account live check is still open. The other sections can start now.
 
 ## Code sessions
 
 Live boxes below stay open until their **Done when** line is true. Session progress is also in `IgnoreFolder/plan_to_publish.md`.
 
 - [x] Session 1, repo cleanup: `package.json` has one `overrides` object, and setup docs say the scan-attribution migration is applied on `mailpilot-dev`.
+- [x] Session 2, scan timeouts: a retryable AI timeout is retried once before the scan is sealed partial, and a thread that still fails stays stored so a later scan can retry it.
+- [x] Session 3, daily dispatch: one Hobby cron chains bounded slices so every due connection in the cycle is claimed, retries the next slice when it does not start, and raises a backlog alert if the queue does not drain.
 - [x] Session 4, privacy and schedule copy: local privacy and terms pages state retention and name NVIDIA Build when an NVIDIA API key is configured, otherwise Google Gemini. Settings no longer promises a run at the saved local time. No support email exists in the repo.
-- Still open: scan reliability (section 8), daily dispatch (section 9), section 11 until you read `https://<host>/privacy` and `https://<host>/terms`, and pointing the app at the host you choose (section 2). A support inbox you can point a recruiter at is still missing.
+- Still open: two live accounts finishing Success (section 8), the live ten-account daily cycle (section 9), section 11 until you read `https://<host>/privacy` and `https://<host>/terms`, and pointing the app at the host you choose (section 2). A support inbox you can point a recruiter at is still missing.
 
 ## Already done
 
@@ -155,7 +157,7 @@ Supabase’s default sender is for testing. It restricts who can receive mail an
 
 ## 8. Prove two first scans finish
 
-Wait for the scan-reliability code session before treating a failure here as a settings problem. The last live run was partial because AI requests timed out.
+The scan-timeout code is in the tree. These boxes stay open until two live accounts finish Success on the host. The last live run was still partial; that proof was not re-run here.
 
 - [ ] On `<host>`, two different Gmail accounts each finish a seven-day Scan now as Success.
 - [ ] Mail shows separate Actions, For You, and Ignored lists, and Gmail shows the `MailPilot/` labels.
@@ -175,7 +177,7 @@ Wait for the scan-reliability code session before treating a failure here as a s
 
 ## 9. Prove the daily run reaches every connected account
 
-Wait for the daily-dispatch code session. Until that ships, one cron run still handles a single connection, so this check cannot pass.
+Session 3 is in the tree: one daily cron chains a bounded slice per due connection, retries a slice that does not start, and alerts if the queue does not drain. Still open: this live check needs ten connected accounts on the host, which local tests cannot prove.
 
 The schedule is best-effort once a day. Vercel Hobby cron is `0 6 * * *` UTC (09:00 in Israel during summer time). Settings may still show a local time; that clock is not a promise that Hobby will run at that minute.
 

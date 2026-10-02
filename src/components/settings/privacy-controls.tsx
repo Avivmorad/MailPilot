@@ -74,9 +74,10 @@ export function PrivacyControls() {
       <CardHeader>
         <CardTitle>Privacy</CardTitle>
         <CardDescription>
-          These actions only affect your MailPriority data. Disconnecting Gmail keeps summaries.
-          Deleting analysis data removes mail that MailPriority stored. Deleting the account removes
-          everything and signs you out. See the{" "}
+          These actions only affect your MailPriority data. Disconnecting Gmail removes stored mail
+          from MailPriority and does not delete messages in Gmail. Deleting analysis data removes
+          that stored mail while Gmail stays connected. Deleting the account removes everything and
+          signs you out. See the{" "}
           <Link
             href="/privacy"
             className="text-foreground font-medium underline underline-offset-4"

@@ -7,7 +7,7 @@ export const TERMS_SECTIONS = [
   {
     id: "your-account",
     title: "Your account",
-    body: "You must only connect a Gmail account you are allowed to access. You are responsible for keeping your MailPriority login safe and for how you use the summaries and labels MailPriority creates. You can disconnect Gmail, delete stored analysis data, or delete your MailPriority account in Settings. MailPriority does not publish a support email address.",
+    body: "You must only connect a Gmail account you are allowed to access. You are responsible for keeping your MailPriority login safe and for how you use the summaries and labels MailPriority creates. You can disconnect Gmail (which removes stored analysis from MailPriority), delete stored analysis data while staying connected, or delete your MailPriority account in Settings. MailPriority does not publish a support email address.",
   },
   {
     id: "limitations",

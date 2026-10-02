@@ -112,6 +112,7 @@ export function AppHeader({ email, current }: { email?: string | null; current: 
             <Link
               key={item.href}
               href={item.path}
+              prefetch
               aria-current={active ? "page" : undefined}
               aria-label={item.label}
               title={item.label}

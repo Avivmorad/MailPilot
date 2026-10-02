@@ -14,7 +14,7 @@ function flashMessage(
     return { kind: "ok", text: "Gmail connected. MailPriority labels are ready in your mailbox." };
   }
   if (gmail === "disconnected") {
-    return { kind: "ok", text: "Gmail disconnected. Historical summaries were kept." };
+    return { kind: "ok", text: "Gmail disconnected. Stored mail was removed from MailPriority." };
   }
   if (gmail !== "error") {
     return null;

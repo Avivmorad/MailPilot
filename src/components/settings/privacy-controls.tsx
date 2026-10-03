@@ -4,12 +4,19 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { SettingInfo } from "@/components/settings/setting-info";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   DELETE_ACCOUNT_CONFIRMATION,
   DELETE_ANALYSIS_CONFIRMATION,
 } from "@/lib/privacy/confirmations";
+import {
+  DELETE_ACCOUNT_INFO,
+  DELETE_ACCOUNT_LABEL,
+  DELETE_ANALYSIS_INFO,
+  DELETE_ANALYSIS_LABEL,
+} from "@/lib/settings/setting-info-copy";
 
 export function PrivacyControls() {
   const router = useRouter();
@@ -89,7 +96,10 @@ export function PrivacyControls() {
       </CardHeader>
       <CardContent className="space-y-6">
         <section className="space-y-2">
-          <h3 className="text-sm font-medium">Delete analysis data</h3>
+          <div className="flex items-center gap-1.5">
+            <h3 className="text-sm font-medium">{DELETE_ANALYSIS_LABEL}</h3>
+            <SettingInfo label={DELETE_ANALYSIS_LABEL} description={DELETE_ANALYSIS_INFO} />
+          </div>
           <p className="text-muted-foreground text-sm">
             Removes stored messages, threads, actions, History entries, and scan history. Does not
             disconnect Gmail or delete your MailPriority login.
@@ -118,7 +128,10 @@ export function PrivacyControls() {
           </Button>
         </section>
         <section className="space-y-2">
-          <h3 className="text-sm font-medium">Delete MailPriority account</h3>
+          <div className="flex items-center gap-1.5">
+            <h3 className="text-sm font-medium">{DELETE_ACCOUNT_LABEL}</h3>
+            <SettingInfo label={DELETE_ACCOUNT_LABEL} description={DELETE_ACCOUNT_INFO} />
+          </div>
           <p className="text-muted-foreground text-sm">
             Revokes Gmail access when possible, deletes all owned product data, and removes your
             login.

@@ -33,6 +33,28 @@ export function parseTriageDomain(raw: string): { ok: true; value: string } | { 
   return parsed.success ? { ok: true, value: parsed.data } : { ok: false };
 }
 
+export type IgnoreEntry =
+  | { ok: true; kind: "sender"; value: string }
+  | { ok: true; kind: "domain"; value: string }
+  | { ok: false };
+
+/**
+ * One Ignore senders & domains input. An entry with `@` is a sender address.
+ * An entry without `@` is a domain. Anything else is rejected.
+ */
+export function parseIgnoreEntry(raw: string): IgnoreEntry {
+  const trimmed = raw.trim();
+  if (!trimmed) {
+    return { ok: false };
+  }
+  if (trimmed.includes("@")) {
+    const parsed = parseTriageSender(trimmed);
+    return parsed.ok ? { ok: true, kind: "sender", value: parsed.value } : { ok: false };
+  }
+  const parsed = parseTriageDomain(trimmed);
+  return parsed.ok ? { ok: true, kind: "domain", value: parsed.value } : { ok: false };
+}
+
 export function uniqueStrings(values: string[]): string[] {
   return [...new Set(values)];
 }

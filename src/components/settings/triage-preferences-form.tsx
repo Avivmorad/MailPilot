@@ -1,8 +1,10 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useId, useState } from "react";
 
+import { IgnoreSendersDomainsField } from "@/components/settings/ignore-senders-domains-field";
+import { SettingInfo, SettingLabel } from "@/components/settings/setting-info";
 import { TriageListField } from "@/components/settings/triage-list-field";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,7 +15,20 @@ import {
   TRIAGE_SETTINGS_SAVED_MESSAGE,
   TRIAGE_UPDATE_STARTED_MESSAGE,
 } from "@/lib/settings/schedule-copy";
-import { parseTriageDomain, parseTriageSender } from "@/lib/settings/triage-lists";
+import {
+  CUSTOM_TRIAGE_INSTRUCTIONS_INFO,
+  CUSTOM_TRIAGE_INSTRUCTIONS_LABEL,
+  HISTORY_AFTER_SCAN_INFO,
+  HISTORY_AFTER_SCAN_LABEL,
+  IGNORE_SENDERS_DOMAINS_INFO,
+  SAVE_TRIAGE_INFO,
+  SAVE_TRIAGE_LABEL,
+  UPDATE_NOW_INFO,
+  UPDATE_NOW_LABEL,
+  VIP_SENDERS_INFO,
+  VIP_SENDERS_LABEL,
+} from "@/lib/settings/setting-info-copy";
+import { parseTriageSender } from "@/lib/settings/triage-lists";
 
 export function TriagePreferencesForm({
   vipSenders,
@@ -29,6 +44,7 @@ export function TriagePreferencesForm({
   digestEnabled: boolean;
 }) {
   const router = useRouter();
+  const instructionsId = useId();
   const [vip, setVip] = useState(vipSenders);
   const [ignored, setIgnored] = useState(ignoredSenders);
   const [domains, setDomains] = useState(ignoredDomains);
@@ -132,7 +148,8 @@ export function TriagePreferencesForm({
       </CardHeader>
       <CardContent className="space-y-4">
         <TriageListField
-          label="VIP senders"
+          label={VIP_SENDERS_LABEL}
+          info={VIP_SENDERS_INFO}
           values={vip}
           onChange={setVip}
           parseValue={parseTriageSender}
@@ -141,58 +158,59 @@ export function TriagePreferencesForm({
           disabled={disabled}
           inputMode="email"
         />
-        <TriageListField
-          label="Ignored senders"
-          values={ignored}
-          onChange={setIgnored}
-          parseValue={parseTriageSender}
-          placeholder="noise@example.com"
-          invalidMessage="Enter a valid email address."
+        <IgnoreSendersDomainsField
+          senders={ignored}
+          domains={domains}
+          info={IGNORE_SENDERS_DOMAINS_INFO}
           disabled={disabled}
-          inputMode="email"
+          onChange={({ senders, domains: nextDomains }) => {
+            setIgnored(senders);
+            setDomains(nextDomains);
+          }}
         />
-        <TriageListField
-          label="Ignored domains"
-          values={domains}
-          onChange={setDomains}
-          parseValue={parseTriageDomain}
-          placeholder="newsletters.example.com"
-          invalidMessage="Enter a valid domain (for example newsletters.example.com)."
-          disabled={disabled}
-        />
-        <label className="block text-sm">
-          <span className="text-muted-foreground mb-1.5 block">
-            Custom triage instructions ({instructions.length}/{CUSTOM_AI_INSTRUCTIONS_MAX})
-          </span>
+        <div className="block text-sm">
+          <SettingLabel
+            label={CUSTOM_TRIAGE_INSTRUCTIONS_LABEL}
+            htmlFor={instructionsId}
+            description={CUSTOM_TRIAGE_INSTRUCTIONS_INFO}
+          >
+            {`Custom triage instructions (${instructions.length}/${CUSTOM_AI_INSTRUCTIONS_MAX})`}
+          </SettingLabel>
           <textarea
+            id={instructionsId}
             className="border-input bg-background min-h-28 w-full rounded-lg border px-3 py-2 text-sm"
             value={instructions}
             maxLength={CUSTOM_AI_INSTRUCTIONS_MAX}
             onChange={(event) => setInstructions(event.target.value)}
             disabled={disabled}
           />
-        </label>
-        <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={digest}
-            onChange={(event) => setDigest(event.target.checked)}
-            disabled={disabled}
-          />
-          Add an entry to History after each successful or partial scan
-        </label>
-        <div className="flex flex-wrap gap-2">
+        </div>
+        <div className="flex items-center gap-2 text-sm">
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={digest}
+              onChange={(event) => setDigest(event.target.checked)}
+              disabled={disabled}
+            />
+            {HISTORY_AFTER_SCAN_LABEL}
+          </label>
+          <SettingInfo label={HISTORY_AFTER_SCAN_LABEL} description={HISTORY_AFTER_SCAN_INFO} />
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
           <Button type="button" disabled={disabled} onClick={() => void save()}>
-            {busy === "save" ? "Saving…" : "Save triage settings"}
+            {busy === "save" ? "Saving…" : SAVE_TRIAGE_LABEL}
           </Button>
+          <SettingInfo label={SAVE_TRIAGE_LABEL} description={SAVE_TRIAGE_INFO} />
           <Button
             type="button"
             variant="outline"
             disabled={disabled}
             onClick={() => void updateNow()}
           >
-            {busy === "update" ? "Updating…" : "Update Now"}
+            {busy === "update" ? "Updating…" : UPDATE_NOW_LABEL}
           </Button>
+          <SettingInfo label={UPDATE_NOW_LABEL} description={UPDATE_NOW_INFO} />
         </div>
         {message ? (
           <p

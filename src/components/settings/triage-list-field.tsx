@@ -2,6 +2,7 @@
 
 import { useId, useState, type KeyboardEvent } from "react";
 
+import { SettingLabel } from "@/components/settings/setting-info";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { TRIAGE_LIST_MAX } from "@/lib/settings/limits";
@@ -9,6 +10,7 @@ import { cn } from "@/lib/utils";
 
 export function TriageListField({
   label,
+  info,
   values,
   onChange,
   parseValue,
@@ -18,6 +20,7 @@ export function TriageListField({
   inputMode,
 }: {
   label: string;
+  info?: string;
   values: string[];
   onChange: (next: string[]) => void;
   parseValue: (raw: string) => { ok: true; value: string } | { ok: false };
@@ -66,9 +69,13 @@ export function TriageListField({
 
   return (
     <div className="block text-sm">
-      <label htmlFor={inputId} className="text-muted-foreground mb-1.5 block">
-        {label}
-      </label>
+      {info ? (
+        <SettingLabel label={label} htmlFor={inputId} description={info} />
+      ) : (
+        <label htmlFor={inputId} className="text-muted-foreground mb-1.5 block">
+          {label}
+        </label>
+      )}
       <div className="flex gap-2">
         <input
           id={inputId}

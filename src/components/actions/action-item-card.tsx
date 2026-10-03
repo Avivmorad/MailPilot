@@ -39,7 +39,19 @@ export function ActionItemCard({
     status: item.status === "WAITING" ? "waiting" : "action_required",
     actionStatus: item.status,
   });
-  const placement = threadPlacementReason({ tab, evidence: whyText });
+  const placement = threadPlacementReason({
+    tab,
+    evidence: whyText,
+    importanceReason: item.importanceReason,
+    summary: item.summary,
+    title: item.title,
+    category: item.category,
+    actionType: item.actionType,
+    deadline: item.deadline,
+    sender: item.sender,
+    waitingFor: item.waitingFor,
+    snoozedUntil: item.snoozedUntil,
+  });
   const meta = [item.sender, item.latestMessageAt ? formatRelativeTime(item.latestMessageAt) : null]
     .filter(Boolean)
     .join(" · ");

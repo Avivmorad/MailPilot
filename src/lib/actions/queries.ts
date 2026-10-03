@@ -21,6 +21,7 @@ interface ThreadJoin {
   short_display_title: string | null;
   action_summary: string | null;
   action_reason: string | null;
+  importance_reason: string | null;
   confidence: number | null;
 }
 
@@ -50,6 +51,7 @@ export function mapActionListItem(
     description,
     actionSummary,
     actionReason: usableDisplayText(joined?.action_reason),
+    importanceReason: usableDisplayText(joined?.importance_reason),
     waitingFor: (row.waiting_for as string | null) ?? null,
     snoozedUntil: typeof row.snoozed_until === "string" ? row.snoozed_until : null,
     deadline: (row.deadline as string | null) ?? null,
@@ -99,7 +101,7 @@ export async function listActionsForUser(
   const { data, error } = await db
     .from("action_items")
     .select(
-      "id, thread_id, status, title, description, waiting_for, deadline, urgency, snoozed_until, action_type, updated_at, email_threads ( id, summary, importance, latest_message_at, gmail_thread_id, participants, category, short_display_title, action_summary, action_reason, confidence )",
+      "id, thread_id, status, title, description, waiting_for, deadline, urgency, snoozed_until, action_type, updated_at, email_threads ( id, summary, importance, latest_message_at, gmail_thread_id, participants, category, short_display_title, action_summary, action_reason, importance_reason, confidence )",
     )
     .eq("user_id", userId)
     .eq("status", status)

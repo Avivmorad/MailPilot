@@ -9,6 +9,7 @@ export interface ActionListItem {
   description: string | null;
   actionSummary: string | null;
   actionReason: string | null;
+  importanceReason: string | null;
   waitingFor: string | null;
   snoozedUntil: string | null;
   deadline: string | null;

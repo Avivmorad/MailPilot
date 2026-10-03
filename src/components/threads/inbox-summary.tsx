@@ -42,6 +42,11 @@ export function InboxSummary({
           <ul className="divide-y">
             {group.items.map((thread) => {
               const tab = mailBucketForThread({ status: thread.status });
+              const title = displayThreadTitle(
+                thread.shortDisplayTitle,
+                thread.summary,
+                thread.subject,
+              );
               return (
                 <li key={thread.id} className="min-w-0 overflow-hidden px-4 py-3">
                   <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
@@ -52,17 +57,9 @@ export function InboxSummary({
                       <p
                         className="text-foreground leading-snug font-semibold tracking-tight [overflow-wrap:anywhere] break-words"
                         dir="auto"
-                        title={displayThreadTitle(
-                          thread.shortDisplayTitle,
-                          thread.summary,
-                          thread.subject,
-                        )}
+                        title={title}
                       >
-                        {displayThreadTitle(
-                          thread.shortDisplayTitle,
-                          thread.summary,
-                          thread.subject,
-                        )}
+                        {title}
                       </p>
                       {usableDisplayText(thread.summary) &&
                       usableDisplayText(thread.shortDisplayTitle) ? (
@@ -87,7 +84,14 @@ export function InboxSummary({
                     </div>
                   </div>
                   <p className="text-muted-foreground mt-1 text-xs leading-relaxed break-words">
-                    {threadPlacementReason({ tab })}
+                    {threadPlacementReason({
+                      tab,
+                      importanceReason: thread.importanceReason,
+                      summary: thread.summary,
+                      title,
+                      category: thread.category,
+                      sender: thread.sender,
+                    })}
                   </p>
                   <ThreadPlacementCorrection threadId={thread.id} tab={tab} />
                 </li>

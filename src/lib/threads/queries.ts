@@ -11,6 +11,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import type { RecentThreadRow } from "@/lib/threads/recent-thread";
 import { correctionFromFeedback } from "@/lib/threads/apply-feedback";
 import { threadFeedbackSchema } from "@/lib/threads/feedback";
+import { usableDisplayText } from "@/lib/ui/display-text";
 
 export class ThreadQueryError extends Error {
   constructor(
@@ -70,9 +71,23 @@ type ThreadListDbRow = {
   summary: unknown;
   status: unknown;
   importance: unknown;
+  importance_reason: unknown;
   category: unknown;
+  participants: unknown;
   latest_message_at: unknown;
 };
+
+function senderFromParticipants(participants: unknown): string | null {
+  if (!Array.isArray(participants) || participants.length === 0) {
+    return null;
+  }
+  const first = participants[0] as { email?: unknown; name?: unknown };
+  const name = typeof first.name === "string" ? first.name.trim() : "";
+  if (name) {
+    return name;
+  }
+  return typeof first.email === "string" && first.email.trim() ? first.email.trim() : null;
+}
 
 /** FYI / quick updates only — never ignore, open tasks, or waiting. */
 export const INBOX_SUMMARY_STATUSES = ["informational", "resolved"] as const;
@@ -89,13 +104,17 @@ export function mapRecentThreadRow(row: ThreadListDbRow): RecentThreadRow {
     summary: (row.summary as string | null) ?? null,
     status: (row.status as string | null) ?? null,
     importance: (row.importance as string | null) ?? null,
+    importanceReason: usableDisplayText(
+      typeof row.importance_reason === "string" ? row.importance_reason : null,
+    ),
     category: (row.category as string | null) ?? null,
+    sender: senderFromParticipants(row.participants),
     latestMessageAt: (row.latest_message_at as string | null) ?? null,
   };
 }
 
 const THREAD_LIST_SELECT =
-  "id, subject, short_display_title, summary, status, importance, category, latest_message_at";
+  "id, subject, short_display_title, summary, status, importance, importance_reason, category, participants, latest_message_at";
 
 export async function listRecentThreadsForUser(
   userId: string,

@@ -5,7 +5,7 @@ import { TRIAGE_PROMPT_VERSION } from "@/lib/ai/prompts";
 import { threadAnalysisSchema, type ThreadAnalysis } from "@/lib/ai/schemas";
 import { threadAnalysisInputFromContext } from "@/lib/ai/types";
 import { createScanUsageRecorder } from "@/lib/ai/usage";
-import { reconcileActionItem } from "@/lib/actions/reconcile-action";
+import { reconcileActionItem, type ActionRecord } from "@/lib/actions/reconcile-action";
 import { getContextLimits, type ContextLimits } from "@/lib/config/env";
 import {
   classifyDirection,
@@ -288,6 +288,19 @@ const RATE_LIMIT_BACKOFF_CAP_MS = 8_000;
 
 function rateLimitBackoffMs(attempt: number): number {
   return Math.min(RATE_LIMIT_BACKOFF_MS * 2 ** attempt, RATE_LIMIT_BACKOFF_CAP_MS);
+}
+
+/**
+ * Snooze wake-up is time-based. A thread with no new mail still has to leave
+ * SNOOZED once `snoozed_until` has passed, which the metadata reuse path
+ * otherwise skips.
+ */
+function isExpiredSnooze(action: ActionRecord | null, now: Date): action is ActionRecord {
+  if (!action || action.status !== "SNOOZED" || !action.snoozedUntil) {
+    return false;
+  }
+  const until = Date.parse(action.snoozedUntil);
+  return Number.isFinite(until) && until <= now.getTime();
 }
 
 /** One backoff before the existing retry. A second 429 is stored as retryable. */
@@ -920,6 +933,26 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
                         threadsAnalyzed += 1;
                       }
                       analyses.push(analysis);
+                      const existingAction = await store.getAction(existing.id);
+                      if (isExpiredSnooze(existingAction, now)) {
+                        const nextAction = reconcileActionItem({
+                          analysis,
+                          existing: existingAction,
+                          // Message id is unchanged, so there is no new inbound mail.
+                          latestDirection: null,
+                          latestMessageAt: null,
+                          now,
+                        });
+                        if (nextAction && nextAction.status !== "SNOOZED") {
+                          emitProductEvent({
+                            type: "action.upserted",
+                            threadId: existing.id,
+                            status: nextAction.status,
+                            created: 0,
+                          });
+                          await store.upsertAction(userId, existing.id, nextAction);
+                        }
+                      }
                       const desiredLogical = logicalLabelsForAnalysis(analysis);
                       const desiredIds = desiredLogical
                         .map((name) => labelMap.get(name))

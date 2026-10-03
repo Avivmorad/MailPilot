@@ -1687,6 +1687,159 @@ describe("processInitialScan", () => {
     expect(store.messages.size).toBe(0);
   });
 
+  it("returns an expired snooze to Actions without refetching an unchanged thread", async () => {
+    const store = createMemoryStore();
+    const message = parsedMessage();
+    const scanNow = new Date("2026-09-10T12:00:00.000Z");
+    const threadId = await store.upsertThread({
+      userId: "user-1",
+      connectionId: "conn-1",
+      gmailThreadId: message.gmailThreadId,
+      subject: message.subject,
+      participants: [],
+      latestMessageAt: "2026-09-10T10:00:00.000Z",
+      latestMessageDirection: "INBOUND",
+      analysis: validAnalysis(),
+      lastAnalyzedMessageId: message.gmailMessageId,
+      promptVersion: storedPrompt,
+      modelName: "gemini-test",
+      analysisScanId: "prior-scan",
+    });
+    await store.upsertAction("user-1", threadId, {
+      status: "SNOOZED",
+      title: "אשר את התקציב",
+      description: "vendor contracts",
+      actionType: "approve",
+      waitingFor: null,
+      deadline: null,
+      urgency: "soon",
+      source: "USER",
+      manualOverride: true,
+      completedAt: null,
+      snoozedUntil: "2026-09-09T12:00:00.000Z",
+    });
+    const fetchThread = vi.fn(async () => [message]);
+    const analyze = vi.fn(async () => ({ ok: true as const, analysis: validAnalysis() }));
+    const result = await runScan({
+      store,
+      now: scanNow,
+      analyze,
+      gmail: {
+        listMessageRefs: async () => [
+          { id: message.gmailMessageId, threadId: message.gmailThreadId },
+        ],
+        listHistoryChanges: async () => {
+          throw new Error("history should not run on the initial scan");
+        },
+        fetchThread,
+        fetchThreadMetadata: async () => ({
+          latestMessageId: message.gmailMessageId,
+          labelIds: ["L_IMP", "L_ACT", "L_PROC"],
+        }),
+        getProfileHistoryId: async () => "hist-new",
+        loadLabelMap: async () => LABEL_MAP,
+        modifyThreadLabels: async () => undefined,
+      },
+    });
+
+    expect(result.status).toBe("SUCCESS");
+    expect(fetchThread).not.toHaveBeenCalled();
+    expect(analyze).not.toHaveBeenCalled();
+    expect(await store.getAction(threadId)).toMatchObject({
+      status: "OPEN",
+      snoozedUntil: null,
+    });
+  });
+
+  it("keeps a future snooze and a manual completion when metadata matches", async () => {
+    const store = createMemoryStore();
+    const message = parsedMessage();
+    const scanNow = new Date("2026-09-10T12:00:00.000Z");
+    const snoozedThreadId = await store.upsertThread({
+      userId: "user-1",
+      connectionId: "conn-1",
+      gmailThreadId: "t-snooze",
+      subject: "Still snoozed",
+      participants: [],
+      latestMessageAt: "2026-09-10T10:00:00.000Z",
+      latestMessageDirection: "INBOUND",
+      analysis: validAnalysis(),
+      lastAnalyzedMessageId: "m-snooze",
+      promptVersion: storedPrompt,
+      modelName: "gemini-test",
+      analysisScanId: "prior-scan",
+    });
+    const completedThreadId = await store.upsertThread({
+      userId: "user-1",
+      connectionId: "conn-1",
+      gmailThreadId: "t-done",
+      subject: "Done",
+      participants: [],
+      latestMessageAt: "2026-09-10T10:00:00.000Z",
+      latestMessageDirection: "INBOUND",
+      analysis: validAnalysis(),
+      lastAnalyzedMessageId: "m-done",
+      promptVersion: storedPrompt,
+      modelName: "gemini-test",
+      analysisScanId: "prior-scan",
+    });
+    const snoozed: ActionRecord = {
+      status: "SNOOZED",
+      title: "אשר את התקציב",
+      description: "vendor contracts",
+      actionType: "approve",
+      waitingFor: null,
+      deadline: null,
+      urgency: "soon",
+      source: "USER",
+      manualOverride: true,
+      completedAt: null,
+      snoozedUntil: "2026-09-12T12:00:00.000Z",
+    };
+    const completed: ActionRecord = {
+      status: "COMPLETED",
+      title: "אשר את התקציב",
+      description: "vendor contracts",
+      actionType: "approve",
+      waitingFor: null,
+      deadline: null,
+      urgency: "soon",
+      source: "USER",
+      manualOverride: true,
+      completedAt: "2026-09-10T11:00:00.000Z",
+      snoozedUntil: null,
+    };
+    await store.upsertAction("user-1", snoozedThreadId, snoozed);
+    await store.upsertAction("user-1", completedThreadId, completed);
+    const fetchThread = vi.fn(async () => [message]);
+    const result = await runScan({
+      store,
+      now: scanNow,
+      gmail: {
+        listMessageRefs: async () => [
+          { id: "m-snooze", threadId: "t-snooze" },
+          { id: "m-done", threadId: "t-done" },
+        ],
+        listHistoryChanges: async () => {
+          throw new Error("history should not run on the initial scan");
+        },
+        fetchThread,
+        fetchThreadMetadata: async (threadId: string) => ({
+          latestMessageId: threadId === "t-snooze" ? "m-snooze" : "m-done",
+          labelIds: ["L_IMP", "L_ACT", "L_PROC"],
+        }),
+        getProfileHistoryId: async () => "hist-new",
+        loadLabelMap: async () => LABEL_MAP,
+        modifyThreadLabels: async () => undefined,
+      },
+    });
+
+    expect(result.status).toBe("SUCCESS");
+    expect(fetchThread).not.toHaveBeenCalled();
+    expect(await store.getAction(snoozedThreadId)).toEqual(snoozed);
+    expect(await store.getAction(completedThreadId)).toEqual(completed);
+  });
+
   it("full-fetches and classifies when the metadata message id does not match", async () => {
     const store = createMemoryStore();
     const message = parsedMessage();

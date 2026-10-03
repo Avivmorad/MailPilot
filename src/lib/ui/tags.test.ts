@@ -34,9 +34,9 @@ describe("tagClassName", () => {
 });
 
 describe("isVisibleTag", () => {
-  it("hides empty, none action, and none urgency", () => {
+  it("hides empty and none action, but shows none urgency", () => {
     expect(isVisibleTag("action", "none")).toBe(false);
-    expect(isVisibleTag("urgency", "none")).toBe(false);
+    expect(isVisibleTag("urgency", "none")).toBe(true);
     expect(isVisibleTag("category", "finance")).toBe(true);
     expect(isVisibleTag("status", null)).toBe(false);
   });

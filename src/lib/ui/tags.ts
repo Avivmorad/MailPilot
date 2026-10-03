@@ -1,10 +1,20 @@
 import { CATEGORY_LABELS, normalizeCategory } from "@/lib/ai/categories";
-import { humanizeToken } from "@/lib/ui/labels";
+import { humanizeToken, urgencyLevel } from "@/lib/ui/labels";
 
 export const TAG_KINDS = ["category", "status", "importance", "urgency", "action"] as const;
 export type TagKind = (typeof TAG_KINDS)[number];
 
 const TAG_CLASS: Record<string, string> = {
+  "urgency:high":
+    "border-transparent bg-red-500/20 text-red-800 dark:bg-red-400/15 dark:text-red-100",
+  "urgency:medium":
+    "border-transparent bg-orange-500/15 text-orange-800 dark:bg-orange-400/20 dark:text-orange-100",
+  "urgency:low":
+    "border-transparent bg-blue-500/15 text-blue-800 dark:bg-blue-400/20 dark:text-blue-100",
+  "urgency:none":
+    "border-transparent bg-green-500/20 text-green-800 dark:bg-green-400/15 dark:text-green-100",
+  "urgency:unknown":
+    "border-transparent bg-gray-500/15 text-gray-800 dark:bg-gray-400/20 dark:text-gray-100",
   "status:action_required":
     "border-transparent bg-red-500/15 text-red-800 dark:bg-red-400/20 dark:text-red-100",
   "status:waiting":
@@ -92,6 +102,11 @@ export function tagColorClasses(): string[] {
 }
 
 const TAG_HINT: Record<string, string> = {
+  "urgency:high": "Urgency: high — urgent or overdue; handle this first.",
+  "urgency:medium": "Urgency: medium — due soon.",
+  "urgency:low": "Urgency: low — normal timing or a later deadline.",
+  "urgency:none": "Urgency: none — no time-sensitive action identified.",
+  "urgency:unknown": "Urgency: unknown — no valid urgency analysis is available.",
   "status:action_required": "Status: this thread still needs a next step from you.",
   "status:waiting": "Status: you already acted. The next step is on someone else.",
   "status:informational": "Status: useful to know, but nothing for you to do.",
@@ -125,7 +140,7 @@ export function normalizeTagValue(value: string): string {
 }
 
 export function tagKey(kind: TagKind, value: string): string {
-  const normalized = normalizeTagValue(value);
+  const normalized = kind === "urgency" ? urgencyLevel(value) : normalizeTagValue(value);
   if (kind === "category") {
     return `${kind}:${normalizeCategory(normalized)}`;
   }
@@ -136,7 +151,9 @@ export function tagLabel(kind: TagKind, value: string): string {
   if (kind === "category") {
     return CATEGORY_LABELS[normalizeCategory(value)];
   }
-  return humanizeToken(value);
+  return kind === "urgency"
+    ? `Urgency Level: ${humanizeToken(urgencyLevel(value))}`
+    : humanizeToken(value);
 }
 
 export function tagClassName(kind: TagKind, value: string): string {
@@ -156,7 +173,7 @@ export function isVisibleTag(kind: TagKind, value: string | null | undefined): v
     return false;
   }
   const normalized = normalizeTagValue(value);
-  if (kind === "action" || kind === "urgency") {
+  if (kind === "action") {
     return normalized !== "none";
   }
   return true;

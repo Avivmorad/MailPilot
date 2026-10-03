@@ -11,7 +11,9 @@ import { threadPlacementReason } from "@/lib/mail/placement";
 import { mailBucketForThread } from "@/lib/mail/buckets";
 import type { RecentThreadRow } from "@/lib/threads/recent-thread";
 import { displayThreadTitle, usableDisplayText } from "@/lib/ui/display-text";
-import { formatRelativeTime } from "@/lib/ui/format";
+import { accentForUrgency } from "@/lib/ui/labels";
+import { cn } from "@/lib/utils";
+import { displayUrgencyForDeadline, formatRelativeTime } from "@/lib/ui/format";
 
 export function InboxSummary({
   threads,
@@ -54,13 +56,21 @@ export function InboxSummary({
                   : null;
               const href = `/thread/${thread.id}`;
               return (
-                <li key={thread.id} className="min-w-0 overflow-hidden px-4 py-3">
+                <li
+                  key={thread.id}
+                  className={cn(
+                    "min-w-0 overflow-hidden border-l-4 px-4 py-3",
+                    accentForUrgency(displayUrgencyForDeadline(thread.deadline, thread.urgency)),
+                  )}
+                >
                   <div className="flex min-w-0 items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
                       <ThreadTags
                         category={thread.category}
                         status={thread.status}
                         importance={thread.importance}
+                        urgency={thread.urgency}
+                        deadline={thread.deadline}
                         categoryHref={categoryHrefFor?.(thread)}
                       />
                     </div>

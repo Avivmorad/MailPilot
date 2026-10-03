@@ -7,12 +7,24 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { LabeledField } from "@/components/ui/labeled-field";
 import { ThreadTags } from "@/components/ui/thread-tags";
 import type { DigestReport, DigestTopAction } from "@/lib/digest/types";
-import { classForDeadline, formatDate, formatDateTime } from "@/lib/ui/format";
+import { accentForUrgency } from "@/lib/ui/labels";
+import { cn } from "@/lib/utils";
+import {
+  displayUrgencyForDeadline,
+  classForDeadline,
+  formatDate,
+  formatDateTime,
+} from "@/lib/ui/format";
 
 function DigestActionRow({ action }: { action: DigestTopAction }) {
   const href = `/thread/${action.threadId}`;
   return (
-    <li className="min-w-0 py-3 first:pt-0 last:pb-0">
+    <li
+      className={cn(
+        "min-w-0 border-l-4 py-3 pl-3 first:pt-0 last:pb-0",
+        accentForUrgency(displayUrgencyForDeadline(action.deadline, action.urgency)),
+      )}
+    >
       <ThreadTags
         category={action.category}
         urgency={action.urgency}

@@ -26,6 +26,7 @@ describe("InboxSummary", () => {
         threads={[
           {
             id: "thread-1",
+            urgency: "none",
             subject: "Your flight changed",
             shortDisplayTitle: "Flight change",
             summary: "The 9am flight moved to 11am.",
@@ -41,6 +42,7 @@ describe("InboxSummary", () => {
     );
 
     expandCategory(/Travel & Transport/);
+    expect(screen.getByText("Urgency Level: None").closest("li")).toHaveClass("border-l-green-500");
     expect(screen.getByText("The airline moved the departure.")).toBeInTheDocument();
     expect(screen.queryByText(/useful update, not an action/i)).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Actions" })).toBeInTheDocument();

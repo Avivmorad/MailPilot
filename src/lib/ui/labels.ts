@@ -53,7 +53,7 @@ export function humanizeToken(value: string | null | undefined): string {
 }
 
 export function labelForUrgency(value: string | null | undefined): string {
-  return humanizeToken(value);
+  return humanizeToken(urgencyLevel(value));
 }
 
 export function labelForImportance(value: string | null | undefined): string {
@@ -76,16 +76,40 @@ export function labelForDirection(value: string | null | undefined): string {
   return humanizeToken(value);
 }
 
-export function accentForUrgency(value: string | null | undefined): string {
-  switch (value?.toLowerCase()) {
+/** Normalize legacy AI values without changing the stored schema. */
+export function urgencyLevel(
+  value: string | null | undefined,
+): "high" | "medium" | "low" | "none" | "unknown" {
+  switch (value?.trim().toLowerCase()) {
     case "urgent":
     case "expired":
-      return "border-l-destructive";
+    case "high":
+      return "high";
     case "soon":
-      return "border-l-orange-500";
+    case "medium":
+      return "medium";
+    case "normal":
     case "later":
-      return "border-l-sky-400";
+    case "low":
+      return "low";
+    case "none":
+      return "none";
     default:
-      return "border-l-transparent";
+      return "unknown";
+  }
+}
+
+export function accentForUrgency(value: string | null | undefined): string {
+  switch (urgencyLevel(value)) {
+    case "high":
+      return "border-l-red-500";
+    case "medium":
+      return "border-l-orange-500";
+    case "low":
+      return "border-l-blue-500";
+    case "none":
+      return "border-l-green-500";
+    case "unknown":
+      return "border-l-gray-400";
   }
 }

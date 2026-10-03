@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { ActionControls } from "@/components/actions/action-controls";
+import { MailCardTitle, MailOpenLink } from "@/components/mail/mail-card-chrome";
 import { ThreadPlacementCorrection } from "@/components/threads/thread-placement-correction";
 import { LabeledField } from "@/components/ui/labeled-field";
 import { ThreadTags } from "@/components/ui/thread-tags";
@@ -52,9 +53,8 @@ export function ActionItemCard({
     waitingFor: item.waitingFor,
     snoozedUntil: item.snoozedUntil,
   });
-  const meta = [item.sender, item.latestMessageAt ? formatRelativeTime(item.latestMessageAt) : null]
-    .filter(Boolean)
-    .join(" · ");
+  const href = `/thread/${item.threadId}`;
+  const when = item.latestMessageAt ? formatRelativeTime(item.latestMessageAt) : null;
 
   return (
     <article
@@ -63,26 +63,8 @@ export function ActionItemCard({
         accentForUrgency(urgencyLabel ?? item.urgency),
       )}
     >
-      <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0 flex-1 overflow-hidden">
-          <h3
-            className="text-foreground text-base leading-snug font-semibold tracking-tight [overflow-wrap:anywhere] break-words"
-            dir="auto"
-          >
-            <Link href={`/thread/${item.threadId}`} className="hover:underline" title={item.title}>
-              {item.title}
-            </Link>
-          </h3>
-          {meta ? (
-            <p
-              className="text-muted-foreground mt-0.5 text-sm [overflow-wrap:anywhere] break-words"
-              dir="auto"
-            >
-              {meta}
-            </p>
-          ) : null}
-        </div>
-        <div className="flex max-w-full min-w-0 shrink flex-wrap justify-start gap-1 sm:max-w-[min(100%,20rem)] sm:justify-end">
+      <div className="flex min-w-0 items-start justify-between gap-2">
+        <div className="min-w-0 flex-1">
           <ThreadTags
             category={item.category}
             importance={item.importance}
@@ -93,10 +75,26 @@ export function ActionItemCard({
             categoryHref={categoryHref}
           />
           {isUncertainClassification(item.confidence) ? (
-            <p className="mt-1 text-right text-xs text-amber-800 dark:text-amber-200">Uncertain</p>
+            <p className="mt-1 text-xs text-amber-800 dark:text-amber-200">Uncertain</p>
           ) : null}
         </div>
+        {when ? (
+          <span className="text-muted-foreground shrink-0 pt-1 text-xs tabular-nums">{when}</span>
+        ) : null}
       </div>
+      <MailCardTitle title={item.title} className="mt-2">
+        <Link href={href} className="hover:underline">
+          {item.title}
+        </Link>
+      </MailCardTitle>
+      {item.sender ? (
+        <p
+          className="text-muted-foreground mt-0.5 text-start text-sm [overflow-wrap:anywhere] break-words"
+          dir="auto"
+        >
+          {item.sender}
+        </p>
+      ) : null}
 
       <div className="mt-3 min-w-0 space-y-1 overflow-hidden">
         {doText ? (
@@ -117,6 +115,7 @@ export function ActionItemCard({
 
       <div className="mt-3 space-y-3 border-t pt-3">
         <div className="flex flex-wrap items-center gap-3">
+          <MailOpenLink href={href} />
           <ActionControls
             key={`${item.id}:${item.status}:${item.waitingFor ?? ""}`}
             actionId={item.id}

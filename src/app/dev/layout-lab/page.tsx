@@ -3,17 +3,22 @@
 import { notFound } from "next/navigation";
 import { useSyncExternalStore } from "react";
 
+import { ActionItemCard } from "@/components/actions/action-item-card";
 import { AppShell } from "@/components/layout/app-shell";
 import { PageHeader } from "@/components/layout/page-header";
 import { InboxStatCard } from "@/components/dashboard/inbox-stat-card";
 import { AppHeader } from "@/components/nav/app-header";
+import { InboxSummary } from "@/components/threads/inbox-summary";
 import { Button } from "@/components/ui/button";
+import { collapsedStorageKey } from "@/lib/ui/collapsed-state";
 import { SIDEBAR_STORAGE_KEY } from "@/lib/ui/sidebar";
 import { THEME_STORAGE_KEY } from "@/lib/ui/theme";
 
 function subscribeNoop() {
   return () => {};
 }
+
+const LAB_INVOICE_AT = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString();
 
 function readLabTheme(): "light" | "dark" {
   if (typeof window === "undefined") {
@@ -25,6 +30,8 @@ function readLabTheme(): "light" | "dark" {
 
 function prepareLayoutLabClient(): true {
   window.localStorage.setItem(SIDEBAR_STORAGE_KEY, "1");
+  window.localStorage.setItem(collapsedStorageKey("layout-lab-mail"), "[]");
+  window.localStorage.setItem(collapsedStorageKey("layout-lab-ignored"), "[]");
   const theme = readLabTheme();
   window.localStorage.setItem(THEME_STORAGE_KEY, theme);
   document.documentElement.classList.toggle("dark", theme === "dark");
@@ -176,32 +183,75 @@ export default function LayoutLabPage() {
         </article>
       </section>
 
-      <section className="min-w-0 space-y-3">
+      <section className="min-w-0 space-y-3" data-testid="mail-actions-card-preview">
+        <h2 className="text-foreground text-lg font-semibold tracking-tight">Actions card</h2>
+        <ActionItemCard
+          item={{
+            id: "layout-lab-action",
+            threadId: "layout-lab-action",
+            status: "OPEN",
+            title: "אשר את החשבונית",
+            description: null,
+            actionSummary: "Approve the invoice before Friday.",
+            actionReason: null,
+            importanceReason: null,
+            waitingFor: null,
+            snoozedUntil: null,
+            deadline: null,
+            urgency: null,
+            latestMessageAt: LAB_INVOICE_AT,
+            importance: "high",
+            summary: "The latest invoice is waiting for approval.",
+            sender: "Billing",
+            gmailUrl: "https://mail.google.com/mail/",
+            category: "finance",
+            actionType: "pay",
+            confidence: 0.9,
+            updatedAt: LAB_INVOICE_AT,
+          }}
+        />
+      </section>
+
+      <section className="min-w-0 space-y-3" data-testid="mail-ignored-card-preview">
+        <h2 className="text-foreground text-lg font-semibold tracking-tight">Ignored</h2>
+        <InboxSummary
+          storageKey="layout-lab-ignored"
+          threads={[
+            {
+              id: "layout-lab-ignored",
+              subject: "Weekly newsletter",
+              shortDisplayTitle: "הניוזלטר השבועי",
+              summary: "This week's promotions and product news.",
+              status: "ignore",
+              importance: "low",
+              importanceReason: null,
+              category: "newsletters_promotions",
+              sender: null,
+              latestMessageAt: LAB_INVOICE_AT,
+            },
+          ]}
+        />
+      </section>
+
+      <section className="min-w-0 space-y-3" data-testid="mail-open-card-preview">
         <h2 className="text-foreground text-lg font-semibold tracking-tight">Mail preview</h2>
-        <div className="bg-card ring-foreground/10 min-w-0 overflow-hidden rounded-xl ring-1">
-          <div className="border-b px-4 py-2.5 text-sm font-semibold">Travel & Transport</div>
-          <ul className="divide-y">
-            <li className="min-w-0 overflow-hidden px-4 py-3">
-              <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
-                <div className="min-w-0 flex-1 overflow-hidden">
-                  <p
-                    className="text-foreground leading-snug font-semibold tracking-tight [overflow-wrap:anywhere] break-words"
-                    dir="auto"
-                  >
-                    Hotel asked about late checkout and minibar charges
-                  </p>
-                  <p
-                    className="text-muted-foreground mt-1 line-clamp-2 text-sm leading-relaxed [overflow-wrap:anywhere] break-words"
-                    dir="auto"
-                  >
-                    They need your answer on late checkout plus a long URL
-                    https://booking.example.com/reservations/abcdef/details?token=zzzzzzzzzzzzzzzzzzzzzzzzzzzz
-                  </p>
-                </div>
-              </div>
-            </li>
-          </ul>
-        </div>
+        <InboxSummary
+          storageKey="layout-lab-mail"
+          threads={[
+            {
+              id: "layout-lab-invoices",
+              subject: "Your latest invoices",
+              shortDisplayTitle: "החשבוניות העדכניות שלך",
+              summary: "Your latest invoices are ready to download.",
+              status: "informational",
+              importance: "medium",
+              importanceReason: null,
+              category: "finance",
+              sender: null,
+              latestMessageAt: LAB_INVOICE_AT,
+            },
+          ]}
+        />
       </section>
     </AppShell>
   );

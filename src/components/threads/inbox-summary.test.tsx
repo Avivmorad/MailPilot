@@ -136,4 +136,68 @@ describe("InboxSummary", () => {
     expect(screen.getByText("Board packet")).toBeInTheDocument();
     expect(screen.queryByText(/^null$/i)).not.toBeInTheDocument();
   });
+
+  it("renders Open and centers the short display title", () => {
+    render(
+      <InboxSummary
+        threads={[
+          {
+            id: "thread-he",
+            subject: "Invoices",
+            shortDisplayTitle: "החשבוניות העדכניות שלך",
+            summary: "Your latest invoices are ready.",
+            status: "informational",
+            importance: "medium",
+            importanceReason: null,
+            category: "finance",
+            sender: null,
+            latestMessageAt: "2026-09-10T10:00:00.000Z",
+          },
+        ]}
+      />,
+    );
+
+    expandCategory(/Finance/);
+    const open = screen.getByRole("link", { name: "Open" });
+    expect(open).toHaveAttribute("href", "/thread/thread-he");
+    const title = screen.getByRole("link", { name: "החשבוניות העדכניות שלך" });
+    const container = title.closest("[data-slot='mail-card-title']");
+    expect(container).not.toBeNull();
+    expect(container).toHaveClass("text-center");
+    expect(container).toHaveClass("w-full");
+    expect(title.closest("[dir='auto']")).not.toBeNull();
+    expect(container).not.toHaveTextContent("Your latest invoices are ready.");
+  });
+
+  it("renders Open and centers the title on an Ignored card", () => {
+    render(
+      <InboxSummary
+        threads={[
+          {
+            id: "thread-ignored",
+            subject: "Weekly deals",
+            shortDisplayTitle: "הניוזלטר השבועי",
+            summary: "This week's promotions and product news.",
+            status: "ignore",
+            importance: "low",
+            importanceReason: null,
+            category: "newsletters_promotions",
+            sender: null,
+            latestMessageAt: "2026-09-10T10:00:00.000Z",
+          },
+        ]}
+      />,
+    );
+
+    expandCategory(/Newsletters & Promotions/);
+    const open = screen.getByRole("link", { name: "Open" });
+    expect(open).toHaveAttribute("href", "/thread/thread-ignored");
+    const title = screen.getByRole("link", { name: "הניוזלטר השבועי" });
+    const container = title.closest("[data-slot='mail-card-title']");
+    expect(container).not.toBeNull();
+    expect(container).toHaveClass("text-center");
+    expect(container).toHaveClass("w-full");
+    expect(title.closest("[dir='auto']")).not.toBeNull();
+    expect(container).not.toHaveTextContent("This week's promotions and product news.");
+  });
 });

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  displayDoLine,
   PLACEMENT_CORRECTIONS,
   sanitizePlacementEvidence,
   threadPlacementReason,
@@ -143,6 +144,95 @@ describe("threadPlacementReason", () => {
   it("redacts email addresses and caps long evidence", () => {
     expect(sanitizePlacementEvidence("a".repeat(200))?.endsWith("…")).toBe(true);
     expect(sanitizePlacementEvidence("a".repeat(200))!.length).toBeLessThanOrEqual(110);
+  });
+
+  it("does not show a Hebrew stored reason on Why this tab", () => {
+    const actions = threadPlacementReason({
+      tab: "open",
+      evidence: "שלם את היתרה עד יום שישי",
+      importanceReason: "חשבונית שלא שולמה",
+      summary: "סיכום בעברית",
+      title: "חשבונית פתוחה",
+      actionType: "pay",
+      deadline: "2026-10-03",
+      deadlineText: "עד יום שישי",
+      category: "finance",
+      sender: "Bank",
+    });
+    const forYou = threadPlacementReason({
+      tab: "summary",
+      importanceReason: "תוצאות המעבדה מוכנות",
+      evidence: "אין פעולה",
+      summary: "סיכום",
+      title: "תוצאות",
+      category: "personal_health",
+      sender: "Clinic",
+    });
+    const ignored = threadPlacementReason({
+      tab: "ignored",
+      importanceReason: "קוד חד פעמי",
+      evidence: "אין צורך",
+      category: "security",
+      sender: "Bank",
+    });
+
+    expect(actions).toBe("Payment needed, due 3 Oct.");
+    expect(forYou).toBe("Health update from Clinic, nothing to do.");
+    expect(ignored).toBe("Security notice from Bank.");
+    for (const reason of [actions, forYou, ignored]) {
+      expect(reason).not.toMatch(/[\u0590-\u05FF]/);
+    }
+  });
+
+  it("shows an English Why this tab reason unchanged", () => {
+    expect(
+      threadPlacementReason({
+        tab: "open",
+        evidence: "Pay the remaining balance before Friday.",
+        actionType: "pay",
+        category: "finance",
+        deadline: "2026-10-03",
+      }),
+    ).toBe("Pay the remaining balance before Friday.");
+    expect(
+      threadPlacementReason({
+        tab: "summary",
+        importanceReason: "Lab results are ready in the portal.",
+        category: "personal_health",
+      }),
+    ).toBe("Lab results are ready in the portal.");
+    expect(
+      threadPlacementReason({
+        tab: "ignored",
+        importanceReason: "One-time login code.",
+        category: "security",
+      }),
+    ).toBe("One-time login code.");
+  });
+
+  it("does not show a Hebrew stored action on Do and keeps an English one", () => {
+    const hebrew = displayDoLine({
+      tab: "open",
+      actionSummary: "שלם את החשבונית",
+      title: "חשבונית פתוחה",
+      actionType: "pay",
+      deadline: "2026-10-03",
+      deadlineText: "עד יום שישי",
+      category: "finance",
+      sender: "Bank",
+    });
+    expect(hebrew).toBe("Payment needed, due 3 Oct.");
+    expect(hebrew).not.toMatch(/[\u0590-\u05FF]/);
+
+    expect(
+      displayDoLine({
+        tab: "open",
+        actionSummary: "Pay the remaining balance.",
+        title: "Invoice",
+        actionType: "pay",
+        category: "finance",
+      }),
+    ).toBe("Pay the remaining balance.");
   });
 
   it("offers one-click corrections that move the thread", () => {

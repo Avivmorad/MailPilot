@@ -73,6 +73,8 @@ type ThreadListDbRow = {
   importance: unknown;
   importance_reason: unknown;
   category: unknown;
+  urgency?: unknown;
+  deadline?: unknown;
   participants: unknown;
   latest_message_at: unknown;
 };
@@ -108,13 +110,15 @@ export function mapRecentThreadRow(row: ThreadListDbRow): RecentThreadRow {
       typeof row.importance_reason === "string" ? row.importance_reason : null,
     ),
     category: (row.category as string | null) ?? null,
+    urgency: (row.urgency as string | null) ?? null,
+    deadline: (row.deadline as string | null) ?? null,
     sender: senderFromParticipants(row.participants),
     latestMessageAt: (row.latest_message_at as string | null) ?? null,
   };
 }
 
 const THREAD_LIST_SELECT =
-  "id, subject, short_display_title, summary, status, importance, importance_reason, category, participants, latest_message_at";
+  "id, subject, short_display_title, summary, status, importance, importance_reason, category, urgency, deadline, participants, latest_message_at";
 
 export async function listRecentThreadsForUser(
   userId: string,

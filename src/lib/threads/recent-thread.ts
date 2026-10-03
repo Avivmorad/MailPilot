@@ -5,6 +5,8 @@ export interface RecentThreadRow {
   shortDisplayTitle: string | null;
   summary: string | null;
   status: string | null;
+  urgency?: string | null;
+  deadline?: string | null;
   importance: string | null;
   importanceReason: string | null;
   category: string | null;

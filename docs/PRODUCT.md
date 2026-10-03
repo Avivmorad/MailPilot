@@ -78,17 +78,17 @@ SQL on the project remains the durable operator path. Delete analysis also remov
 
 ## Operating defaults
 
-| Decision             | Choice                                                                                                                            |
-| -------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| Users                | Multi-user architecture; test with a single user for now                                                                          |
-| Automatic scan       | Best-effort once a day (Hobby cron `0 6 * * *` UTC). A stored local time is not when the scan runs. Manual Scan now is unchanged. |
-| Timezone             | **Asia/Jerusalem**                                                                                                                |
-| Initial scan window  | **1 / 2 / 3 / 4 days, 1 / 2 / 3 weeks, or 1 month** (default **7 days**)                                                          |
-| Subsequent scans     | Changes since last successful scan (incremental)                                                                                  |
-| Summary language     | **English** (`summary`, `short_display_title`)                                                                                    |
-| Presentation         | Dashboard **and** History                                                                                                         |
-| Email body retention | Do **not** persist full email bodies long-term                                                                                    |
-| Sending replies      | The system **never** sends replies on the user's behalf                                                                           |
+| Decision             | Choice                                                                                                                                  |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| Users                | Multi-user architecture; test with a single user for now                                                                                |
+| Automatic scan       | Best-effort once a day (Hobby cron `0 6 * * *` UTC). A stored local time is not when the scan runs. Manual Scan now is unchanged.       |
+| Timezone             | **Asia/Jerusalem**                                                                                                                      |
+| Initial scan window  | **1 / 2 / 3 / 4 days, 1 / 2 / 3 weeks, or 1 month** (default **7 days**)                                                                |
+| Subsequent scans     | Changes since last successful scan (incremental)                                                                                        |
+| Summary language     | **English** (`summary`, `short_display_title`, and the Do / Why this tab lines: `action_summary`, `action_reason`, `importance_reason`) |
+| Presentation         | Dashboard **and** History                                                                                                               |
+| Email body retention | Do **not** persist full email bodies long-term                                                                                          |
+| Sending replies      | The system **never** sends replies on the user's behalf                                                                                 |
 
 Stored as `user_triage_settings`: `daily_scan_time = '08:00'`,
 `timezone = 'Asia/Jerusalem'`, `scan_interval_minutes = null`. That stored time
@@ -269,3 +269,13 @@ Gmail step. Owner console steps: [`OWNER_TASKS.md`](OWNER_TASKS.md).
 - **From / sender:** requires custom SMTP (Resend, SendGrid, Google Workspace,
   etc.). Without it, Gmail keeps showing Supabase Auth. Not required for an
   internal launch; templates alone change subject and body immediately.
+
+## Urgency indicators
+
+Every email displays **Urgency Level: High, Medium, Low, None, or Unknown**.
+Email and action rows have matching left markers: red, orange, blue, green,
+and gray respectively. Stored AI values remain compatible: `urgent` maps to
+High, `soon` to Medium, `normal` to Low, and `none` to None. Missing or
+unrecognized values display Unknown. Existing deadline proximity overrides
+stored urgency: overdue maps to High, within seven days to Medium, later to Low.
+Urgency is independent of importance and mail placement.

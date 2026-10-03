@@ -1,6 +1,7 @@
 import { normalizeCategory, type Category } from "@/lib/ai/categories";
 import type { MailTab } from "@/lib/mail/tabs";
 import type { FeedbackKind } from "@/lib/threads/apply-feedback";
+import { englishDisplayText, isEnglishDisplayText } from "@/lib/ui/display-text";
 import { formatDate } from "@/lib/ui/format";
 
 const EMAIL_RE = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi;
@@ -104,6 +105,40 @@ export function threadPlacementReason(input: PlacementReasonInput): string {
   return derivedPlacementReason(input);
 }
 
+/**
+ * Do line. An English action summary is shown as stored. A non-English stored
+ * summary is not shown; the card uses the English line derived from action,
+ * category, deadline, and sender.
+ */
+export function displayDoLine(
+  input: PlacementReasonInput & { actionSummary?: string | null },
+): string | null {
+  const stored = englishDisplayText(input.actionSummary);
+  const title = input.title?.trim() ?? "";
+  if (stored && stored !== title) {
+    return stored;
+  }
+  const raw = input.actionSummary?.trim() ?? "";
+  if (!raw || isEnglishDisplayText(raw)) {
+    return null;
+  }
+  const fallback = threadPlacementReason({
+    tab: input.tab,
+    category: input.category,
+    actionType: input.actionType,
+    requiresReply: input.requiresReply,
+    deadline: input.deadline,
+    deadlineText: englishDisplayText(input.deadlineText),
+    sender: englishDisplayText(input.sender),
+    waitingFor: englishDisplayText(input.waitingFor),
+    snoozedUntil: input.snoozedUntil,
+  });
+  if (!fallback || fallback.trim() === title) {
+    return null;
+  }
+  return fallback;
+}
+
 function modelPlacementReason(input: PlacementReasonInput): string | null {
   const candidates =
     input.tab === "summary" || input.tab === "ignored"
@@ -112,6 +147,9 @@ function modelPlacementReason(input: PlacementReasonInput): string | null {
   const title = normalizeKey(input.title);
   const summary = normalizeKey(input.summary);
   for (const candidate of candidates) {
+    if (!isEnglishDisplayText(candidate)) {
+      continue;
+    }
     const cleaned = sanitizePlacementEvidence(candidate);
     if (!cleaned || isWeakReason(cleaned)) {
       continue;
@@ -174,9 +212,10 @@ function openReason(
 }
 
 function waitingReason(input: PlacementReasonInput): string {
-  const waiting = sanitizePlacementEvidence(input.waitingFor);
-  if (waiting && !isWeakReason(waiting)) {
-    return finish(`Waiting on ${waiting.replace(/[.!?]+$/g, "")}`);
+  const waiting = englishDisplayText(input.waitingFor);
+  const cleaned = waiting ? sanitizePlacementEvidence(waiting) : null;
+  if (cleaned && !isWeakReason(cleaned)) {
+    return finish(`Waiting on ${cleaned.replace(/[.!?]+$/g, "")}`);
   }
   return "You already did your part.";
 }
@@ -237,9 +276,10 @@ function actionPhrase(
 }
 
 function dueClause(input: PlacementReasonInput): string | null {
-  const text = sanitizePlacementEvidence(input.deadlineText);
-  if (text && !isWeakReason(text)) {
-    return text.replace(/[.!?]+$/g, "");
+  const text = englishDisplayText(input.deadlineText);
+  const cleaned = text ? sanitizePlacementEvidence(text) : null;
+  if (cleaned && !isWeakReason(cleaned)) {
+    return cleaned.replace(/[.!?]+$/g, "");
   }
   if (input.deadline && /^\d{4}-\d{2}-\d{2}$/.test(input.deadline)) {
     const formatted = formatDate(input.deadline);
@@ -249,15 +289,16 @@ function dueClause(input: PlacementReasonInput): string | null {
 }
 
 function summaryFallback(input: PlacementReasonInput): string | null {
-  const summary = sanitizePlacementEvidence(input.summary);
-  if (!summary || isWeakReason(summary)) {
+  const summary = englishDisplayText(input.summary);
+  const cleaned = summary ? sanitizePlacementEvidence(summary) : null;
+  if (!cleaned || isWeakReason(cleaned)) {
     return null;
   }
-  const key = normalizeKey(summary);
+  const key = normalizeKey(cleaned);
   if (!key || key === normalizeKey(input.title)) {
     return null;
   }
-  return summary;
+  return cleaned;
 }
 
 function specificCategory(category: string | null | undefined): Exclude<Category, "other"> | null {
@@ -272,6 +313,9 @@ function specificCategory(category: string | null | undefined): Exclude<Category
 }
 
 function senderLabel(sender: string | null | undefined): string | null {
+  if (!isEnglishDisplayText(sender)) {
+    return null;
+  }
   const cleaned = sanitizePlacementEvidence(sender);
   if (!cleaned || cleaned.includes("@") || cleaned.includes("[email]")) {
     return null;

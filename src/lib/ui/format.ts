@@ -182,8 +182,5 @@ export function displayUrgencyForDeadline(
   if (proximity) {
     return proximity;
   }
-  if (!storedUrgency || storedUrgency === "none" || storedUrgency === "normal") {
-    return null;
-  }
-  return storedUrgency;
+  return storedUrgency?.trim().toLowerCase() || "unknown";
 }

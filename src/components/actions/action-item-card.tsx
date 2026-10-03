@@ -8,7 +8,7 @@ import { ThreadTags } from "@/components/ui/thread-tags";
 import type { ActionListItem } from "@/lib/actions/action-list-item";
 import { mailBucketForThread } from "@/lib/mail/buckets";
 import { isUncertainClassification } from "@/lib/mail/filters";
-import { threadPlacementReason } from "@/lib/mail/placement";
+import { displayDoLine, threadPlacementReason } from "@/lib/mail/placement";
 import {
   classForDeadline,
   displayUrgencyForDeadline,
@@ -26,20 +26,27 @@ export function ActionItemCard({
   categoryHref?: string;
 }) {
   const urgencyLabel = displayUrgencyForDeadline(item.deadline, item.urgency);
-  const doText =
-    item.actionSummary && item.actionSummary.trim() === item.title.trim()
-      ? null
-      : item.actionSummary;
+  const tab = mailBucketForThread({
+    status: item.status === "WAITING" ? "waiting" : "action_required",
+    actionStatus: item.status,
+  });
+  const doText = displayDoLine({
+    tab,
+    actionSummary: item.actionSummary,
+    title: item.title,
+    category: item.category,
+    actionType: item.actionType,
+    deadline: item.deadline,
+    sender: item.sender,
+    waitingFor: item.waitingFor,
+    snoozedUntil: item.snoozedUntil,
+  });
   const whyText =
     item.actionReason &&
     ((doText && item.actionReason.trim() === doText.trim()) ||
       item.actionReason.trim() === item.title.trim())
       ? null
       : item.actionReason;
-  const tab = mailBucketForThread({
-    status: item.status === "WAITING" ? "waiting" : "action_required",
-    actionStatus: item.status,
-  });
   const placement = threadPlacementReason({
     tab,
     evidence: whyText,

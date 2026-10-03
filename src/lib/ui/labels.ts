@@ -106,10 +106,10 @@ export function accentForUrgency(value: string | null | undefined): string {
     case "medium":
       return "border-l-orange-500";
     case "low":
-      return "border-l-blue-500";
-    case "none":
       return "border-l-green-500";
-    case "unknown":
+    case "none":
       return "border-l-gray-400";
+    case "unknown":
+      return "border-l-blue-500";
   }
 }

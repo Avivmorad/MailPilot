@@ -36,11 +36,11 @@ describe("urgency levels", () => {
     ["urgent", "high", "red"],
     ["expired", "high", "red"],
     ["soon", "medium", "orange"],
-    ["normal", "low", "blue"],
-    ["later", "low", "blue"],
-    ["none", "none", "green"],
-    [null, "unknown", "gray"],
-    ["invalid", "unknown", "gray"],
+    ["normal", "low", "green"],
+    ["later", "low", "green"],
+    ["none", "none", "gray"],
+    [null, "unknown", "blue"],
+    ["invalid", "unknown", "blue"],
   ])("maps %s to %s with a %s side marker", (stored, level, color) => {
     expect(urgencyLevel(stored)).toBe(level);
     expect(accentForUrgency(stored)).toContain(`border-l-${color}`);

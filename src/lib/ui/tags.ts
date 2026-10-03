@@ -10,11 +10,11 @@ const TAG_CLASS: Record<string, string> = {
   "urgency:medium":
     "border-transparent bg-orange-500/15 text-orange-800 dark:bg-orange-400/20 dark:text-orange-100",
   "urgency:low":
-    "border-transparent bg-blue-500/15 text-blue-800 dark:bg-blue-400/20 dark:text-blue-100",
-  "urgency:none":
     "border-transparent bg-green-500/20 text-green-800 dark:bg-green-400/15 dark:text-green-100",
-  "urgency:unknown":
+  "urgency:none":
     "border-transparent bg-gray-500/15 text-gray-800 dark:bg-gray-400/20 dark:text-gray-100",
+  "urgency:unknown":
+    "border-transparent bg-blue-500/15 text-blue-800 dark:bg-blue-400/20 dark:text-blue-100",
   "status:action_required":
     "border-transparent bg-red-500/15 text-red-800 dark:bg-red-400/20 dark:text-red-100",
   "status:waiting":

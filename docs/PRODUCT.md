@@ -27,11 +27,22 @@ Do not use the archived working name “Inbox Triage AI” in UI or new docs.
 
 Status chips for ignored mail say **Ignore**. The tab and the History count say **Ignored**.
 
-Category labels (Finance, Security, and the rest of the action topics) filter the
-current Mail tab the same way Actions and Pending switch views. The query is
-`?tab=open&category=finance`. A label matches the topic group for that thread,
-including legacy categories and security notices. **All labels** clears the
-filter and leaves the tab in place. Clicking a category badge opens that filter.
+The six mail tabs stay the primary filter row. Each card uses the hue of that
+tab’s tag: For You sky, Actions red, Pending amber, Closed green, Ignored zinc.
+Snoozed has no status chip, so its card is indigo. The selected card uses a
+deeper fill of the same hue.
+
+A quieter row under the tabs can narrow the same list. Combining a tab with any
+of these is an AND. **Clear filters** drops them and leaves the tab in place.
+
+| Control      | What it filters                                                                                                                   | Query              |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------------- | ------------------ |
+| **Priority** | High, Medium, or Low. Medium means medium priority.                                                                               | `priority=medium`  |
+| **Signal**   | Closed-set chips on the rows in this tab, other than the six tabs and priority. Examples: Urgency Level High, Pay, Reply, Ignore. | `signal=high`      |
+| **Category** | One menu of categories present in this tab. Not a card per category.                                                              | `category=finance` |
+
+A category matches the topic group for that thread, including legacy categories
+and security notices. Clicking a category badge sets the same category filter.
 
 ## MVP scope
 
@@ -262,8 +273,8 @@ Gmail step. Owner console steps: [`OWNER_TASKS.md`](OWNER_TASKS.md).
 ## Urgency indicators
 
 Every email displays **Urgency Level: High, Medium, Low, None, or Unknown**.
-Email and action rows have matching left markers: red, orange, blue, green,
-and gray respectively. Stored AI values remain compatible: `urgent` maps to
+Email and action rows have matching left markers: red, orange, green, gray,
+and blue respectively. Stored AI values remain compatible: `urgent` maps to
 High, `soon` to Medium, `normal` to Low, and `none` to None. Missing or
 unrecognized values display Unknown. Existing deadline proximity overrides
 stored urgency: overdue maps to High, within seven days to Medium, later to Low.

@@ -5,7 +5,7 @@ import { useSyncExternalStore } from "react";
 
 import { ActionItemCard } from "@/components/actions/action-item-card";
 import { AppShell } from "@/components/layout/app-shell";
-import { PageHeader } from "@/components/layout/page-header";
+import { InboxOverviewHeader } from "@/components/dashboard/inbox-overview-header";
 import { InboxStatCard } from "@/components/dashboard/inbox-stat-card";
 import { AppHeader } from "@/components/nav/app-header";
 import { InboxSummary } from "@/components/threads/inbox-summary";
@@ -67,10 +67,7 @@ export default function LayoutLabPage() {
 
   return (
     <AppShell header={<AppHeader email="layout.lab@example.com" current="dashboard" />}>
-      <PageHeader
-        title="Inbox overview"
-        description="Layout lab — collapsed sidebar, zoom, and phone overflow checks."
-      />
+      <InboxOverviewHeader description="Layout lab — collapsed sidebar, zoom, and phone overflow checks." />
 
       <section className="min-w-0 space-y-3">
         <h2 className="text-foreground text-lg font-semibold tracking-tight">Buttons</h2>

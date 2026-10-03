@@ -2,13 +2,13 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { ActionItemCard } from "@/components/actions/action-item-card";
+import { InboxOverviewHeader } from "@/components/dashboard/inbox-overview-header";
 import { InboxStatCard } from "@/components/dashboard/inbox-stat-card";
 import { DigestReportCard } from "@/components/digest/digest-report-card";
 import { GmailConnectionCard } from "@/components/gmail/gmail-connection-card";
 import { AppChrome } from "@/components/layout/app-chrome";
 import { CollapsibleBlock } from "@/components/layout/collapsible-block";
 import { EmptyState } from "@/components/layout/empty-state";
-import { PageHeader } from "@/components/layout/page-header";
 import { buttonVariants } from "@/components/ui/button";
 import {
   countActionsForUser,
@@ -201,8 +201,7 @@ export default async function DashboardPage({
 
   return (
     <AppChrome user={user} current="dashboard">
-      <PageHeader
-        title="Inbox overview"
+      <InboxOverviewHeader
         description={dashboardDescription({
           connected,
           scanDone: params.scan === "done",

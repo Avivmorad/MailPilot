@@ -61,6 +61,7 @@ export const PLACEMENT_CORRECTION_LABELS: Record<FeedbackKind, string> = {
   no_action: "No action",
   waiting: "Pending",
   not_waiting: "Not pending",
+  ignore: "Ignored",
 };
 
 export interface PlacementReasonInput {

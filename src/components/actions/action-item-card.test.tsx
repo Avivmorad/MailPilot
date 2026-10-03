@@ -1,6 +1,6 @@
 /** @vitest-environment jsdom */
 
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("next/navigation", () => ({
@@ -39,17 +39,83 @@ const item: ActionListItem = {
 };
 
 describe("ActionItemCard", () => {
-  it("renders Open and centers the title on an Actions card", () => {
+  it("renders Open and left-aligns the title on an Actions card", () => {
     render(<ActionItemCard item={item} />);
 
     const open = screen.getByRole("link", { name: "Open" });
     expect(open).toHaveAttribute("href", "/thread/thread-he");
-    const title = screen.getByRole("link", { name: "החשבוניות העדכניות שלך" });
+    expect(open.className).toContain("ui-interactive");
+    expect(open.className).not.toContain("shadow-none");
+    const title = screen.getByRole("heading", { name: "החשבוניות העדכניות שלך" });
     const container = title.closest("[data-slot='mail-card-title']");
     expect(container).not.toBeNull();
-    expect(container).toHaveClass("text-center");
+    expect(container).toHaveClass("text-start");
+    expect(container).not.toHaveClass("text-center");
     expect(container).toHaveClass("w-full");
-    expect(title.closest("[dir='auto']")).not.toBeNull();
+    expect(title).toHaveAttribute("dir", "auto");
+    const sender = screen.getByText("Billing");
+    expect(sender.tagName).toBe("STRONG");
+    expect(sender.className).toContain("font-bold");
+  });
+
+  it("shows Open, Open in Gmail, and Move to, and reveals pending-on from the menu", () => {
+    render(
+      <ActionItemCard
+        item={{
+          ...item,
+          sender: "Vercel",
+          title: "Review the production deployment",
+          actionType: "reply",
+        }}
+      />,
+    );
+
+    const sender = screen.getByText("Vercel");
+    expect(sender.tagName).toBe("STRONG");
+    expect(sender.className).toContain("font-bold");
+    expect(screen.getByRole("link", { name: "Open" })).toHaveAttribute("href", "/thread/thread-he");
+    expect(screen.getByRole("link", { name: "Open in Gmail" })).toHaveAttribute(
+      "href",
+      item.gmailUrl,
+    );
+    expect(screen.getByRole("button", { name: "Move to" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Closed" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Pending" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "No action" })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Pending on")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Move to" }));
+    expect(screen.queryByRole("button", { name: "Closed" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Pending" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("menuitem", { name: "Pending" }));
+    expect(screen.getByLabelText("Pending on")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Snooze for")).not.toBeInTheDocument();
+  });
+
+  it("saves Move to Pending through the existing wait action", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.includes("/feedback")) {
+        return new Response(JSON.stringify({ applied: true, actionId: "action-1" }), {
+          status: 200,
+        });
+      }
+      expect(url).toBe("/api/actions/action-1");
+      expect(init?.method).toBe("PATCH");
+      expect(JSON.parse(String(init?.body))).toEqual({ op: "wait", waitingFor: "Ada" });
+      return new Response(JSON.stringify({ action: { id: "action-1" } }), { status: 200 });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<ActionItemCard item={{ ...item, sender: "Vercel" }} />);
+    fireEvent.click(screen.getByRole("button", { name: "Move to" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Pending" }));
+    fireEvent.change(screen.getByLabelText("Pending on"), { target: { value: "Ada" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(await screen.findByText("Pending on updated.")).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalled();
+    vi.unstubAllGlobals();
   });
 
   it("does not show a Hebrew stored reason and uses the English fallback", () => {
@@ -70,7 +136,7 @@ describe("ActionItemCard", () => {
       />,
     );
 
-    expect(screen.getByRole("link", { name: "חשבונית פתוחה" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "חשבונית פתוחה" })).toBeInTheDocument();
     expect(screen.queryByText("שלם את החשבונית")).not.toBeInTheDocument();
     expect(screen.queryByText("נותר תשלום")).not.toBeInTheDocument();
     expect(screen.queryByText("חשבונית שלא שולמה")).not.toBeInTheDocument();

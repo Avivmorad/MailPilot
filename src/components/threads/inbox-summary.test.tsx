@@ -42,10 +42,16 @@ describe("InboxSummary", () => {
     );
 
     expandCategory(/Travel & Transport/);
-    expect(screen.getByText("Urgency Level: None").closest("li")).toHaveClass("border-l-gray-400");
+    expect(screen.getByText("Urgency Level: None").closest("article")).toHaveClass(
+      "border-l-gray-400",
+    );
     expect(screen.getByText("The airline moved the departure.")).toBeInTheDocument();
     expect(screen.queryByText(/useful update, not an action/i)).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Actions" })).toBeInTheDocument();
+    const sender = screen.getByText("El Al");
+    expect(sender.tagName).toBe("STRONG");
+    fireEvent.click(screen.getByRole("button", { name: "Move to" }));
+    expect(screen.getByRole("menuitem", { name: "Actions" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "No action" })).not.toBeInTheDocument();
   });
 
   it("shows different placement lines for different For You mail", () => {
@@ -229,12 +235,13 @@ describe("InboxSummary", () => {
     expandCategory(/Finance/);
     const open = screen.getByRole("link", { name: "Open" });
     expect(open).toHaveAttribute("href", "/thread/thread-he");
-    const title = screen.getByRole("link", { name: "החשבוניות העדכניות שלך" });
+    const title = screen.getByRole("heading", { name: "החשבוניות העדכניות שלך" });
     const container = title.closest("[data-slot='mail-card-title']");
     expect(container).not.toBeNull();
-    expect(container).toHaveClass("text-center");
+    expect(container).toHaveClass("text-start");
+    expect(container).not.toHaveClass("text-center");
     expect(container).toHaveClass("w-full");
-    expect(title.closest("[dir='auto']")).not.toBeNull();
+    expect(title).toHaveAttribute("dir", "auto");
     expect(container).not.toHaveTextContent("Your latest invoices are ready.");
   });
 
@@ -261,12 +268,15 @@ describe("InboxSummary", () => {
     expandCategory(/Newsletters & Promotions/);
     const open = screen.getByRole("link", { name: "Open" });
     expect(open).toHaveAttribute("href", "/thread/thread-ignored");
-    const title = screen.getByRole("link", { name: "הניוזלטר השבועי" });
+    const title = screen.getByRole("heading", { name: "הניוזלטר השבועי" });
     const container = title.closest("[data-slot='mail-card-title']");
     expect(container).not.toBeNull();
-    expect(container).toHaveClass("text-center");
+    expect(container).toHaveClass("text-start");
+    expect(container).not.toHaveClass("text-center");
     expect(container).toHaveClass("w-full");
-    expect(title.closest("[dir='auto']")).not.toBeNull();
+    expect(title).toHaveAttribute("dir", "auto");
     expect(container).not.toHaveTextContent("This week's promotions and product news.");
+    expect(screen.getByRole("link", { name: "Open in Gmail" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Move to" })).toBeInTheDocument();
   });
 });

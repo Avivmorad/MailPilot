@@ -77,6 +77,7 @@ type ThreadListDbRow = {
   deadline?: unknown;
   participants: unknown;
   latest_message_at: unknown;
+  gmail_thread_id?: unknown;
 };
 
 function senderFromParticipants(participants: unknown): string | null {
@@ -98,7 +99,8 @@ export function isInboxSummaryStatus(status: string | null | undefined): boolean
   return mailBucketForThread({ status }) === "summary";
 }
 
-export function mapRecentThreadRow(row: ThreadListDbRow): RecentThreadRow {
+export function mapRecentThreadRow(row: ThreadListDbRow, gmailEmail = ""): RecentThreadRow {
+  const gmailThreadId = typeof row.gmail_thread_id === "string" ? row.gmail_thread_id.trim() : "";
   return {
     id: String(row.id),
     subject: (row.subject as string | null) ?? null,
@@ -114,17 +116,31 @@ export function mapRecentThreadRow(row: ThreadListDbRow): RecentThreadRow {
     deadline: (row.deadline as string | null) ?? null,
     sender: senderFromParticipants(row.participants),
     latestMessageAt: (row.latest_message_at as string | null) ?? null,
+    gmailUrl: gmailThreadId ? gmailThreadUrl(gmailEmail, gmailThreadId) : null,
   };
 }
 
 const THREAD_LIST_SELECT =
-  "id, subject, short_display_title, summary, status, importance, importance_reason, category, urgency, deadline, participants, latest_message_at";
+  "id, subject, short_display_title, summary, status, importance, importance_reason, category, urgency, deadline, participants, gmail_thread_id, latest_message_at";
+
+async function connectedGmailEmail(userId: string): Promise<string> {
+  const db = createAdminClient();
+  const { data } = await db
+    .from("gmail_connections")
+    .select("gmail_email")
+    .eq("user_id", userId)
+    .eq("status", "CONNECTED")
+    .limit(1)
+    .maybeSingle();
+  return typeof data?.gmail_email === "string" ? data.gmail_email : "";
+}
 
 export async function listRecentThreadsForUser(
   userId: string,
   limit = 24,
 ): Promise<RecentThreadRow[]> {
   const db = createAdminClient();
+  const gmailEmail = await connectedGmailEmail(userId);
   const { data, error } = await db
     .from("email_threads")
     .select(THREAD_LIST_SELECT)
@@ -138,7 +154,7 @@ export async function listRecentThreadsForUser(
   }
   const rows = data ?? [];
   return rows
-    .map((row) => mapRecentThreadRow(row))
+    .map((row) => mapRecentThreadRow(row, gmailEmail))
     .filter((row) => isClassifiedSummaryThread({ status: row.status, summary: row.summary }));
 }
 
@@ -147,6 +163,7 @@ export async function listIgnoredThreadsForUser(
   limit = 50,
 ): Promise<RecentThreadRow[]> {
   const db = createAdminClient();
+  const gmailEmail = await connectedGmailEmail(userId);
   const { data, error } = await db
     .from("email_threads")
     .select(THREAD_LIST_SELECT)
@@ -159,7 +176,7 @@ export async function listIgnoredThreadsForUser(
   }
   const rows = data ?? [];
   return rows
-    .map((row) => mapRecentThreadRow(row))
+    .map((row) => mapRecentThreadRow(row, gmailEmail))
     .filter((row) => mailBucketForThread({ status: row.status }) === "ignored");
 }
 
@@ -251,7 +268,7 @@ export async function saveThreadFeedback(
   userId: string,
   threadId: string,
   kind: z.infer<typeof threadFeedbackSchema>["kind"],
-): Promise<{ applied: boolean }> {
+): Promise<{ applied: boolean; actionId: string | null }> {
   const db = createAdminClient();
   const { data: thread } = await db
     .from("email_threads")
@@ -286,8 +303,9 @@ export async function saveThreadFeedback(
   if (error) {
     throw new ThreadQueryError(500, "save_failed", "Failed to save feedback.");
   }
+  const existingActionId = action ? String(action.id) : null;
   if (!correction.applied) {
-    return { applied: false };
+    return { applied: false, actionId: existingActionId };
   }
   if (Object.keys(correction.thread).length > 0) {
     const threadPatch: Record<string, unknown> = {};
@@ -308,6 +326,17 @@ export async function saveThreadFeedback(
     if (threadError) {
       throw new ThreadQueryError(500, "save_failed", "Failed to apply the correction.");
     }
+  }
+  if (correction.removeAction && action) {
+    const { error: deleteError } = await db
+      .from("action_items")
+      .delete()
+      .eq("id", action.id)
+      .eq("user_id", userId);
+    if (deleteError) {
+      throw new ThreadQueryError(500, "save_failed", "Failed to apply the correction.");
+    }
+    return { applied: true, actionId: null };
   }
   if (correction.actionStatus) {
     const now = new Date().toISOString();
@@ -331,19 +360,32 @@ export async function saveThreadFeedback(
       if (actionError) {
         throw new ThreadQueryError(500, "save_failed", "Failed to apply the correction.");
       }
-    } else if (correction.actionStatus !== "COMPLETED") {
-      const { error: insertError } = await db.from("action_items").insert({
-        user_id: userId,
-        thread_id: threadId,
-        status: correction.actionStatus,
-        title,
-        source: "USER",
-        manual_override: true,
-      });
+      return { applied: true, actionId: existingActionId };
+    }
+    if (correction.actionStatus !== "COMPLETED") {
+      const { data: inserted, error: insertError } = await db
+        .from("action_items")
+        .insert({
+          user_id: userId,
+          thread_id: threadId,
+          status: correction.actionStatus,
+          title,
+          source: "USER",
+          manual_override: true,
+        })
+        .select("id")
+        .single();
       if (insertError) {
         throw new ThreadQueryError(500, "save_failed", "Failed to apply the correction.");
       }
+      const insertedId =
+        inserted && typeof inserted.id === "string"
+          ? inserted.id
+          : inserted
+            ? String(inserted.id)
+            : null;
+      return { applied: true, actionId: insertedId };
     }
   }
-  return { applied: true };
+  return { applied: true, actionId: existingActionId };
 }

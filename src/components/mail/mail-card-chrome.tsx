@@ -5,8 +5,8 @@ import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 /**
- * Full-width title slot. `text-center` centers the short display title in the
- * card. `dir="auto"` on the heading keeps Hebrew/RTL reading order.
+ * Full-width title. `text-start` keeps the line on the leading edge.
+ * `dir="auto"` on the heading keeps Hebrew reading order.
  */
 export function MailCardTitle({
   title,
@@ -14,30 +14,43 @@ export function MailCardTitle({
   className,
 }: {
   title: string;
-  children: ReactNode;
+  children?: ReactNode;
   className?: string;
 }) {
   return (
-    <div className={cn("w-full min-w-0 text-center", className)} data-slot="mail-card-title">
+    <div className={cn("w-full min-w-0 text-start", className)} data-slot="mail-card-title">
       <h3
-        className="text-foreground mx-auto max-w-full text-base leading-snug font-semibold tracking-tight [overflow-wrap:anywhere] break-words"
+        className="text-foreground text-start text-base leading-snug font-semibold tracking-tight [overflow-wrap:anywhere] break-words"
         dir="auto"
         title={title}
       >
-        {children}
+        {children ?? title}
       </h3>
     </div>
   );
 }
 
-/** In-app thread view. Navy primary button; hover is the shared lift, not a glow. */
+/** Navy fill for the in-app Open action. Shadow comes from `.ui-interactive`. */
+const mailCardPrimaryClass =
+  "bg-[oklch(0.38_0.09_260)] text-[oklch(0.985_0.004_85)] hover:bg-[oklch(0.32_0.09_260)] dark:bg-[oklch(0.48_0.12_260)] dark:text-[oklch(0.985_0.004_85)] dark:hover:bg-[oklch(0.54_0.12_260)]";
+
 export function MailOpenLink({ href }: { href: string }) {
   return (
-    <Link
-      href={href}
-      className={cn(buttonVariants({ size: "sm" }), "min-h-10 w-full shrink-0 px-4 sm:w-auto")}
-    >
+    <Link href={href} className={cn(buttonVariants(), mailCardPrimaryClass)}>
       Open
     </Link>
+  );
+}
+
+export function MailGmailLink({ href }: { href: string }) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      className={buttonVariants({ variant: "outline" })}
+    >
+      Open in Gmail
+    </a>
   );
 }

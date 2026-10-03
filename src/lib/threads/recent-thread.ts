@@ -12,4 +12,6 @@ export interface RecentThreadRow {
   category: string | null;
   sender: string | null;
   latestMessageAt: string | null;
+  /** Absent on older rows; null when the list has no Gmail thread id yet. */
+  gmailUrl?: string | null;
 }

@@ -194,6 +194,7 @@ export default function LayoutLabPage() {
             description: null,
             actionSummary: "Approve the invoice before Friday.",
             actionReason: null,
+            importanceReason: null,
             waitingFor: null,
             snoozedUntil: null,
             deadline: null,
@@ -223,7 +224,9 @@ export default function LayoutLabPage() {
               summary: "This week's promotions and product news.",
               status: "ignore",
               importance: "low",
+              importanceReason: null,
               category: "newsletters_promotions",
+              sender: null,
               latestMessageAt: LAB_INVOICE_AT,
             },
           ]}

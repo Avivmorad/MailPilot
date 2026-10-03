@@ -180,7 +180,9 @@ describe("InboxSummary", () => {
             summary: "This week's promotions and product news.",
             status: "ignore",
             importance: "low",
+            importanceReason: null,
             category: "newsletters_promotions",
+            sender: null,
             latestMessageAt: "2026-09-10T10:00:00.000Z",
           },
         ]}

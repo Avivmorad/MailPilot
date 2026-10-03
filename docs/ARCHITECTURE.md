@@ -88,9 +88,9 @@ Zod + invariant post-processing.
 Canonical fields (see `src/lib/ai/schemas.ts`):
 
 - `summary`, `short_display_title` (English)
-- `importance` (`high` | `medium` | `low`) + `importance_reason`
+- `importance` (`high` | `medium` | `low`) + `importance_reason` (English Why this tab line)
 - `status` (`action_required` | `waiting` | `informational` | `resolved` | `ignore`)
-- `requires_action`, `requires_reply`, `action_type`, `action_summary`, `action_reason`
+- `requires_action`, `requires_reply`, `action_type`, `action_summary` (English Do line), `action_reason` (English Why this tab line)
 - `waiting_for`, `waiting_since`
 - `urgency`, `deadline` (`YYYY-MM-DD` or null), `deadline_text`
 - `category` (14-topic taxonomy in [`PRODUCT.md`](PRODUCT.md))

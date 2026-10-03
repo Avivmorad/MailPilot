@@ -51,4 +51,52 @@ describe("ActionItemCard", () => {
     expect(container).toHaveClass("w-full");
     expect(title.closest("[dir='auto']")).not.toBeNull();
   });
+
+  it("does not show a Hebrew stored reason and uses the English fallback", () => {
+    render(
+      <ActionItemCard
+        item={{
+          ...item,
+          title: "חשבונית פתוחה",
+          actionSummary: "שלם את החשבונית",
+          actionReason: "נותר תשלום",
+          importanceReason: "חשבונית שלא שולמה",
+          summary: "סיכום בעברית",
+          deadline: "2026-10-03",
+          urgency: "soon",
+          actionType: "pay",
+          category: "finance",
+        }}
+      />,
+    );
+
+    expect(screen.getByRole("link", { name: "חשבונית פתוחה" })).toBeInTheDocument();
+    expect(screen.queryByText("שלם את החשבונית")).not.toBeInTheDocument();
+    expect(screen.queryByText("נותר תשלום")).not.toBeInTheDocument();
+    expect(screen.queryByText("חשבונית שלא שולמה")).not.toBeInTheDocument();
+    expect(screen.getAllByText("Payment needed, due 3 Oct.").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText("Do:")).toBeInTheDocument();
+    expect(screen.getByText("Why this tab:")).toBeInTheDocument();
+  });
+
+  it("shows an English Do line and Why this tab reason unchanged", () => {
+    render(
+      <ActionItemCard
+        item={{
+          ...item,
+          title: "Open invoice",
+          actionSummary: "Pay the remaining balance.",
+          actionReason: "Unpaid invoice is still open.",
+          importanceReason: "A payment is due.",
+          summary: "Invoice still open.",
+          deadline: "2026-10-03",
+          actionType: "pay",
+        }}
+      />,
+    );
+
+    expect(screen.getByText("Pay the remaining balance.")).toBeInTheDocument();
+    expect(screen.getByText("Unpaid invoice is still open.")).toBeInTheDocument();
+    expect(screen.queryByText("Payment needed, due 3 Oct.")).not.toBeInTheDocument();
+  });
 });

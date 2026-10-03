@@ -11,7 +11,7 @@ import { normalizeCategory } from "@/lib/ai/categories";
 import { mailBucketForThread } from "@/lib/mail/buckets";
 import { isUncertainClassification } from "@/lib/mail/filters";
 import { mailViewPath } from "@/lib/mail/tabs";
-import { threadPlacementReason } from "@/lib/mail/placement";
+import { displayDoLine, threadPlacementReason } from "@/lib/mail/placement";
 import { requireOnboardingComplete } from "@/lib/onboarding/guard";
 import { getSessionUser } from "@/lib/supabase/auth";
 import { getThreadDetailForUser } from "@/lib/threads/queries";
@@ -40,14 +40,26 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
   const senderMessage = inbound ?? thread.messages[thread.messages.length - 1];
   const sender = senderMessage?.senderName ?? senderMessage?.senderEmail ?? null;
   const backTab = mailBucketForThread({ status: thread.status, actionStatus: thread.actionStatus });
-  const doText = usableDisplayText(thread.actionSummary);
+  const heading = displayThreadTitle(thread.shortDisplayTitle, thread.summary, thread.subject);
+  const doText = displayDoLine({
+    tab: backTab,
+    actionSummary: thread.actionSummary,
+    title: heading,
+    category: thread.category,
+    actionType: thread.actionType,
+    requiresReply: thread.requiresReply,
+    deadline: thread.deadline,
+    deadlineText: thread.deadlineText,
+    sender,
+    waitingFor: thread.waitingFor,
+    snoozedUntil: thread.snoozedUntil,
+  });
   const whyText =
     usableDisplayText(thread.actionReason) &&
     doText &&
     thread.actionReason?.trim() === doText.trim()
       ? null
       : usableDisplayText(thread.actionReason);
-  const heading = displayThreadTitle(thread.shortDisplayTitle, thread.summary, thread.subject);
 
   return (
     <AppChrome user={user} current="thread" width="narrow">

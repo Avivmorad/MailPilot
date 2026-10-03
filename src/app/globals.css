@@ -87,9 +87,10 @@
   --sidebar-accent-foreground: oklch(0.24 0.04 260);
   --sidebar-border: oklch(0.86 0.02 260);
   --sidebar-ring: oklch(0.55 0.08 260);
-  /* Short neutral drop for .ui-interactive. No blur bloom. */
-  --ui-click-shadow: 0 1px 2px oklch(0.22 0.03 260 / 0.16);
-  --ui-click-shadow-hover: 0 2px 4px oklch(0.22 0.03 260 / 0.2);
+  /* Short drop plus a 1px edge so flat controls read as clickable. No blur bloom. */
+  --ui-click-shadow: 0 1px 2px oklch(0.22 0.03 260 / 0.2), 0 0 0 1px oklch(0.22 0.03 260 / 0.1);
+  --ui-click-shadow-hover:
+    0 2px 4px oklch(0.22 0.03 260 / 0.24), 0 0 0 1px oklch(0.22 0.03 260 / 0.14);
 }
 
 .dark {
@@ -126,9 +127,9 @@
   --sidebar-accent-foreground: oklch(0.97 0.01 85);
   --sidebar-border: oklch(1 0 0 / 12%);
   --sidebar-ring: oklch(0.62 0.08 260);
-  /* Darker drop plus a 1px top edge so navy controls read as raised. */
-  --ui-click-shadow: 0 1px 2px oklch(0 0 0 / 0.55), inset 0 1px 0 oklch(1 0 0 / 0.08);
-  --ui-click-shadow-hover: 0 2px 4px oklch(0 0 0 / 0.62), inset 0 1px 0 oklch(1 0 0 / 0.1);
+  /* Darker drop plus a 1px edge so navy controls separate from the rail. */
+  --ui-click-shadow: 0 1px 2px oklch(0 0 0 / 0.6), 0 0 0 1px oklch(1 0 0 / 0.14);
+  --ui-click-shadow-hover: 0 2px 4px oklch(0 0 0 / 0.68), 0 0 0 1px oklch(1 0 0 / 0.18);
 }
 
 @layer base {

@@ -138,7 +138,7 @@ export function GmailConnectionCard({
   gmailFlash?: string;
   reason?: string;
   returnTo?: string;
-  /** Settings-only (i) controls. Other pages keep the actions unlabeled. */
+  /** Settings-only info icons. Other pages keep the actions unlabeled. */
   withSettingInfo?: boolean;
 }) {
   const connectHref = `/api/gmail/connect?returnTo=${encodeURIComponent(returnTo)}`;

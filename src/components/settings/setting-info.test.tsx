@@ -59,8 +59,11 @@ afterEach(() => {
 });
 
 function expectInfo(label: string, description: string) {
-  const button = screen.getByRole("button", { name: settingInfoButtonName(label) });
-  expect(button).toBeInTheDocument();
+  const name = settingInfoButtonName(label);
+  const button = screen.getByRole("button", { name });
+  expect(button).toHaveAccessibleName(name);
+  expect(button).not.toHaveTextContent("(i)");
+  expect(button.querySelector("svg.lucide-info")).toBeInTheDocument();
   fireEvent.focus(button);
   expect(screen.getByRole("tooltip")).toHaveTextContent(description);
   fireEvent.blur(button);
@@ -100,6 +103,7 @@ describe("settings info controls", () => {
         digestEnabled
       />,
     );
+    expect(screen.queryByText("(i)")).not.toBeInTheDocument();
     expectInfo(VIP_SENDERS_LABEL, VIP_SENDERS_INFO);
     expectInfo(IGNORE_SENDERS_DOMAINS_LABEL, IGNORE_SENDERS_DOMAINS_INFO);
     expectInfo(CUSTOM_TRIAGE_INSTRUCTIONS_LABEL, CUSTOM_TRIAGE_INSTRUCTIONS_INFO);

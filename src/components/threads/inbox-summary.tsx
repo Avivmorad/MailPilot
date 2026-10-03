@@ -1,19 +1,13 @@
 import type { ReactNode } from "react";
-import Link from "next/link";
 
 import { EmptyState } from "@/components/layout/empty-state";
 import { CollapsibleTopicGroups } from "@/components/layout/collapsible-topic-groups";
-import { MailCardTitle, MailOpenLink } from "@/components/mail/mail-card-chrome";
-import { ThreadPlacementCorrection } from "@/components/threads/thread-placement-correction";
-import { ThreadTags } from "@/components/ui/thread-tags";
+import { MailListCard } from "@/components/mail/mail-list-card";
 import { groupByTopic } from "@/lib/actions/topics";
 import { threadPlacementReason } from "@/lib/mail/placement";
 import { mailBucketForThread } from "@/lib/mail/buckets";
 import type { RecentThreadRow } from "@/lib/threads/recent-thread";
-import { displayThreadTitle, usableDisplayText } from "@/lib/ui/display-text";
-import { accentForUrgency } from "@/lib/ui/labels";
-import { cn } from "@/lib/utils";
-import { displayUrgencyForDeadline, formatRelativeTime } from "@/lib/ui/format";
+import { displayThreadTitle } from "@/lib/ui/display-text";
 
 export function InboxSummary({
   threads,
@@ -42,7 +36,7 @@ export function InboxSummary({
         topic: group.topic,
         count: group.items.length,
         body: (
-          <ul className="divide-y">
+          <div className="space-y-3 p-3">
             {group.items.map((thread) => {
               const tab = mailBucketForThread({ status: thread.status });
               const title = displayThreadTitle(
@@ -50,65 +44,31 @@ export function InboxSummary({
                 thread.summary,
                 thread.subject,
               );
-              const summary =
-                usableDisplayText(thread.summary) && usableDisplayText(thread.shortDisplayTitle)
-                  ? usableDisplayText(thread.summary)
-                  : null;
-              const href = `/thread/${thread.id}`;
               return (
-                <li
+                <MailListCard
                   key={thread.id}
-                  className={cn(
-                    "min-w-0 overflow-hidden border-l-4 px-4 py-3",
-                    accentForUrgency(displayUrgencyForDeadline(thread.deadline, thread.urgency)),
-                  )}
-                >
-                  <div className="flex min-w-0 items-start justify-between gap-2">
-                    <div className="min-w-0 flex-1">
-                      <ThreadTags
-                        category={thread.category}
-                        status={thread.status}
-                        importance={thread.importance}
-                        urgency={thread.urgency}
-                        deadline={thread.deadline}
-                        categoryHref={categoryHrefFor?.(thread)}
-                      />
-                    </div>
-                    <span className="text-muted-foreground shrink-0 pt-1 text-xs tabular-nums">
-                      {formatRelativeTime(thread.latestMessageAt)}
-                    </span>
-                  </div>
-                  <MailCardTitle title={title} className="mt-2">
-                    <Link href={href} className="hover:underline">
-                      {title}
-                    </Link>
-                  </MailCardTitle>
-                  {summary ? (
-                    <p
-                      className="text-muted-foreground mt-1 line-clamp-2 text-start text-sm leading-relaxed [overflow-wrap:anywhere] break-words"
-                      dir="auto"
-                    >
-                      {summary}
-                    </p>
-                  ) : null}
-                  <p className="text-muted-foreground mt-1 text-start text-xs leading-relaxed break-words">
-                    {threadPlacementReason({
-                      tab,
-                      importanceReason: thread.importanceReason,
-                      summary: thread.summary,
-                      title,
-                      category: thread.category,
-                      sender: thread.sender,
-                    })}
-                  </p>
-                  <div className="mt-3 flex flex-wrap items-center gap-2">
-                    <MailOpenLink href={href} />
-                    <ThreadPlacementCorrection threadId={thread.id} tab={tab} />
-                  </div>
-                </li>
+                  threadId={thread.id}
+                  title={title}
+                  sender={thread.sender}
+                  latestMessageAt={thread.latestMessageAt}
+                  gmailUrl={thread.gmailUrl}
+                  category={thread.category}
+                  importance={thread.importance}
+                  urgency={thread.urgency}
+                  deadline={thread.deadline}
+                  categoryHref={categoryHrefFor?.(thread)}
+                  whyText={threadPlacementReason({
+                    tab,
+                    importanceReason: thread.importanceReason,
+                    summary: thread.summary,
+                    title,
+                    category: thread.category,
+                    sender: thread.sender,
+                  })}
+                />
               );
             })}
-          </ul>
+          </div>
         ),
       }))}
     />

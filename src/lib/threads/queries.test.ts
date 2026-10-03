@@ -42,6 +42,7 @@ describe("mapRecentThreadRow", () => {
       deadline: null,
       sender: "Bank",
       latestMessageAt: "2026-09-10T10:00:00.000Z",
+      gmailUrl: null,
     });
   });
 });

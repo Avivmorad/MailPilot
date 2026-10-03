@@ -1,7 +1,11 @@
 /** @vitest-environment jsdom */
 
 import { cleanup, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ refresh: vi.fn() }),
+}));
 
 import { DigestReportCard } from "@/components/digest/digest-report-card";
 import type { DigestReport } from "@/lib/digest/types";
@@ -36,25 +40,28 @@ const digest: DigestReport = {
   createdAt: "2026-09-10T12:00:00.000Z",
 };
 
-function expectCenteredOpen(href: string) {
+function expectReadableOpen(href: string) {
   const open = screen.getByRole("link", { name: "Open" });
   expect(open).toHaveAttribute("href", href);
-  const title = screen.getByRole("link", { name: "אשר את החשבונית" });
+  const title = screen.getByRole("heading", { name: "אשר את החשבונית" });
   const container = title.closest("[data-slot='mail-card-title']");
   expect(container).not.toBeNull();
-  expect(container).toHaveClass("text-center");
+  expect(container).toHaveClass("text-start");
+  expect(container).not.toHaveClass("text-center");
   expect(container).toHaveClass("w-full");
-  expect(title.closest("[dir='auto']")).not.toBeNull();
+  expect(title).toHaveAttribute("dir", "auto");
+  expect(screen.getByRole("link", { name: "Open in Gmail" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Move to" })).toBeInTheDocument();
 }
 
 describe("DigestReportCard", () => {
-  it("centers the title and renders Open on the dashboard preview", () => {
+  it("left-aligns the title and renders Open on the dashboard preview", () => {
     render(<DigestReportCard digest={digest} variant="compact" />);
-    expectCenteredOpen("/thread/thread-pay");
+    expectReadableOpen("/thread/thread-pay");
   });
 
-  it("centers the title and renders Open on each history thread row", () => {
+  it("left-aligns the title and renders Open on each history thread row", () => {
     render(<DigestReportCard digest={digest} />);
-    expectCenteredOpen("/thread/thread-pay");
+    expectReadableOpen("/thread/thread-pay");
   });
 });

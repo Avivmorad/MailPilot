@@ -1,53 +1,30 @@
 import Link from "next/link";
 
 import { EmptyState } from "@/components/layout/empty-state";
-import { MailCardTitle, MailOpenLink } from "@/components/mail/mail-card-chrome";
+import { MailListCard } from "@/components/mail/mail-list-card";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { LabeledField } from "@/components/ui/labeled-field";
-import { ThreadTags } from "@/components/ui/thread-tags";
 import type { DigestReport, DigestTopAction } from "@/lib/digest/types";
-import { accentForUrgency } from "@/lib/ui/labels";
-import { cn } from "@/lib/utils";
-import {
-  displayUrgencyForDeadline,
-  classForDeadline,
-  formatDate,
-  formatDateTime,
-} from "@/lib/ui/format";
+import { threadPlacementReason } from "@/lib/mail/placement";
+import { formatDateTime } from "@/lib/ui/format";
 
 function DigestActionRow({ action }: { action: DigestTopAction }) {
-  const href = `/thread/${action.threadId}`;
   return (
-    <li
-      className={cn(
-        "min-w-0 border-l-4 py-3 pl-3 first:pt-0 last:pb-0",
-        accentForUrgency(displayUrgencyForDeadline(action.deadline, action.urgency)),
-      )}
-    >
-      <ThreadTags
-        category={action.category}
-        urgency={action.urgency}
-        deadline={action.deadline}
-        showStatus={false}
-        showImportance={false}
-      />
-      <MailCardTitle title={action.title} className="mt-2">
-        <Link href={href} className="hover:underline">
-          {action.title}
-        </Link>
-      </MailCardTitle>
-      {action.deadline ? (
-        <div className="mt-1 text-start">
-          <LabeledField label="Due" valueClassName={classForDeadline(action.deadline)}>
-            {formatDate(action.deadline)}
-          </LabeledField>
-        </div>
-      ) : null}
-      <div className="mt-3">
-        <MailOpenLink href={href} />
-      </div>
-    </li>
+    <MailListCard
+      threadId={action.threadId}
+      title={action.title}
+      sender={null}
+      latestMessageAt={null}
+      category={action.category}
+      urgency={action.urgency}
+      deadline={action.deadline}
+      whyText={threadPlacementReason({
+        tab: "open",
+        title: action.title,
+        category: action.category,
+        deadline: action.deadline,
+      })}
+    />
   );
 }
 
@@ -109,11 +86,11 @@ export function DigestReportCard({
             <p className="line-clamp-3 text-sm leading-relaxed text-pretty">{digest.summaryText}</p>
           ) : null}
           {preview.length > 0 ? (
-            <ul className="divide-border divide-y">
+            <div className="space-y-3">
               {preview.map((action) => (
                 <DigestActionRow key={action.threadId} action={action} />
               ))}
-            </ul>
+            </div>
           ) : (
             <p className="text-muted-foreground text-sm">No actions in this summary.</p>
           )}
@@ -163,11 +140,11 @@ export function DigestReportCard({
         {digest.topActions.length > 0 ? (
           <div>
             <h3 className="text-foreground mb-2 text-sm font-semibold">Top actions</h3>
-            <ul className="divide-border divide-y">
+            <div className="space-y-3">
               {digest.topActions.map((action) => (
                 <DigestActionRow key={action.threadId} action={action} />
               ))}
-            </ul>
+            </div>
           </div>
         ) : (
           <p className="text-muted-foreground text-sm">No actions in this summary.</p>

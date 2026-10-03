@@ -40,12 +40,18 @@ describe("TriagePreferencesForm", () => {
     renderForm();
 
     expect(screen.getByText(TRIAGE_CARD_DESCRIPTION)).toBeInTheDocument();
+    expect(screen.getByLabelText("Ignore senders & domains")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Ignored senders")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Ignored domains")).not.toBeInTheDocument();
     expect(screen.getByText("vip@example.com")).toBeInTheDocument();
     expect(screen.getByText("news.example.com")).toBeInTheDocument();
+    expect(screen.getByText("Domain")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Remove vip@example.com" })).toBeInTheDocument();
     expect(screen.queryByPlaceholderText(/one email per line/i)).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Update Now" })).toBeEnabled();
-    expect(screen.getByLabelText(/Custom triage instructions/i)).toBeInTheDocument();
+    expect(
+      screen.getByRole("textbox", { name: /Custom triage instructions/i }),
+    ).toBeInTheDocument();
   });
 
   it("adds a validated VIP chip and rejects invalid email", () => {
@@ -86,6 +92,53 @@ describe("TriagePreferencesForm", () => {
         }),
       }),
     );
+  });
+
+  it("puts an email and a domain from Ignore senders & domains on the correct lists", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(
+      <TriagePreferencesForm
+        vipSenders={[]}
+        ignoredSenders={[]}
+        ignoredDomains={[]}
+        customAiInstructions=""
+        digestEnabled={false}
+      />,
+    );
+
+    const input = screen.getByLabelText("Ignore senders & domains");
+    const section = input.closest("div")?.parentElement;
+    expect(section).toBeTruthy();
+    const add = () =>
+      fireEvent.click(within(section as HTMLElement).getByRole("button", { name: "Add" }));
+
+    fireEvent.change(input, { target: { value: "Noise@Example.com" } });
+    add();
+    fireEvent.change(input, { target: { value: "Newsletters.Example.com" } });
+    add();
+
+    expect(screen.getByText("noise@example.com")).toBeInTheDocument();
+    expect(screen.getByText("newsletters.example.com")).toBeInTheDocument();
+    expect(within(section as HTMLElement).getByText("Email")).toBeInTheDocument();
+    expect(within(section as HTMLElement).getByText("Domain")).toBeInTheDocument();
+
+    fireEvent.change(input, { target: { value: "not a domain" } });
+    add();
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Enter an email address or a domain (for example newsletters.example.com).",
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Save triage settings" }));
+
+    expect(await screen.findByText(TRIAGE_SETTINGS_SAVED_MESSAGE)).toBeInTheDocument();
+    const body = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body)) as {
+      ignoredSenders: string[];
+      ignoredDomains: string[];
+    };
+    expect(body.ignoredSenders).toEqual(["noise@example.com"]);
+    expect(body.ignoredDomains).toEqual(["newsletters.example.com"]);
   });
 
   it("Update Now saves settings then starts a default lookback scan", async () => {

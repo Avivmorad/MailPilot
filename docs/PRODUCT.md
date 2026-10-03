@@ -98,9 +98,10 @@ returns immediately and keeps running in the background.
 
 Settings → Triage stores VIP senders, ignored senders, ignored domains, custom
 AI instructions, and whether to write a History entry after a scan
-(`user_triage_settings`). VIP and ignore lists are chip editors in the UI and
-arrays of emails/domains in the API. Custom instructions stay freeform text
-(max 4000 characters).
+(`user_triage_settings`). VIP senders are one chip editor. Ignored senders and
+ignored domains share one chip editor titled Ignore senders & domains: an entry
+with `@` is an email, and an entry without `@` is a domain. Those stay separate
+arrays in the API. Custom instructions stay freeform text (max 4000 characters).
 
 **Save triage settings** persists the form without starting a scan. **Update
 Now** saves the current form, then starts the same lookback scan as default

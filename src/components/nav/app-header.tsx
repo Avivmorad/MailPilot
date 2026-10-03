@@ -3,7 +3,6 @@
 import {
   BarChart3,
   ChevronLeft,
-  ChevronRight,
   Inbox,
   LayoutDashboard,
   LogOut,
@@ -12,14 +11,28 @@ import {
   Settings,
 } from "lucide-react";
 import Link from "next/link";
+import { useLayoutEffect, useRef, useSyncExternalStore } from "react";
 
 import { Logo } from "@/components/brand/logo";
+import { SidebarResizeHandle } from "@/components/nav/sidebar-resize-handle";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { isUsageTelemetryUiEnabled } from "@/lib/config/features";
 import { interactiveNavClass } from "@/lib/ui/interactive";
-import { SIDEBAR_COLLAPSED_WIDTH_CLASS, SIDEBAR_EXPANDED_WIDTH_CLASS } from "@/lib/ui/sidebar";
+import {
+  clampSidebarWidth,
+  measureWidestSidebarLabelPx,
+  readRootFontPx,
+  SIDEBAR_COLLAPSED_WIDTH_CLASS,
+  SIDEBAR_EXPANDED_WIDTH_CLASS,
+  SIDEBAR_MAX_WIDTH_RATIO,
+  SIDEBAR_TOGGLE_CLASS,
+  SIDEBAR_TOGGLE_ICON_CLASS,
+  sidebarDefaultWidthPx,
+  sidebarMinWidthPx,
+} from "@/lib/ui/sidebar";
 import { useSidebarCollapsed } from "@/lib/ui/use-sidebar-collapsed";
+import { useSidebarWidth } from "@/lib/ui/use-sidebar-width";
 import { cn } from "@/lib/utils";
 
 const BASE_NAV = [
@@ -44,12 +57,63 @@ const NAV_ICONS = {
 export type AppNavCurrent =
   (typeof BASE_NAV)[number]["href"] | typeof USAGE_NAV.href | "thread" | "onboarding";
 
+function subscribeViewport(onStoreChange: () => void) {
+  window.addEventListener("resize", onStoreChange);
+  return () => window.removeEventListener("resize", onStoreChange);
+}
+
+function subscribeMounted() {
+  return () => {};
+}
+
 export function AppHeader({ email, current }: { email?: string | null; current: AppNavCurrent }) {
   const nav = isUsageTelemetryUiEnabled() ? [...BASE_NAV, USAGE_NAV] : [...BASE_NAV];
+  const labelsKey = nav.map((item) => item.label).join("\0");
   const [collapsed, setCollapsed] = useSidebarCollapsed();
+  const [storedWidth, setStoredWidth] = useSidebarWidth();
+  const sidebarRef = useRef<HTMLElement>(null);
+  const viewportPx = useSyncExternalStore(
+    subscribeViewport,
+    () => window.innerWidth,
+    () => 0,
+  );
+  const handleReady = useSyncExternalStore(
+    subscribeMounted,
+    () => true,
+    () => false,
+  );
+  const minPx = sidebarMinWidthPx(
+    handleReady ? measureWidestSidebarLabelPx(labelsKey.split("\0")) : 0,
+    handleReady ? readRootFontPx() : 16,
+  );
+  const viewportForClamp = viewportPx > 0 ? viewportPx : Math.max(minPx * 2, 1);
+  const shownWidth =
+    storedWidth == null
+      ? sidebarDefaultWidthPx(16)
+      : clampSidebarWidth(storedWidth, { minPx, viewportPx: viewportForClamp });
+
+  useLayoutEffect(() => {
+    const root = document.documentElement;
+    if (storedWidth == null) {
+      root.style.removeProperty("--app-sidebar-width-expanded");
+      return;
+    }
+    root.style.setProperty("--app-sidebar-width-expanded", `${shownWidth}px`);
+  }, [shownWidth, storedWidth]);
+
+  function getWidthPx() {
+    const measured = sidebarRef.current?.getBoundingClientRect().width ?? 0;
+    if (measured > 0) return measured;
+    if (storedWidth != null) return storedWidth;
+    return sidebarDefaultWidthPx(readRootFontPx());
+  }
+
+  const maxPx = viewportPx > 0 ? viewportPx * SIDEBAR_MAX_WIDTH_RATIO : minPx;
 
   return (
     <header
+      ref={sidebarRef}
+      data-app-sidebar=""
       className={cn(
         "border-sidebar-border bg-sidebar text-sidebar-foreground sticky top-0 z-40 border-b lg:fixed lg:inset-y-0 lg:left-0 lg:flex lg:flex-col lg:overflow-x-visible lg:overflow-y-auto lg:border-r lg:border-b-0 motion-safe:lg:transition-[width] motion-safe:lg:duration-200 motion-safe:lg:ease-out",
         collapsed ? SIDEBAR_COLLAPSED_WIDTH_CLASS : SIDEBAR_EXPANDED_WIDTH_CLASS,
@@ -64,16 +128,22 @@ export function AppHeader({ email, current }: { email?: string | null; current: 
         <Link
           href="/dashboard"
           className={cn(
-            "focus-visible:ring-ring shrink-0 rounded-lg hover:opacity-90 focus-visible:ring-3 focus-visible:outline-none",
-            collapsed && "lg:inline-flex lg:size-10 lg:items-center lg:justify-center",
+            "focus-visible:ring-ring rounded-lg hover:opacity-90 focus-visible:ring-3 focus-visible:outline-none",
+            collapsed
+              ? "shrink-0 lg:inline-flex lg:size-10 lg:items-center lg:justify-center"
+              : "min-w-0",
           )}
           aria-label="MailPriority home"
         >
           <span className="inline-flex lg:hidden">
             <Logo />
           </span>
-          <span className="hidden lg:inline-flex">
-            <Logo showWordmark={!collapsed} />
+          <span className="hidden lg:inline-flex lg:min-w-0">
+            <Logo
+              showWordmark={!collapsed}
+              truncateWordmark={!collapsed}
+              className={cn(!collapsed && "min-w-0")}
+            />
           </span>
         </Link>
         <div className="flex items-center gap-1 lg:hidden">
@@ -84,17 +154,18 @@ export function AppHeader({ email, current }: { email?: string | null; current: 
           type="button"
           variant="ghost"
           size="icon"
-          className={cn(
-            "text-muted-foreground hover:text-foreground hidden shrink-0 lg:inline-flex",
-            collapsed && "size-9",
-          )}
+          className={cn(SIDEBAR_TOGGLE_CLASS, "hidden self-center lg:inline-flex")}
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           aria-expanded={!collapsed}
           aria-controls="app-sidebar-nav"
           title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           onClick={() => setCollapsed(!collapsed)}
         >
-          {collapsed ? <ChevronRight aria-hidden /> : <ChevronLeft aria-hidden />}
+          <ChevronLeft
+            aria-hidden
+            size={16}
+            className={cn(SIDEBAR_TOGGLE_ICON_CLASS, collapsed && "rotate-180")}
+          />
         </Button>
       </div>
       <nav
@@ -147,6 +218,15 @@ export function AppHeader({ email, current }: { email?: string | null; current: 
           <SignOutForm iconOnly={collapsed} />
         </div>
       </div>
+      {handleReady && !collapsed ? (
+        <SidebarResizeHandle
+          minPx={minPx}
+          maxPx={maxPx}
+          widthPx={shownWidth}
+          onWidthPx={setStoredWidth}
+          getWidthPx={getWidthPx}
+        />
+      ) : null}
     </header>
   );
 }

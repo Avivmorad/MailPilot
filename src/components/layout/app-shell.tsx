@@ -22,6 +22,7 @@ export function AppShell({
 
   return (
     <div
+      data-app-shell=""
       className={cn(
         "flex min-h-full min-w-0 flex-col overflow-x-clip motion-safe:lg:transition-[padding] motion-safe:lg:duration-200 motion-safe:lg:ease-out",
         collapsed ? SIDEBAR_COLLAPSED_PAD_CLASS : SIDEBAR_EXPANDED_PAD_CLASS,

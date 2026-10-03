@@ -90,6 +90,20 @@ describe("InboxOverviewHeader", () => {
     });
   });
 
+  it("asks the user to sign in again when the scan request is unauthorized", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(jsonResponse({ error: "not_signed_in" }, 401)),
+    );
+
+    render(<InboxOverviewHeader description="Actions, Pending, and For You." />);
+    fireEvent.click(screen.getByRole("button", { name: "Scan Now" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Sign in again to scan.");
+    expect(screen.getByRole("button", { name: "Scan Now" })).toBeEnabled();
+    expect(push).not.toHaveBeenCalled();
+  });
+
   it("keeps the Scan Now label and shows an error when the scan does not start", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse({ error: "rate_limited" }, 429)));
 

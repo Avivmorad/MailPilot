@@ -38,6 +38,11 @@ export function InboxScanNowButton() {
         router.push("/scan");
         return;
       }
+      if (response.status === 401 || failure.error === "not_signed_in") {
+        setError("Sign in again to scan.");
+        setPending(false);
+        return;
+      }
       setError(
         failure.error || failure.message
           ? scanUserMessage(failure.error, failure.message)

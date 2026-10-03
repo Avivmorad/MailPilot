@@ -66,7 +66,7 @@ export const DISCONNECT_GMAIL_INFO =
 export const SCAN_HISTORY_INFO =
   "Recent manual and scheduled scan runs for this mailbox. This list is separate from History entries.";
 
-/** Accessible name for the (i) control next to a settings label. */
+/** Accessible name for the info icon next to a settings label. */
 export function settingInfoButtonName(label: string): string {
   return `About ${label}`;
 }

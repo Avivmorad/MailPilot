@@ -1,5 +1,6 @@
 "use client";
 
+import { Info } from "lucide-react";
 import { useId, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
@@ -7,7 +8,7 @@ import { settingInfoButtonName } from "@/lib/settings/setting-info-copy";
 import { cn } from "@/lib/utils";
 
 /**
- * Small (i) control. Click, hover, or keyboard focus opens a short explanation.
+ * Small info icon. Click, hover, or keyboard focus opens a short explanation.
  * The panel is portaled so card overflow does not clip it.
  */
 export function SettingInfo({ label, description }: { label: string; description: string }) {
@@ -62,7 +63,7 @@ export function SettingInfo({ label, description }: { label: string; description
       <button
         ref={buttonRef}
         type="button"
-        className="text-muted-foreground hover:text-foreground hover:bg-muted focus-visible:ring-ring border-border bg-background inline-flex h-5 shrink-0 items-center justify-center rounded-full border px-1.5 text-[11px] leading-none font-semibold focus-visible:ring-2 focus-visible:outline-none"
+        className="text-muted-foreground hover:text-foreground hover:bg-muted focus-visible:ring-ring inline-flex size-5 shrink-0 items-center justify-center rounded-full focus-visible:ring-2 focus-visible:outline-none"
         aria-label={settingInfoButtonName(label)}
         aria-expanded={open}
         aria-describedby={open ? tooltipId : undefined}
@@ -80,7 +81,7 @@ export function SettingInfo({ label, description }: { label: string; description
           }
         }}
       >
-        <span aria-hidden="true">(i)</span>
+        <Info aria-hidden="true" className="size-3.5" />
       </button>
       {open
         ? createPortal(

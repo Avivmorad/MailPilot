@@ -87,6 +87,73 @@ describe("InboxSummary", () => {
     expect(newsletter.textContent).not.toBe(travel.textContent);
   });
 
+  it("does not show a Hebrew stored reason on For You or Ignored", () => {
+    render(
+      <InboxSummary
+        threads={[
+          {
+            id: "lab",
+            subject: "תוצאות מעבדה",
+            shortDisplayTitle: "תוצאות מעבדה",
+            summary: "התוצאות מוכנות בפורטל",
+            status: "informational",
+            importance: "medium",
+            importanceReason: "תוצאות המעבדה מוכנות",
+            category: "personal_health",
+            sender: "Clinic",
+            latestMessageAt: "2026-09-10T10:00:00.000Z",
+          },
+          {
+            id: "otp",
+            subject: "קוד כניסה",
+            shortDisplayTitle: "קוד כניסה",
+            summary: "הודעת אבטחה",
+            status: "ignore",
+            importance: "low",
+            importanceReason: "קוד חד פעמי",
+            category: "security",
+            sender: "Bank",
+            latestMessageAt: "2026-09-11T10:00:00.000Z",
+          },
+        ]}
+      />,
+    );
+
+    expandCategory(/Personal & Health/);
+    expandCategory(/Security/);
+    expect(screen.getByText("תוצאות מעבדה")).toBeInTheDocument();
+    expect(screen.getByText("קוד כניסה")).toBeInTheDocument();
+    expect(screen.queryByText("תוצאות המעבדה מוכנות")).not.toBeInTheDocument();
+    expect(screen.queryByText("קוד חד פעמי")).not.toBeInTheDocument();
+    expect(screen.getByText("Health update from Clinic, nothing to do.")).toBeInTheDocument();
+    expect(screen.getByText("Security notice from Bank.")).toBeInTheDocument();
+  });
+
+  it("shows an English For You reason unchanged", () => {
+    render(
+      <InboxSummary
+        threads={[
+          {
+            id: "lab-en",
+            subject: "Lab results",
+            shortDisplayTitle: "Lab results",
+            summary: "Results are in the portal.",
+            status: "informational",
+            importance: "medium",
+            importanceReason: "Lab results are ready in the portal.",
+            category: "personal_health",
+            sender: "Clinic",
+            latestMessageAt: "2026-09-10T10:00:00.000Z",
+          },
+        ]}
+      />,
+    );
+
+    expandCategory(/Personal & Health/);
+    expect(screen.getByText("Lab results are ready in the portal.")).toBeInTheDocument();
+    expect(screen.queryByText("Health update from Clinic, nothing to do.")).not.toBeInTheDocument();
+  });
+
   it("uses the mailbox subject when the model did not return a title", () => {
     render(
       <InboxSummary

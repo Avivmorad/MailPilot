@@ -88,6 +88,7 @@ function LoginForm() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [pendingAction, setPendingAction] = useState<"form" | "google" | null>(null);
   const [fieldError, setFieldError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(
     QUERY_ERRORS[searchParams.get("error") ?? ""] ?? null,
@@ -112,7 +113,9 @@ function LoginForm() {
       return;
     }
 
+    setPendingAction("form");
     setLoading(true);
+    let leavePending = false;
 
     try {
       const supabase = createClient();
@@ -136,6 +139,7 @@ function LoginForm() {
         const next = safeAppReturnPath(searchParams.get("redirectedFrom"), "/onboarding");
         router.push(next);
         router.refresh();
+        leavePending = true;
         return;
       }
 
@@ -149,7 +153,10 @@ function LoginForm() {
     } catch (err) {
       setError(authUserMessage(err));
     } finally {
-      setLoading(false);
+      if (!leavePending) {
+        setPendingAction(null);
+        setLoading(false);
+      }
     }
   }
 
@@ -162,6 +169,7 @@ function LoginForm() {
     setError(null);
     setNotice(null);
     setFieldError(null);
+    setPendingAction("google");
     setLoading(true);
 
     try {
@@ -177,6 +185,7 @@ function LoginForm() {
       }
     } catch (err) {
       googleSignInStarted.current = false;
+      setPendingAction(null);
       setError(authUserMessage(err));
       setLoading(false);
     }
@@ -220,7 +229,7 @@ function LoginForm() {
                 }}
               >
                 <GoogleMark />
-                Continue with Google
+                {loading && pendingAction === "google" ? "Signing in…" : "Continue with Google"}
               </Button>
               <p className="text-muted-foreground flex items-center gap-3 text-xs">
                 <span className="bg-border h-px flex-1" aria-hidden="true" />
@@ -301,8 +310,10 @@ function LoginForm() {
               disabled={loading}
               aria-busy={loading}
             >
-              {loading
-                ? "Please wait…"
+              {loading && pendingAction === "form"
+                ? mode === "signin"
+                  ? "Signing in…"
+                  : "Please wait…"
                 : mode === "signin"
                   ? "Sign in"
                   : mode === "signup"

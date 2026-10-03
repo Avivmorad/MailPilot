@@ -5,7 +5,12 @@ import { MailWorkspace, type MailWorkspaceData } from "@/components/mail/mail-wo
 import { listActionsForUser } from "@/lib/actions/queries";
 import { getGmailStatusForUser } from "@/lib/gmail/connections";
 import { gmailRecoveryActionLabel, shouldShowGmailRecoveryCard } from "@/lib/gmail/recovery";
-import { parseCategoryFilter, parseUncertainFilter } from "@/lib/mail/filters";
+import {
+  parseCategoryFilter,
+  parsePriorityFilter,
+  parseSignalFilter,
+  parseUncertainFilter,
+} from "@/lib/mail/filters";
 import { getMailFigures } from "@/lib/mail/figures";
 import { parseMailTab } from "@/lib/mail/tabs";
 import { requireOnboardingComplete } from "@/lib/onboarding/guard";
@@ -19,7 +24,13 @@ const LIST_LIMIT = 50;
 export default async function MailPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string; uncertain?: string; category?: string }>;
+  searchParams: Promise<{
+    tab?: string;
+    uncertain?: string;
+    category?: string;
+    priority?: string;
+    signal?: string;
+  }>;
 }) {
   const user = await getSessionUser();
   if (!user) {
@@ -30,6 +41,8 @@ export default async function MailPage({
   const tab = parseMailTab(params.tab);
   const uncertainOnly = parseUncertainFilter(params.uncertain);
   const category = parseCategoryFilter(params.category);
+  const priority = parsePriorityFilter(params.priority);
+  const signal = parseSignalFilter(params.signal);
   const failed: MailWorkspaceData["failed"] = {};
 
   const [open, waiting, completed, snoozed, summary, ignored, gmailStatus, figures] =
@@ -81,6 +94,8 @@ export default async function MailPage({
         data={data}
         initialTab={tab}
         initialCategory={category}
+        initialPriority={priority}
+        initialSignal={signal}
         initialUncertain={uncertainOnly}
       />
     </AppChrome>

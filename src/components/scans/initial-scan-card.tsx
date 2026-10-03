@@ -204,6 +204,7 @@ export function InitialScanCard({
   const [error, setError] = useState(false);
   const [errorCode, setErrorCode] = useState<string | null>(null);
   const progressRef = useRef(progress);
+  const watchIdRef = useRef(watchId);
   const lookbackRef = useRef(lookbackDays);
   const routerRef = useRef(router);
   const generationRef = useRef(0);
@@ -213,6 +214,53 @@ export function InitialScanCard({
   const cancelInFlightRef = useRef(false);
   /** One automatic resume per scan id. A failed resume must not start another by itself. */
   const resumedScanIds = useRef(new Set<string>());
+  /** A confirmed cancel must not be revived by a stale RUNNING prop in this session. */
+  const suppressedScanIds = useRef(new Set<string>());
+
+  function adoptRunningScan(scan: ScanRunSnapshot) {
+    if (scan.status !== "RUNNING" || suppressedScanIds.current.has(scan.id)) {
+      return;
+    }
+    const watching = watchIdRef.current;
+    if (watching && watching !== "pending" && watching !== scan.id) {
+      return;
+    }
+    if (progressRef.current?.id === "pending") {
+      return;
+    }
+    if (watching !== scan.id) {
+      setMessage(null);
+      setError(false);
+      setErrorCode(null);
+    }
+    setWatchId(scan.id);
+    setBusy(true);
+    setProgress((current) => {
+      if (current?.id === "pending") {
+        return current;
+      }
+      if (
+        current?.id === scan.id &&
+        current.status === scan.status &&
+        (current.threads_checked ?? 0) === (scan.threads_checked ?? 0) &&
+        (current.threads_discovered ?? 0) === (scan.threads_discovered ?? 0)
+      ) {
+        return current;
+      }
+      // A live poll can be ahead of the server snapshot this page mounted with.
+      if (current?.id === scan.id && (current.threads_checked ?? 0) > (scan.threads_checked ?? 0)) {
+        return current;
+      }
+      return scan;
+    });
+  }
+
+  const adoptRunningScanRef = useRef(adoptRunningScan);
+
+  useEffect(() => {
+    watchIdRef.current = watchId;
+    adoptRunningScanRef.current = adoptRunningScan;
+  });
 
   useEffect(() => {
     progressRef.current = progress;
@@ -225,6 +273,38 @@ export function InitialScanCard({
   useEffect(() => {
     routerRef.current = router;
   }, [router]);
+
+  // A scan started on Settings can be missing from this page's first payload.
+  // Read the shared progress endpoint once so the tab joins that run.
+  useEffect(() => {
+    const generation = generationRef.current;
+    if (watchIdRef.current) {
+      return;
+    }
+    const stop = new AbortController();
+    let active = true;
+    void (async () => {
+      const result = await fetchLatestScan(stop.signal);
+      if (!active || generation !== generationRef.current || watchIdRef.current) {
+        return;
+      }
+      if (result.kind === "scan") {
+        adoptRunningScanRef.current(result.scan);
+      }
+    })();
+    return () => {
+      active = false;
+      stop.abort();
+    };
+  }, []);
+
+  // Server props can arrive after mount (client cache, then a fresh payload)
+  // without resetting useState. Follow that same RUNNING scan.
+  useEffect(() => {
+    if (latestScan) {
+      adoptRunningScanRef.current(latestScan);
+    }
+  }, [latestScan]);
 
   // Abort start/cancel requests on unmount even when watchId is still null.
   useEffect(() => {
@@ -359,7 +439,15 @@ export function InitialScanCard({
       misses = 0;
       if (scan.status === "RUNNING") {
         setWatchId(scan.id);
-        setProgress(scan);
+        setProgress((current) => {
+          if (
+            current?.id === scan.id &&
+            (current.threads_checked ?? 0) > (scan.threads_checked ?? 0)
+          ) {
+            return current;
+          }
+          return scan;
+        });
         if (isStaleRunning(scan, Date.now())) {
           void resumeStalled(scan.id);
         }
@@ -475,6 +563,7 @@ export function InitialScanCard({
         setMessage(scanUserMessage(result.failure.error, result.failure.message));
         return;
       }
+      suppressedScanIds.current.add(target);
       setBusy(false);
       setProgress(null);
       setWatchId(null);

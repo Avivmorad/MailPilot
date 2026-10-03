@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { EmptyState } from "@/components/layout/empty-state";
 import { CollapsibleTopicGroups } from "@/components/layout/collapsible-topic-groups";
+import { MailCardTitle, MailOpenLink } from "@/components/mail/mail-card-chrome";
 import { ThreadPlacementCorrection } from "@/components/threads/thread-placement-correction";
 import { ThreadTags } from "@/components/ui/thread-tags";
 import { groupByTopic } from "@/lib/actions/topics";
@@ -42,54 +43,51 @@ export function InboxSummary({
           <ul className="divide-y">
             {group.items.map((thread) => {
               const tab = mailBucketForThread({ status: thread.status });
+              const title = displayThreadTitle(
+                thread.shortDisplayTitle,
+                thread.summary,
+                thread.subject,
+              );
+              const summary =
+                usableDisplayText(thread.summary) && usableDisplayText(thread.shortDisplayTitle)
+                  ? usableDisplayText(thread.summary)
+                  : null;
+              const href = `/thread/${thread.id}`;
               return (
                 <li key={thread.id} className="min-w-0 overflow-hidden px-4 py-3">
-                  <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
-                    <Link
-                      href={`/thread/${thread.id}`}
-                      className="hover:bg-muted/50 -mx-1 min-w-0 flex-1 overflow-hidden rounded-md px-1 transition-colors"
-                    >
-                      <p
-                        className="text-foreground leading-snug font-semibold tracking-tight [overflow-wrap:anywhere] break-words"
-                        dir="auto"
-                        title={displayThreadTitle(
-                          thread.shortDisplayTitle,
-                          thread.summary,
-                          thread.subject,
-                        )}
-                      >
-                        {displayThreadTitle(
-                          thread.shortDisplayTitle,
-                          thread.summary,
-                          thread.subject,
-                        )}
-                      </p>
-                      {usableDisplayText(thread.summary) &&
-                      usableDisplayText(thread.shortDisplayTitle) ? (
-                        <p
-                          className="text-muted-foreground mt-1 line-clamp-2 text-sm leading-relaxed [overflow-wrap:anywhere] break-words"
-                          dir="auto"
-                        >
-                          {usableDisplayText(thread.summary)}
-                        </p>
-                      ) : null}
-                    </Link>
-                    <div className="flex min-w-0 flex-wrap items-center gap-2 sm:justify-end">
+                  <div className="flex min-w-0 items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
                       <ThreadTags
                         category={thread.category}
                         status={thread.status}
                         importance={thread.importance}
                         categoryHref={categoryHrefFor?.(thread)}
                       />
-                      <span className="text-muted-foreground text-xs">
-                        {formatRelativeTime(thread.latestMessageAt)}
-                      </span>
                     </div>
+                    <span className="text-muted-foreground shrink-0 pt-1 text-xs tabular-nums">
+                      {formatRelativeTime(thread.latestMessageAt)}
+                    </span>
                   </div>
-                  <p className="text-muted-foreground mt-1 text-xs leading-relaxed break-words">
+                  <MailCardTitle title={title} className="mt-2">
+                    <Link href={href} className="hover:underline">
+                      {title}
+                    </Link>
+                  </MailCardTitle>
+                  {summary ? (
+                    <p
+                      className="text-muted-foreground mt-1 line-clamp-2 text-start text-sm leading-relaxed [overflow-wrap:anywhere] break-words"
+                      dir="auto"
+                    >
+                      {summary}
+                    </p>
+                  ) : null}
+                  <p className="text-muted-foreground mt-1 text-start text-xs leading-relaxed break-words">
                     {threadPlacementReason({ tab })}
                   </p>
-                  <ThreadPlacementCorrection threadId={thread.id} tab={tab} />
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <MailOpenLink href={href} />
+                    <ThreadPlacementCorrection threadId={thread.id} tab={tab} />
+                  </div>
                 </li>
               );
             })}

@@ -88,4 +88,34 @@ describe("InboxSummary", () => {
     expect(screen.getByText("Board packet")).toBeInTheDocument();
     expect(screen.queryByText(/^null$/i)).not.toBeInTheDocument();
   });
+
+  it("renders Open and centers the short display title", () => {
+    render(
+      <InboxSummary
+        threads={[
+          {
+            id: "thread-he",
+            subject: "Invoices",
+            shortDisplayTitle: "החשבוניות העדכניות שלך",
+            summary: "Your latest invoices are ready.",
+            status: "informational",
+            importance: "medium",
+            category: "finance",
+            latestMessageAt: "2026-09-10T10:00:00.000Z",
+          },
+        ]}
+      />,
+    );
+
+    expandCategory(/Finance/);
+    const open = screen.getByRole("link", { name: "Open" });
+    expect(open).toHaveAttribute("href", "/thread/thread-he");
+    const title = screen.getByRole("link", { name: "החשבוניות העדכניות שלך" });
+    const container = title.closest("[data-slot='mail-card-title']");
+    expect(container).not.toBeNull();
+    expect(container).toHaveClass("text-center");
+    expect(container).toHaveClass("w-full");
+    expect(title.closest("[dir='auto']")).not.toBeNull();
+    expect(container).not.toHaveTextContent("Your latest invoices are ready.");
+  });
 });

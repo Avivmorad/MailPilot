@@ -7,13 +7,17 @@ import { AppShell } from "@/components/layout/app-shell";
 import { PageHeader } from "@/components/layout/page-header";
 import { InboxStatCard } from "@/components/dashboard/inbox-stat-card";
 import { AppHeader } from "@/components/nav/app-header";
+import { InboxSummary } from "@/components/threads/inbox-summary";
 import { Button } from "@/components/ui/button";
+import { collapsedStorageKey } from "@/lib/ui/collapsed-state";
 import { SIDEBAR_STORAGE_KEY } from "@/lib/ui/sidebar";
 import { THEME_STORAGE_KEY } from "@/lib/ui/theme";
 
 function subscribeNoop() {
   return () => {};
 }
+
+const LAB_INVOICE_AT = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString();
 
 function readLabTheme(): "light" | "dark" {
   if (typeof window === "undefined") {
@@ -25,6 +29,7 @@ function readLabTheme(): "light" | "dark" {
 
 function prepareLayoutLabClient(): true {
   window.localStorage.setItem(SIDEBAR_STORAGE_KEY, "1");
+  window.localStorage.setItem(collapsedStorageKey("layout-lab-mail"), "[]");
   const theme = readLabTheme();
   window.localStorage.setItem(THEME_STORAGE_KEY, theme);
   document.documentElement.classList.toggle("dark", theme === "dark");
@@ -176,32 +181,23 @@ export default function LayoutLabPage() {
         </article>
       </section>
 
-      <section className="min-w-0 space-y-3">
+      <section className="min-w-0 space-y-3" data-testid="mail-open-card-preview">
         <h2 className="text-foreground text-lg font-semibold tracking-tight">Mail preview</h2>
-        <div className="bg-card ring-foreground/10 min-w-0 overflow-hidden rounded-xl ring-1">
-          <div className="border-b px-4 py-2.5 text-sm font-semibold">Travel & Transport</div>
-          <ul className="divide-y">
-            <li className="min-w-0 overflow-hidden px-4 py-3">
-              <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
-                <div className="min-w-0 flex-1 overflow-hidden">
-                  <p
-                    className="text-foreground leading-snug font-semibold tracking-tight [overflow-wrap:anywhere] break-words"
-                    dir="auto"
-                  >
-                    Hotel asked about late checkout and minibar charges
-                  </p>
-                  <p
-                    className="text-muted-foreground mt-1 line-clamp-2 text-sm leading-relaxed [overflow-wrap:anywhere] break-words"
-                    dir="auto"
-                  >
-                    They need your answer on late checkout plus a long URL
-                    https://booking.example.com/reservations/abcdef/details?token=zzzzzzzzzzzzzzzzzzzzzzzzzzzz
-                  </p>
-                </div>
-              </div>
-            </li>
-          </ul>
-        </div>
+        <InboxSummary
+          storageKey="layout-lab-mail"
+          threads={[
+            {
+              id: "layout-lab-invoices",
+              subject: "Your latest invoices",
+              shortDisplayTitle: "החשבוניות העדכניות שלך",
+              summary: "Your latest invoices are ready to download.",
+              status: "informational",
+              importance: "medium",
+              category: "finance",
+              latestMessageAt: LAB_INVOICE_AT,
+            },
+          ]}
+        />
       </section>
     </AppShell>
   );

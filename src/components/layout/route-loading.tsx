@@ -2,13 +2,16 @@
 
 import { SIDEBAR_COLLAPSED_PAD_CLASS, SIDEBAR_EXPANDED_PAD_CLASS } from "@/lib/ui/sidebar";
 import { useSidebarCollapsed } from "@/lib/ui/use-sidebar-collapsed";
+import { useSidebarWidth } from "@/lib/ui/use-sidebar-width";
 import { cn } from "@/lib/utils";
 
 export function RouteLoading() {
   const [collapsed] = useSidebarCollapsed();
+  useSidebarWidth();
 
   return (
     <div
+      data-app-shell=""
       className={cn(
         "flex min-h-full min-w-0 flex-col",
         collapsed ? SIDEBAR_COLLAPSED_PAD_CLASS : SIDEBAR_EXPANDED_PAD_CLASS,

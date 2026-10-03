@@ -3,7 +3,8 @@
 Gmail inbox triage that answers three questions: **what happened, what do I need
 to do, and what’s pending?**
 
-The GitHub repository and Gmail label prefix stay **MailPilot** (`MailPilot/`).
+The GitHub repository stays **MailPilot**. Gmail managed labels use
+**`MailPriority/`**. Existing `MailPilot/` managed labels are renamed in place.
 The public app is [mail-priority.vercel.app](https://mail-priority.vercel.app).
 `gmailpilot.vercel.app` is detached and returns 404.
 
@@ -28,7 +29,7 @@ while the integration is in Testing.
 ## What it does
 
 Connects one Gmail inbox, scans a chosen lookback, classifies threads with
-validated structured JSON, applies `MailPilot/*` labels, and shows For You,
+validated structured JSON, applies `MailPriority/*` labels, and shows For You,
 Actions, Pending, and the History screen. It never auto-sends, deletes, or
 archives mail. OTP / login-FYI notices are not open tasks.
 

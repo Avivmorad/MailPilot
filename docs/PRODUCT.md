@@ -9,7 +9,7 @@ What MailPriority does and how triage behaves. For how it is built, see
 | ------------------------------ | ------------------------------------------------------------------------------------------------------------------ |
 | Product / UI / privacy / terms | **MailPriority**                                                                                                   |
 | GitHub repo, npm package       | **MailPilot**                                                                                                      |
-| Gmail label prefix             | **`MailPilot/`** (do not rename to MailPriority)                                                                   |
+| Gmail label prefix             | **`MailPriority/`**. Existing `MailPilot/` managed labels are renamed in place.                                    |
 | Public URL                     | [mail-priority.vercel.app](https://mail-priority.vercel.app). `gmailpilot.vercel.app` is detached and returns 404. |
 
 Do not use the archived working name “Inbox Triage AI” in UI or new docs.
@@ -39,7 +39,7 @@ filter and leaves the tab in place. Clicking a category badge opens that filter.
 
 - Connect one Gmail inbox (separate from app sign-in)
 - Scan threads over a chosen lookback; classify with structured JSON
-- Apply `MailPilot/*` Gmail labels after validated analysis only
+- Apply `MailPriority/*` Gmail labels after validated analysis only
 - Dashboard overview + Mail tabs + History
 - Incremental History API sync after the first successful scan
 - Daily scheduled scan; resumable scans across Vercel Hobby time slices
@@ -111,12 +111,12 @@ delete, or archive mail. Progress is on the Scan tab.
 
 ## Gmail labels
 
-| Purpose         | Label                       |
-| --------------- | --------------------------- |
-| Important       | `MailPilot/Important`       |
-| Action required | `MailPilot/Action Required` |
-| Low priority    | `MailPilot/Low Priority`    |
-| Processed       | `MailPilot/Processed`       |
+| Purpose         | Label                          |
+| --------------- | ------------------------------ |
+| Important       | `MailPriority/Important`       |
+| Action required | `MailPriority/Action Required` |
+| Low priority    | `MailPriority/Low Priority`    |
+| Processed       | `MailPriority/Processed`       |
 
 Rules:
 
@@ -124,11 +124,16 @@ Rules:
   (`action_required`, `waiting`, `informational`, `resolved`, or `ignore`).
   Mail tabs, action workflow, and History entries derive from this — a thread never has
   two competing statuses.
-- Gmail **`MailPilot/*` labels are presentation only**. A thread may carry more
+- Gmail **`MailPriority/*` labels are presentation only**. A thread may carry more
   than one at once (e.g. Important + Action Required + Processed).
 - Labels are ensured after Connect Gmail (off the OAuth redirect wait) and
-  reconciled on scan if missing; mapping stored as `logical_name → gmail_label_id`.
-  Never modify user labels outside `MailPilot/`.
+  reconciled on scan if missing or still named `MailPilot/`. Mapping is stored as
+  `logical_name → gmail_label_id`. A previous managed `MailPilot/` label is
+  renamed with Gmail `labels.patch` to the matching `MailPriority/` name, so the
+  label id stays on the thread. New installs create `MailPriority/` only.
+  Gmail may leave an empty `MailPilot` parent label behind; it is not deleted,
+  because deleting a label removes it from threads. User labels outside the
+  managed `MailPriority/` names and those previous `MailPilot/` names stay as they are.
 - A Gmail inbox may be **actively connected to only one MailPriority user** at a
   time (`0010_gmail_mailbox_uniqueness.sql`).
 

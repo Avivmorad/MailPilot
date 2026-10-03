@@ -85,7 +85,8 @@ export interface ScanGmailPort {
   getProfileHistoryId(): Promise<string | null>;
   loadLabelMap(): Promise<Map<MailPilotLogicalLabel, string>>;
   /**
-   * Create any missing MailPilot/* labels and persist mappings.
+   * Create any missing MailPriority/* labels, rename legacy MailPilot/*
+   * managed labels in place, and persist mappings.
    * Used when connect-time `after()` label setup did not finish.
    */
   ensureManagedLabels?(): Promise<void>;

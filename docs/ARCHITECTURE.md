@@ -41,7 +41,8 @@ Manual Scan now and scheduled scans share the same pipeline.
 3. Call the triage provider for structured JSON (`src/lib/ai/`).
 4. Validate with Zod + invariant post-processing.
 5. Upsert threads, messages (metadata only — no long-term bodies), actions.
-6. Apply `MailPilot/*` labels **only after** validated analysis.
+6. Apply `MailPriority/*` labels **only after** validated analysis. An existing
+   `MailPilot/*` managed label is renamed in place first, so threads keep it.
 7. On window finish `SUCCESS` or `PARTIAL`, write a History entry when enabled.
 8. Advance Gmail `historyId` only on `SUCCESS`.
 

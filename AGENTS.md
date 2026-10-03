@@ -4,8 +4,10 @@ Operating guidance for AI agents and developers working in this repository.
 
 ## Source of truth
 
-The user-facing product name is **MailPriority**. The repository, package, and
-Gmail label prefix remain **MailPilot** (`MailPilot/`). The public app is
+The user-facing product name is **MailPriority**. The repository and package
+remain **MailPilot**. Gmail managed labels use the **`MailPriority/`** prefix.
+Existing `MailPilot/` managed labels are renamed to `MailPriority/` on connect
+and at scan start. The public app is
 `https://mail-priority.vercel.app`. `gmailpilot.vercel.app` is detached and
 returns 404. Owner tasks sections 2 and 3 in
 [`docs/OWNER_TASKS.md`](docs/OWNER_TASKS.md) are done. Do not clear those boxes

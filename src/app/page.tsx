@@ -41,7 +41,7 @@ const features = [
   {
     icon: Tag,
     title: "Gmail labels, in sync",
-    body: "Applies managed Gmail labels under the MailPilot/ prefix (product name: MailPriority) so your triage is visible everywhere — without touching your own labels.",
+    body: "Applies managed Gmail labels under the MailPriority/ prefix so your triage is visible everywhere — without touching your own labels.",
   },
   {
     icon: Clock3,

@@ -347,6 +347,101 @@ describe("InitialScanCard polling", () => {
     expect(screen.getByRole("combobox", { name: "Lookback window" })).toBeDisabled();
     expect(screen.getByRole("progressbar", { name: "Scan progress" })).toBeInTheDocument();
   });
+
+  it("shows a scan already running on the server when the tab opens idle", async () => {
+    const scan = {
+      id: "scan-live",
+      status: "RUNNING",
+      threads_discovered: 20,
+      threads_checked: 8,
+      percent: 40,
+      updated_at: NOW,
+    };
+    vi.mocked(fetch).mockResolvedValue(jsonResponse({ scan }));
+    render(<InitialScanCard connected incremental={false} />);
+
+    expect(screen.getByRole("button", { name: "Scan now" })).toBeEnabled();
+    expect(screen.getByRole("progressbar", { name: "Scan progress" })).not.toHaveAttribute(
+      "aria-valuenow",
+    );
+
+    await settle();
+
+    expect(screen.getByRole("progressbar", { name: "Scan progress" })).toHaveAttribute(
+      "aria-valuenow",
+      "40",
+    );
+    expect(screen.getByRole("progressbar", { name: "Scan progress" })).toHaveAttribute(
+      "aria-valuetext",
+      "Checking 8 of 20 conversations (40%). Large scans continue automatically…",
+    );
+    expect(screen.getByText("8 of 20")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Scanning…" })).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "Scan now" })).not.toBeInTheDocument();
+  });
+
+  it("adopts a running scan when the server snapshot arrives after mount", async () => {
+    vi.mocked(fetch).mockResolvedValue(jsonResponse({ scan: null }));
+    const view = render(<InitialScanCard connected incremental={false} />);
+    await settle();
+    expect(screen.getByRole("button", { name: "Scan now" })).toBeEnabled();
+
+    view.rerender(
+      <InitialScanCard
+        connected
+        incremental={false}
+        latestScan={{
+          id: "scan-live",
+          status: "RUNNING",
+          threads_discovered: 20,
+          threads_checked: 8,
+          updated_at: NOW,
+        }}
+      />,
+    );
+    await settle();
+
+    expect(screen.getByRole("progressbar", { name: "Scan progress" })).toHaveAttribute(
+      "aria-valuenow",
+      "40",
+    );
+    expect(screen.getByRole("button", { name: "Scanning…" })).toBeDisabled();
+  });
+
+  it("does not replace in-progress counts with a stale zero snapshot", async () => {
+    const live = {
+      id: "scan-live",
+      status: "RUNNING",
+      threads_discovered: 20,
+      threads_checked: 8,
+      updated_at: NOW,
+    };
+    vi.mocked(fetch).mockResolvedValue(
+      jsonResponse({
+        scan: {
+          ...live,
+          threads_discovered: 0,
+          threads_checked: 0,
+        },
+      }),
+    );
+    render(<InitialScanCard connected incremental={false} latestScan={live} />);
+    expect(screen.getByRole("progressbar", { name: "Scan progress" })).toHaveAttribute(
+      "aria-valuenow",
+      "40",
+    );
+
+    await settle();
+    await advance(800);
+    await settle();
+
+    expect(screen.getByRole("progressbar", { name: "Scan progress" })).toHaveAttribute(
+      "aria-valuenow",
+      "40",
+    );
+    expect(screen.getByText("8 of 20")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Scanning…" })).toBeDisabled();
+  });
 });
 
 describe("InitialScanCard cancel", () => {

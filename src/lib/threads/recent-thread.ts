@@ -6,6 +6,8 @@ export interface RecentThreadRow {
   summary: string | null;
   status: string | null;
   importance: string | null;
+  importanceReason: string | null;
   category: string | null;
+  sender: string | null;
   latestMessageAt: string | null;
 }

@@ -13,13 +13,8 @@ import { cn } from "@/lib/utils";
 export function SettingInfo({ label, description }: { label: string; description: string }) {
   const tooltipId = useId();
   const buttonRef = useRef<HTMLButtonElement>(null);
+  const tooltipRef = useRef<HTMLSpanElement>(null);
   const [open, setOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
-  const [position, setPosition] = useState({ top: 0, left: 0, width: 288 });
-
-  useLayoutEffect(() => {
-    setMounted(true);
-  }, []);
 
   useLayoutEffect(() => {
     if (!open) {
@@ -28,20 +23,23 @@ export function SettingInfo({ label, description }: { label: string; description
 
     function place() {
       const button = buttonRef.current;
-      if (!button) {
+      const tooltip = tooltipRef.current;
+      if (!button || !tooltip) {
         return;
       }
       const rect = button.getBoundingClientRect();
       const width = Math.min(288, window.innerWidth - 16);
       const left = Math.max(8, Math.min(rect.left, window.innerWidth - width - 8));
       const gap = 8;
-      const estimatedHeight = 88;
+      const height = tooltip.offsetHeight || 88;
       const below = rect.bottom + gap;
       const top =
-        below + estimatedHeight > window.innerHeight && rect.top > estimatedHeight + gap
-          ? Math.max(8, rect.top - gap - estimatedHeight)
+        below + height > window.innerHeight && rect.top > height + gap
+          ? Math.max(8, rect.top - gap - height)
           : below;
-      setPosition({ top, left, width });
+      tooltip.style.top = `${top}px`;
+      tooltip.style.left = `${left}px`;
+      tooltip.style.width = `${width}px`;
     }
 
     place();
@@ -84,14 +82,14 @@ export function SettingInfo({ label, description }: { label: string; description
       >
         <span aria-hidden="true">(i)</span>
       </button>
-      {mounted && open
+      {open
         ? createPortal(
             <span
+              ref={tooltipRef}
               id={tooltipId}
               role="tooltip"
-              style={{ top: position.top, left: position.left, width: position.width }}
               className={cn(
-                "bg-popover text-popover-foreground border-border pointer-events-none fixed z-50 rounded-lg border px-3 py-2 text-left text-sm leading-snug font-normal shadow-md",
+                "bg-popover text-popover-foreground border-border pointer-events-none fixed z-50 w-72 max-w-[calc(100vw-1rem)] rounded-lg border px-3 py-2 text-left text-sm leading-snug font-normal shadow-md",
               )}
             >
               {description}

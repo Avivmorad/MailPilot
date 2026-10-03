@@ -193,7 +193,9 @@ export default function LayoutLabPage() {
               summary: "Your latest invoices are ready to download.",
               status: "informational",
               importance: "medium",
+              importanceReason: null,
               category: "finance",
+              sender: null,
               latestMessageAt: LAB_INVOICE_AT,
             },
           ]}

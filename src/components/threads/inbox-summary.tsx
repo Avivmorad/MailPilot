@@ -82,7 +82,14 @@ export function InboxSummary({
                     </p>
                   ) : null}
                   <p className="text-muted-foreground mt-1 text-start text-xs leading-relaxed break-words">
-                    {threadPlacementReason({ tab })}
+                    {threadPlacementReason({
+                      tab,
+                      importanceReason: thread.importanceReason,
+                      summary: thread.summary,
+                      title,
+                      category: thread.category,
+                      sender: thread.sender,
+                    })}
                   </p>
                   <div className="mt-3 flex flex-wrap items-center gap-2">
                     <MailOpenLink href={href} />

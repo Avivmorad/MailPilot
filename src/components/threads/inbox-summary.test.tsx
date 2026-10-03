@@ -31,7 +31,9 @@ describe("InboxSummary", () => {
             summary: "The 9am flight moved to 11am.",
             status: "informational",
             importance: "medium",
+            importanceReason: "The airline moved the departure.",
             category: "travel_transport",
+            sender: "El Al",
             latestMessageAt: "2026-09-10T10:00:00.000Z",
           },
         ]}
@@ -39,8 +41,50 @@ describe("InboxSummary", () => {
     );
 
     expandCategory(/Travel & Transport/);
-    expect(screen.getByText(/useful update/i)).toBeInTheDocument();
+    expect(screen.getByText("The airline moved the departure.")).toBeInTheDocument();
+    expect(screen.queryByText(/useful update, not an action/i)).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Actions" })).toBeInTheDocument();
+  });
+
+  it("shows different placement lines for different For You mail", () => {
+    render(
+      <InboxSummary
+        threads={[
+          {
+            id: "news",
+            subject: "Weekly digest",
+            shortDisplayTitle: "Weekly digest",
+            summary: "Three product updates.",
+            status: "informational",
+            importance: "low",
+            importanceReason: null,
+            category: "newsletters_promotions",
+            sender: "Morning Brew",
+            latestMessageAt: "2026-09-10T10:00:00.000Z",
+          },
+          {
+            id: "flight",
+            subject: "Boarding pass",
+            shortDisplayTitle: "Boarding pass",
+            summary: "Gate B12.",
+            status: "informational",
+            importance: "medium",
+            importanceReason: null,
+            category: "travel_transport",
+            sender: null,
+            latestMessageAt: "2026-09-11T10:00:00.000Z",
+          },
+        ]}
+      />,
+    );
+
+    expandCategory(/Newsletters & Promotions/);
+    expandCategory(/Travel & Transport/);
+    const newsletter = screen.getByText("Newsletter update from Morning Brew, nothing to do.");
+    const travel = screen.getByText("Travel update, nothing to do.");
+    expect(newsletter).toBeInTheDocument();
+    expect(travel).toBeInTheDocument();
+    expect(newsletter.textContent).not.toBe(travel.textContent);
   });
 
   it("uses the mailbox subject when the model did not return a title", () => {
@@ -54,7 +98,9 @@ describe("InboxSummary", () => {
             summary: null,
             status: "informational",
             importance: null,
+            importanceReason: null,
             category: null,
+            sender: null,
             latestMessageAt: "2026-09-10T10:00:00.000Z",
           },
         ]}
@@ -77,7 +123,9 @@ describe("InboxSummary", () => {
             summary: "undefined",
             status: "informational",
             importance: "low",
+            importanceReason: null,
             category: "other",
+            sender: null,
             latestMessageAt: "2026-09-10T10:00:00.000Z",
           },
         ]}
@@ -100,7 +148,9 @@ describe("InboxSummary", () => {
             summary: "Your latest invoices are ready.",
             status: "informational",
             importance: "medium",
+            importanceReason: null,
             category: "finance",
+            sender: null,
             latestMessageAt: "2026-09-10T10:00:00.000Z",
           },
         ]}

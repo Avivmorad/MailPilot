@@ -116,7 +116,21 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
               </LabeledField>
             ) : null}
             <LabeledField label="Why this tab" dir="auto">
-              {threadPlacementReason({ tab: backTab, evidence: whyText })}
+              {threadPlacementReason({
+                tab: backTab,
+                evidence: whyText,
+                importanceReason: thread.importanceReason,
+                summary: thread.summary,
+                title: heading,
+                category: thread.category,
+                actionType: thread.actionType,
+                requiresReply: thread.requiresReply,
+                deadline: thread.deadline,
+                deadlineText: thread.deadlineText,
+                sender,
+                waitingFor: thread.waitingFor,
+                snoozedUntil: thread.snoozedUntil,
+              })}
             </LabeledField>
             {thread.waitingFor ? (
               <LabeledField label="Pending on">{thread.waitingFor}</LabeledField>

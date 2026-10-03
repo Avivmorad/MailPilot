@@ -22,6 +22,7 @@ const item: ActionListItem = {
   description: null,
   actionSummary: "Download the latest invoices.",
   actionReason: null,
+  importanceReason: null,
   waitingFor: null,
   snoozedUntil: null,
   deadline: null,

@@ -137,9 +137,11 @@ Gmail label set is a presentation choice.
 
 ## For You vs Actions
 
-The dashboard is an overview (short scan status line and mailbox counts). The
-progress circle, lookback control, and per-scan stats live only on the **Scan**
-tab (`/scan`). Mail lists live on **Mail** tabs and stay separate products:
+The dashboard is an overview (short scan status line and mailbox counts). Its
+header includes **Scan Now**, which starts the same default last-week manual
+scan as Scan now (`lookbackDays: 7`) and opens the Scan tab. The progress
+circle, lookback control, and per-scan stats live only on the **Scan** tab
+(`/scan`). Mail lists live on **Mail** tabs and stay separate products:
 
 1. **For You** — useful FYI only (`informational` / `resolved`). Never `ignore`,
    never Actions or Pending tasks.

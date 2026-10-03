@@ -262,8 +262,8 @@ Gmail step. Owner console steps: [`OWNER_TASKS.md`](OWNER_TASKS.md).
 ## Urgency indicators
 
 Every email displays **Urgency Level: High, Medium, Low, None, or Unknown**.
-Email and action rows have matching left markers: red, orange, blue, green,
-and gray respectively. Stored AI values remain compatible: `urgent` maps to
+Email and action rows have matching left markers: red, orange, green, gray,
+and blue respectively. Stored AI values remain compatible: `urgent` maps to
 High, `soon` to Medium, `normal` to Low, and `none` to None. Missing or
 unrecognized values display Unknown. Existing deadline proximity overrides
 stored urgency: overdue maps to High, within seven days to Medium, later to Low.

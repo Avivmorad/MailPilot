@@ -4,7 +4,8 @@ import { MAILPILOT_LABELS, type MailPilotLogicalLabel } from "@/lib/gmail/consta
 import { ensureManagedLabelsWithGmail, loadLabelIdMap } from "@/lib/gmail/labels";
 
 /**
- * Load label IDs; if any MailPilot mapping is missing, create/reconcile first.
+ * Load label IDs. A missing row or a stored MailPilot/ name is incomplete, so
+ * reconcile renames or creates MailPriority/ labels first.
  * Used by scans so deferred post-connect setup cannot leave labeling broken.
  */
 export async function loadOrEnsureLabelIdMap(

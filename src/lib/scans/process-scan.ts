@@ -668,6 +668,8 @@ export async function executeGmailScan(prepared: PreparedGmailScan): Promise<Sca
       };
     }
 
+    // Stored MailPilot/ names are omitted from the map, so this scan renames
+    // them before applying labels. A complete MailPriority/ map skips Gmail.
     let labelMap =
       threadIds.length > 0 ? await gmail.loadLabelMap() : new Map<MailPilotLogicalLabel, string>();
     if (

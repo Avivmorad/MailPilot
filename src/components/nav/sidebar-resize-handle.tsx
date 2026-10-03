@@ -47,7 +47,7 @@ export function SidebarResizeHandle({
       aria-valuemax={Math.floor(maxPx)}
       aria-valuenow={Math.round(widthPx)}
       tabIndex={0}
-      className="after:bg-sidebar-border hover:after:bg-sidebar-primary focus-visible:after:bg-sidebar-primary absolute inset-y-0 right-0 z-30 hidden w-3 translate-x-1/2 cursor-col-resize touch-none bg-transparent p-0 after:absolute after:inset-y-0 after:left-1/2 after:w-px after:-translate-x-1/2 hover:after:w-0.5 focus-visible:outline-none focus-visible:after:w-0.5 lg:block"
+      className="after:bg-sidebar-border hover:after:bg-sidebar-primary focus-visible:after:bg-sidebar-primary absolute inset-y-0 right-0 z-30 hidden w-4 cursor-col-resize touch-none bg-transparent p-0 after:pointer-events-none after:absolute after:inset-y-0 after:right-0 after:w-px hover:after:w-0.5 focus-visible:outline-none focus-visible:after:w-0.5 lg:block"
       onPointerDown={(event) => {
         if (event.button !== 0) return;
         event.preventDefault();

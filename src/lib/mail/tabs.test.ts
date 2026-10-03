@@ -38,6 +38,14 @@ describe("mail tabs", () => {
     );
     expect(mailViewPath({ tab: "open", uncertain: true })).toBe("/mail?tab=open&uncertain=1");
     expect(mailViewPath({ tab: "summary" })).toBe("/mail?tab=summary");
+    expect(
+      mailViewPath({
+        tab: "open",
+        category: "finance",
+        priority: "medium",
+        signal: "high",
+      }),
+    ).toBe("/mail?tab=open&category=finance&priority=medium&signal=high");
   });
 
   it("uses empty-state copy for Actions and Pending", () => {

@@ -6,20 +6,29 @@ import { useEffect, useState, type MouseEvent, type ReactNode } from "react";
 import { GroupedActionList } from "@/components/actions/grouped-action-list";
 import { EmptyState } from "@/components/layout/empty-state";
 import { PageHeader } from "@/components/layout/page-header";
-import { MailCategoryFilters } from "@/components/mail/category-filters";
+import { MailRefineFilters } from "@/components/mail/refine-filters";
 import { InboxSummary } from "@/components/threads/inbox-summary";
 import { buttonVariants } from "@/components/ui/button";
 import type { ActionListItem } from "@/lib/actions/action-list-item";
-import { CATEGORY_LABELS, normalizeCategory } from "@/lib/ai/categories";
+import { normalizeCategory } from "@/lib/ai/categories";
+import type { Importance } from "@/lib/ai/schemas";
 import {
+  applyMailRefinements,
   categoryFilterCounts,
-  filterByCategory,
+  filterByPriority,
+  filterBySignal,
   isStaleWaiting,
   isUncertainClassification,
+  mailRefinementPhrase,
   parseCategoryFilter,
+  parsePriorityFilter,
+  parseSignalFilter,
   parseUncertainFilter,
+  signalsPresent,
+  type MailSignal,
 } from "@/lib/mail/filters";
 import type { MailFigures } from "@/lib/mail/mail-figures";
+import { mailTabCardClass } from "@/lib/mail/tab-tones";
 import {
   actionStatusForMailTab,
   MAIL_TABS,
@@ -119,12 +128,16 @@ function actionsForTab(tab: MailTab, data: MailWorkspaceData): ActionListItem[] 
 function readView(search: string): {
   tab: MailTab;
   category: ReturnType<typeof parseCategoryFilter>;
+  priority: Importance | null;
+  signal: MailSignal | null;
   uncertain: boolean;
 } {
   const params = new URLSearchParams(search);
   return {
     tab: parseMailTab(params.get("tab")),
     category: parseCategoryFilter(params.get("category") ?? undefined),
+    priority: parsePriorityFilter(params.get("priority") ?? undefined),
+    signal: parseSignalFilter(params.get("signal") ?? undefined),
     uncertain: parseUncertainFilter(params.get("uncertain") ?? undefined),
   };
 }
@@ -133,16 +146,22 @@ export function MailWorkspace({
   data,
   initialTab,
   initialCategory,
+  initialPriority,
+  initialSignal,
   initialUncertain,
 }: {
   data: MailWorkspaceData;
   initialTab: MailTab;
   initialCategory: ReturnType<typeof parseCategoryFilter>;
+  initialPriority: Importance | null;
+  initialSignal: MailSignal | null;
   initialUncertain: boolean;
 }) {
   const [view, setView] = useState({
     tab: initialTab,
     category: initialCategory,
+    priority: initialPriority,
+    signal: initialSignal,
     uncertain: initialUncertain,
   });
 
@@ -173,39 +192,64 @@ export function MailWorkspace({
     showHref(href);
   }
 
-  const { tab, category, uncertain: uncertainOnly } = view;
+  const { tab, category, priority, signal, uncertain: uncertainOnly } = view;
   const actionStatus = actionStatusForMailTab(tab);
   const empty = mailTabEmptyCopy(tab);
   const queryError = Boolean(data.failed[tab]);
   const actionItems = actionsForTab(tab, data);
   const summaryThreads = tab === "summary" ? data.summary : [];
   const ignoredThreads = tab === "ignored" ? data.ignored : [];
-  const actionsInLabel = filterByCategory(actionItems, category);
-  const uncertainCount = actionsInLabel.filter((item) =>
-    isUncertainClassification(item.confidence),
-  ).length;
   const tabActions =
     uncertainOnly && actionStatus
       ? actionItems.filter((item) => isUncertainClassification(item.confidence))
       : actionItems;
-  const visibleItems = filterByCategory(tabActions, category);
-  const visibleSummary = filterByCategory(data.summary, category);
-  const visibleIgnored = filterByCategory(data.ignored, category);
+  const refinements = { category, priority, signal };
+  const refinementPhrase = mailRefinementPhrase(refinements);
+  const visibleItems = applyMailRefinements(tabActions, refinements);
+  const visibleSummary = applyMailRefinements(data.summary, refinements);
+  const visibleIgnored = applyMailRefinements(data.ignored, refinements);
   const labelSource: Array<ActionListItem | RecentThreadRow> = actionStatus
     ? tabActions
     : tab === "summary"
       ? summaryThreads
       : ignoredThreads;
-  const labelOptions = categoryFilterCounts(labelSource, category);
-  const categoryLabel = category ? CATEGORY_LABELS[category] : null;
-  const categoryHrefFor = (item: ActionListItem | RecentThreadRow) =>
+  const scopedSource = filterByPriority(filterBySignal(labelSource, signal), priority);
+  const labelOptions = categoryFilterCounts(scopedSource, category);
+  const signalOptions = signalsPresent(labelSource);
+  const refinedActions = applyMailRefinements(actionItems, refinements);
+  const uncertainCount = refinedActions.filter((item) =>
+    isUncertainClassification(item.confidence),
+  ).length;
+  const viewPath = (
+    patch: {
+      tab?: MailTab;
+      category?: ReturnType<typeof parseCategoryFilter>;
+      priority?: Importance | null;
+      signal?: MailSignal | null;
+      uncertain?: boolean;
+    } = {},
+  ) =>
     mailViewPath({
-      tab,
+      tab: patch.tab ?? tab,
+      category: patch.category === undefined ? category : patch.category,
+      priority: patch.priority === undefined ? priority : patch.priority,
+      signal: patch.signal === undefined ? signal : patch.signal,
+      uncertain: patch.uncertain ?? uncertainOnly,
+    });
+  const clearRefinementsPath = viewPath({ category: null, priority: null, signal: null });
+  const categoryHrefFor = (item: ActionListItem | RecentThreadRow) =>
+    viewPath({
       category: normalizeCategory(item.category),
-      uncertain: uncertainOnly,
     });
   const staleWaitingCount =
     tab === "waiting" ? visibleItems.filter((item) => isStaleWaiting(item.updatedAt)).length : 0;
+  const tabLabel = MAIL_TABS.find((entry) => entry.id === tab)?.label ?? "this tab";
+  const filteredEmpty = refinementPhrase
+    ? {
+        title: "No matching mail in this view.",
+        description: `Nothing in ${tabLabel} matches ${refinementPhrase}.`,
+      }
+    : null;
   const emptyAction: ReactNode = data.needsGmailRecovery ? (
     <a href="/api/gmail/connect?returnTo=/mail" className={buttonVariants({ size: "sm" })}>
       {data.recoveryLabel}
@@ -215,6 +259,18 @@ export function MailWorkspace({
       Scan now
     </Link>
   );
+  const listEmptyAction: ReactNode = refinementPhrase ? (
+    <a
+      href={clearRefinementsPath}
+      onClick={(event) => onViewClick(event, clearRefinementsPath)}
+      className={buttonVariants({ size: "sm", variant: "outline" })}
+    >
+      Clear filters
+    </a>
+  ) : (
+    emptyAction
+  );
+  const listKey = `${category ? `-${category}` : ""}${priority ? `-p-${priority}` : ""}${signal ? `-s-${signal}` : ""}`;
 
   return (
     <>
@@ -230,7 +286,7 @@ export function MailWorkspace({
               {group.items.map((item) => {
                 const meta = MAIL_TABS.find((entry) => entry.id === item.id);
                 const active = tab === item.id;
-                const href = mailViewPath({ tab: item.id, category, uncertain: uncertainOnly });
+                const href = viewPath({ tab: item.id });
                 return (
                   <a
                     key={item.id}
@@ -239,21 +295,19 @@ export function MailWorkspace({
                     onClick={(event) => onViewClick(event, href)}
                     className={cn(
                       interactiveChipClass,
-                      "flex w-[7.25rem] shrink-0 flex-col rounded-xl border px-3 py-2.5 sm:w-36",
-                      active
-                        ? "border-primary bg-primary/10 text-foreground"
-                        : "border-border bg-card text-muted-foreground hover:border-border hover:bg-muted/40 hover:text-foreground",
+                      "flex w-[7.25rem] shrink-0 flex-col rounded-xl px-3 py-2.5 sm:w-36",
+                      mailTabCardClass(item.id, active),
                     )}
                   >
                     <span className="flex min-w-0 items-center justify-between gap-2 sm:gap-3">
-                      <span className={cn("min-w-0 truncate text-sm", active && "font-medium")}>
+                      <span className={cn("min-w-0 truncate text-sm", active && "font-semibold")}>
                         {meta?.label}
                       </span>
-                      <span className="text-foreground shrink-0 text-sm font-semibold tabular-nums">
+                      <span className="shrink-0 text-sm font-semibold tabular-nums">
                         {sectionCount(item.id, data.figures)}
                       </span>
                     </span>
-                    <span className="mt-1 line-clamp-2 text-xs leading-snug break-words">
+                    <span className="mt-1 line-clamp-2 text-xs leading-snug break-words text-current/80">
                       {item.hint}
                     </span>
                   </a>
@@ -269,35 +323,32 @@ export function MailWorkspace({
           title={`Could not load ${tab === "open" ? "actions" : tab === "waiting" ? "pending tasks" : tab === "summary" ? "summary threads" : tab === "ignored" ? "ignored mail" : "tasks"}`}
           description="We had trouble reaching the database. Reload to try again. Your mailbox data is safe."
           action={
-            <Link
-              href={mailViewPath({ tab, category, uncertain: uncertainOnly })}
-              className={buttonVariants({ size: "sm", variant: "outline" })}
-            >
+            <Link href={viewPath()} className={buttonVariants({ size: "sm", variant: "outline" })}>
               Reload view
             </Link>
           }
         />
       ) : (
         <>
-          <MailCategoryFilters
+          <MailRefineFilters
             tab={tab}
-            options={labelOptions}
-            active={category}
-            total={labelSource.length}
+            categoryOptions={labelOptions}
+            category={category}
+            priority={priority}
+            signal={signal}
+            signals={signalOptions}
             uncertain={uncertainOnly}
             onSelect={(href) => showHref(href)}
           />
-          {categoryLabel ? (
+          {refinementPhrase ? (
             <p className="text-muted-foreground text-sm">
-              Showing {categoryLabel} in this tab.{" "}
+              Showing {refinementPhrase} in this tab.{" "}
               <a
-                href={mailViewPath({ tab, uncertain: uncertainOnly })}
-                onClick={(event) =>
-                  onViewClick(event, mailViewPath({ tab, uncertain: uncertainOnly }))
-                }
+                href={clearRefinementsPath}
+                onClick={(event) => onViewClick(event, clearRefinementsPath)}
                 className="text-primary font-medium hover:underline"
               >
-                Show all labels
+                Clear filters
               </a>
             </p>
           ) : null}
@@ -308,8 +359,8 @@ export function MailWorkspace({
                   Showing {visibleItems.length} uncertain{" "}
                   {visibleItems.length === 1 ? "classification" : "classifications"}.{" "}
                   <a
-                    href={mailViewPath({ tab, category })}
-                    onClick={(event) => onViewClick(event, mailViewPath({ tab, category }))}
+                    href={viewPath({ uncertain: false })}
+                    onClick={(event) => onViewClick(event, viewPath({ uncertain: false }))}
                     className="text-primary font-medium hover:underline"
                   >
                     Show all
@@ -319,10 +370,8 @@ export function MailWorkspace({
                 <>
                   {uncertainCount} classification{uncertainCount === 1 ? " is" : "s are"} uncertain.{" "}
                   <a
-                    href={mailViewPath({ tab, category, uncertain: true })}
-                    onClick={(event) =>
-                      onViewClick(event, mailViewPath({ tab, category, uncertain: true }))
-                    }
+                    href={viewPath({ uncertain: true })}
+                    onClick={(event) => onViewClick(event, viewPath({ uncertain: true }))}
                     className="text-primary font-medium hover:underline"
                   >
                     Show uncertain only
@@ -340,50 +389,42 @@ export function MailWorkspace({
           {tab === "summary" ? (
             <InboxSummary
               threads={visibleSummary}
-              storageKey={`mail-summary${category ? `-${category}` : ""}`}
-              emptyTitle={categoryLabel ? `No ${categoryLabel} mail in this view.` : empty.title}
-              emptyDescription={
-                categoryLabel
-                  ? `Nothing in For You is labeled ${categoryLabel}.`
-                  : empty.description
-              }
-              emptyAction={emptyAction}
+              storageKey={`mail-summary${listKey}`}
+              emptyTitle={filteredEmpty?.title ?? empty.title}
+              emptyDescription={filteredEmpty?.description ?? empty.description}
+              emptyAction={listEmptyAction}
               categoryHrefFor={(thread) => categoryHrefFor(thread)}
             />
           ) : null}
           {tab === "ignored" ? (
             <InboxSummary
               threads={visibleIgnored}
-              storageKey={`mail-ignored${category ? `-${category}` : ""}`}
-              emptyTitle={categoryLabel ? `No ${categoryLabel} mail in this view.` : empty.title}
-              emptyDescription={
-                categoryLabel
-                  ? `Nothing in Ignored is labeled ${categoryLabel}.`
-                  : empty.description
-              }
-              emptyAction={emptyAction}
+              storageKey={`mail-ignored${listKey}`}
+              emptyTitle={filteredEmpty?.title ?? empty.title}
+              emptyDescription={filteredEmpty?.description ?? empty.description}
+              emptyAction={listEmptyAction}
               categoryHrefFor={(thread) => categoryHrefFor(thread)}
             />
           ) : null}
           {actionStatus ? (
             <GroupedActionList
               items={visibleItems}
-              storageKey={`mail-${tab}${category ? `-${category}` : ""}${uncertainOnly ? "-uncertain" : ""}`}
+              storageKey={`mail-${tab}${listKey}${uncertainOnly ? "-uncertain" : ""}`}
               emptyTitle={
-                categoryLabel
-                  ? `No ${categoryLabel} mail in this view.`
+                filteredEmpty
+                  ? filteredEmpty.title
                   : uncertainOnly
                     ? "No uncertain classifications in this view."
                     : empty.title
               }
               emptyDescription={
-                categoryLabel
-                  ? `Nothing in this tab is labeled ${categoryLabel}.`
+                filteredEmpty
+                  ? filteredEmpty.description
                   : uncertainOnly
                     ? "Threads the classifier is unsure about would appear here so you can double-check them."
                     : empty.description
               }
-              emptyAction={emptyAction}
+              emptyAction={listEmptyAction}
               categoryHrefFor={(item) => categoryHrefFor(item)}
             />
           ) : null}

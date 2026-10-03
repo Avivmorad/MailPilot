@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+
 import { describe, expect, it } from "vitest";
 
 import {
@@ -40,6 +42,28 @@ describe("interactive affordance classes", () => {
       interactiveNavClass,
     ]) {
       expect(value).not.toMatch(/glow|shadow-\[/);
+    }
+  });
+
+  it("rests every ui-interactive control on one quiet shared shadow", () => {
+    const css = readFileSync("src/app/globals.css", "utf8");
+    const rests = [...css.matchAll(/--ui-click-shadow:\s*([^;]+);/g)].map((match) => match[1]);
+    const hovers = [...css.matchAll(/--ui-click-shadow-hover:\s*([^;]+);/g)].map(
+      (match) => match[1],
+    );
+
+    expect(rests).toHaveLength(2);
+    expect(hovers).toHaveLength(2);
+    expect(css).toMatch(/\.ui-interactive\s*\{[^}]*box-shadow:\s*var\(--ui-click-shadow\)/);
+    expect(css).toMatch(
+      /\.ui-interactive:hover[^{]*\{[^}]*box-shadow:\s*var\(--ui-click-shadow-hover\)/,
+    );
+
+    for (const value of [...rests, ...hovers]) {
+      expect(value).not.toMatch(/glow|var\(--primary|var\(--ring|blur\(/i);
+      const lengths = [...value.matchAll(/(\d+(?:\.\d+)?)px/g)].map((match) => Number(match[1]));
+      expect(lengths.length).toBeGreaterThan(0);
+      expect(lengths.every((px) => px <= 4)).toBe(true);
     }
   });
 });

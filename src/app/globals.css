@@ -87,6 +87,9 @@
   --sidebar-accent-foreground: oklch(0.24 0.04 260);
   --sidebar-border: oklch(0.86 0.02 260);
   --sidebar-ring: oklch(0.55 0.08 260);
+  /* Short neutral drop for .ui-interactive. No blur bloom. */
+  --ui-click-shadow: 0 1px 2px oklch(0.22 0.03 260 / 0.16);
+  --ui-click-shadow-hover: 0 2px 4px oklch(0.22 0.03 260 / 0.2);
 }
 
 .dark {
@@ -123,6 +126,9 @@
   --sidebar-accent-foreground: oklch(0.97 0.01 85);
   --sidebar-border: oklch(1 0 0 / 12%);
   --sidebar-ring: oklch(0.62 0.08 260);
+  /* Darker drop plus a 1px top edge so navy controls read as raised. */
+  --ui-click-shadow: 0 1px 2px oklch(0 0 0 / 0.55), inset 0 1px 0 oklch(1 0 0 / 0.08);
+  --ui-click-shadow-hover: 0 2px 4px oklch(0 0 0 / 0.62), inset 0 1px 0 oklch(1 0 0 / 0.1);
 }
 
 @layer base {
@@ -149,22 +155,25 @@
 
 @layer components {
   /**
-   * Shared clickable affordance: no glow/halo. Subtle lift on hover only.
+   * Shared clickable affordance: quiet resting depth plus a 1px hover lift.
+   * Shadow stays a short neutral drop (see --ui-click-shadow). No colored bloom.
    * Pair with cursor-pointer + focus-visible rings for a11y.
    */
   .ui-interactive {
-    box-shadow: none;
-    transition-property: background-color, border-color, color, transform, opacity;
+    box-shadow: var(--ui-click-shadow);
+    transition-property: background-color, border-color, color, transform, opacity, box-shadow;
     transition-duration: 150ms;
     transition-timing-function: ease-out;
   }
 
   .ui-interactive:hover:not(:disabled):not([aria-disabled="true"]) {
     transform: translateY(-1px);
+    box-shadow: var(--ui-click-shadow-hover);
   }
 
   .ui-interactive:active:not(:disabled):not([aria-disabled="true"]) {
     transform: translateY(0);
+    box-shadow: var(--ui-click-shadow);
   }
 }
 

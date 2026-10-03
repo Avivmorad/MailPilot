@@ -168,4 +168,34 @@ describe("InboxSummary", () => {
     expect(title.closest("[dir='auto']")).not.toBeNull();
     expect(container).not.toHaveTextContent("Your latest invoices are ready.");
   });
+
+  it("renders Open and centers the title on an Ignored card", () => {
+    render(
+      <InboxSummary
+        threads={[
+          {
+            id: "thread-ignored",
+            subject: "Weekly deals",
+            shortDisplayTitle: "הניוזלטר השבועי",
+            summary: "This week's promotions and product news.",
+            status: "ignore",
+            importance: "low",
+            category: "newsletters_promotions",
+            latestMessageAt: "2026-09-10T10:00:00.000Z",
+          },
+        ]}
+      />,
+    );
+
+    expandCategory(/Newsletters & Promotions/);
+    const open = screen.getByRole("link", { name: "Open" });
+    expect(open).toHaveAttribute("href", "/thread/thread-ignored");
+    const title = screen.getByRole("link", { name: "הניוזלטר השבועי" });
+    const container = title.closest("[data-slot='mail-card-title']");
+    expect(container).not.toBeNull();
+    expect(container).toHaveClass("text-center");
+    expect(container).toHaveClass("w-full");
+    expect(title.closest("[dir='auto']")).not.toBeNull();
+    expect(container).not.toHaveTextContent("This week's promotions and product news.");
+  });
 });

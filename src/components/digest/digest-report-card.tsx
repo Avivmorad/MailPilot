@@ -1,12 +1,43 @@
 import Link from "next/link";
 
 import { EmptyState } from "@/components/layout/empty-state";
+import { MailCardTitle, MailOpenLink } from "@/components/mail/mail-card-chrome";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { LabeledField } from "@/components/ui/labeled-field";
 import { ThreadTags } from "@/components/ui/thread-tags";
-import type { DigestReport } from "@/lib/digest/types";
+import type { DigestReport, DigestTopAction } from "@/lib/digest/types";
 import { classForDeadline, formatDate, formatDateTime } from "@/lib/ui/format";
+
+function DigestActionRow({ action }: { action: DigestTopAction }) {
+  const href = `/thread/${action.threadId}`;
+  return (
+    <li className="min-w-0 py-3 first:pt-0 last:pb-0">
+      <ThreadTags
+        category={action.category}
+        urgency={action.urgency}
+        deadline={action.deadline}
+        showStatus={false}
+        showImportance={false}
+      />
+      <MailCardTitle title={action.title} className="mt-2">
+        <Link href={href} className="hover:underline">
+          {action.title}
+        </Link>
+      </MailCardTitle>
+      {action.deadline ? (
+        <div className="mt-1 text-start">
+          <LabeledField label="Due" valueClassName={classForDeadline(action.deadline)}>
+            {formatDate(action.deadline)}
+          </LabeledField>
+        </div>
+      ) : null}
+      <div className="mt-3">
+        <MailOpenLink href={href} />
+      </div>
+    </li>
+  );
+}
 
 function DigestCounts({ digest }: { digest: DigestReport }) {
   const stats = [
@@ -66,18 +97,9 @@ export function DigestReportCard({
             <p className="line-clamp-3 text-sm leading-relaxed text-pretty">{digest.summaryText}</p>
           ) : null}
           {preview.length > 0 ? (
-            <ul className="divide-border divide-y text-sm">
+            <ul className="divide-border divide-y">
               {preview.map((action) => (
-                <li key={action.threadId} className="py-2 first:pt-0 last:pb-0">
-                  <Link
-                    href={`/thread/${action.threadId}`}
-                    className="hover:text-primary font-medium break-words hover:underline"
-                    dir="auto"
-                    title={action.title}
-                  >
-                    {action.title}
-                  </Link>
-                </li>
+                <DigestActionRow key={action.threadId} action={action} />
               ))}
             </ul>
           ) : (
@@ -131,30 +153,7 @@ export function DigestReportCard({
             <h3 className="text-foreground mb-2 text-sm font-semibold">Top actions</h3>
             <ul className="divide-border divide-y">
               {digest.topActions.map((action) => (
-                <li key={action.threadId} className="py-2 first:pt-0 last:pb-0">
-                  <Link
-                    href={`/thread/${action.threadId}`}
-                    className="hover:text-primary block font-medium break-words hover:underline"
-                    dir="auto"
-                    title={action.title}
-                  >
-                    {action.title}
-                  </Link>
-                  <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
-                    <ThreadTags
-                      category={action.category}
-                      urgency={action.urgency}
-                      deadline={action.deadline}
-                      showStatus={false}
-                      showImportance={false}
-                    />
-                    {action.deadline ? (
-                      <LabeledField label="Due" valueClassName={classForDeadline(action.deadline)}>
-                        {formatDate(action.deadline)}
-                      </LabeledField>
-                    ) : null}
-                  </div>
-                </li>
+                <DigestActionRow key={action.threadId} action={action} />
               ))}
             </ul>
           </div>

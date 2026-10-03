@@ -206,12 +206,22 @@ export default function Home() {
                     key={item.tab}
                     className={`border-border rounded-xl border border-l-4 ${item.accent} bg-background p-4`}
                   >
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="text-sm font-semibold">{item.title}</p>
-                      <span className="text-muted-foreground shrink-0 text-xs">{item.tab}</span>
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="text-muted-foreground text-xs">{item.tab}</span>
+                      <span className="text-muted-foreground shrink-0 text-xs">{item.meta}</span>
                     </div>
-                    <p className="text-muted-foreground mt-1 text-xs">{item.meta}</p>
-                    <p className="text-muted-foreground mt-2 text-sm">{item.body}</p>
+                    <p className="mt-2 text-center text-sm font-semibold" dir="auto">
+                      {item.title}
+                    </p>
+                    <p className="text-muted-foreground mt-2 text-start text-sm">{item.body}</p>
+                    <span
+                      className={cn(
+                        buttonVariants({ size: "sm" }),
+                        "mt-3 min-h-10 w-full px-4 sm:w-auto",
+                      )}
+                    >
+                      Open
+                    </span>
                   </div>
                 ))}
               </div>

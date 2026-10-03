@@ -39,7 +39,7 @@ const item: ActionListItem = {
 };
 
 describe("ActionItemCard", () => {
-  it("renders Open and centers the short display title", () => {
+  it("renders Open and centers the title on an Actions card", () => {
     render(<ActionItemCard item={item} />);
 
     const open = screen.getByRole("link", { name: "Open" });

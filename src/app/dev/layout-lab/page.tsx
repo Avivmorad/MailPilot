@@ -3,6 +3,7 @@
 import { notFound } from "next/navigation";
 import { useSyncExternalStore } from "react";
 
+import { ActionItemCard } from "@/components/actions/action-item-card";
 import { AppShell } from "@/components/layout/app-shell";
 import { PageHeader } from "@/components/layout/page-header";
 import { InboxStatCard } from "@/components/dashboard/inbox-stat-card";
@@ -30,6 +31,7 @@ function readLabTheme(): "light" | "dark" {
 function prepareLayoutLabClient(): true {
   window.localStorage.setItem(SIDEBAR_STORAGE_KEY, "1");
   window.localStorage.setItem(collapsedStorageKey("layout-lab-mail"), "[]");
+  window.localStorage.setItem(collapsedStorageKey("layout-lab-ignored"), "[]");
   const theme = readLabTheme();
   window.localStorage.setItem(THEME_STORAGE_KEY, theme);
   document.documentElement.classList.toggle("dark", theme === "dark");
@@ -179,6 +181,53 @@ export default function LayoutLabPage() {
             </p>
           </div>
         </article>
+      </section>
+
+      <section className="min-w-0 space-y-3" data-testid="mail-actions-card-preview">
+        <h2 className="text-foreground text-lg font-semibold tracking-tight">Actions card</h2>
+        <ActionItemCard
+          item={{
+            id: "layout-lab-action",
+            threadId: "layout-lab-action",
+            status: "OPEN",
+            title: "אשר את החשבונית",
+            description: null,
+            actionSummary: "Approve the invoice before Friday.",
+            actionReason: null,
+            waitingFor: null,
+            snoozedUntil: null,
+            deadline: null,
+            urgency: null,
+            latestMessageAt: LAB_INVOICE_AT,
+            importance: "high",
+            summary: "The latest invoice is waiting for approval.",
+            sender: "Billing",
+            gmailUrl: "https://mail.google.com/mail/",
+            category: "finance",
+            actionType: "pay",
+            confidence: 0.9,
+            updatedAt: LAB_INVOICE_AT,
+          }}
+        />
+      </section>
+
+      <section className="min-w-0 space-y-3" data-testid="mail-ignored-card-preview">
+        <h2 className="text-foreground text-lg font-semibold tracking-tight">Ignored</h2>
+        <InboxSummary
+          storageKey="layout-lab-ignored"
+          threads={[
+            {
+              id: "layout-lab-ignored",
+              subject: "Weekly newsletter",
+              shortDisplayTitle: "הניוזלטר השבועי",
+              summary: "This week's promotions and product news.",
+              status: "ignore",
+              importance: "low",
+              category: "newsletters_promotions",
+              latestMessageAt: LAB_INVOICE_AT,
+            },
+          ]}
+        />
       </section>
 
       <section className="min-w-0 space-y-3" data-testid="mail-open-card-preview">

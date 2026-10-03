@@ -17,7 +17,7 @@ describe("MailRefineFilters", () => {
         category={null}
         priority={null}
         signal={null}
-        signals={["soon", "pay", "reply"]}
+        signals={["medium", "pay", "reply"]}
         categoryOptions={[
           { category: "finance", count: 2 },
           { category: "travel_transport", count: 1 },
@@ -41,7 +41,9 @@ describe("MailRefineFilters", () => {
     expect(screen.getByRole("group", { name: "Priority" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Medium priority" })).toHaveTextContent("Medium");
     expect(screen.getByRole("group", { name: "Signal" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Soon" }).className).not.toContain("w-[7.25rem]");
+    expect(screen.getByRole("link", { name: "Urgency Level: Medium" }).className).not.toContain(
+      "w-[7.25rem]",
+    );
   });
 
   it("clears an active category from the menu and keeps the tab", () => {

@@ -43,9 +43,9 @@ describe("mail tabs", () => {
         tab: "open",
         category: "finance",
         priority: "medium",
-        signal: "soon",
+        signal: "high",
       }),
-    ).toBe("/mail?tab=open&category=finance&priority=medium&signal=soon");
+    ).toBe("/mail?tab=open&category=finance&priority=medium&signal=high");
   });
 
   it("uses empty-state copy for Actions and Pending", () => {

@@ -6,7 +6,7 @@ import { IMPORTANCE_VALUES, type Importance } from "@/lib/ai/schemas";
 import { groupByTopic, topicForItem, type TopicableItem } from "@/lib/actions/topics";
 import { STALE_WAITING_MS } from "@/lib/dashboard/changes";
 import { displayUrgencyForDeadline } from "@/lib/ui/format";
-import { labelForImportance } from "@/lib/ui/labels";
+import { labelForImportance, urgencyLevel } from "@/lib/ui/labels";
 import { normalizeTagValue, tagLabel } from "@/lib/ui/tags";
 
 export function isUncertainClassification(confidence: number | null | undefined): boolean {
@@ -59,14 +59,17 @@ const priorityFilterSchema = z.enum(IMPORTANCE_VALUES);
 
 /**
  * Closed-set chips that are not the six mail tabs and not priority.
- * Urgency and action type come from the classifier enums. `ignore` and
- * `resolved` are status chips whose labels are not the tab names.
+ * Urgency is the five displayed levels (stored values and deadline proximity
+ * fold into High, Medium, Low, None, or Unknown). Action type comes from the
+ * classifier enum. `ignore` and `resolved` are status chips whose labels are
+ * not the tab names.
  */
 export const MAIL_SIGNAL_VALUES = [
-  "expired",
-  "urgent",
-  "soon",
-  "later",
+  "high",
+  "medium",
+  "low",
+  "none",
+  "unknown",
   "reply",
   "pay",
   "review",
@@ -85,7 +88,7 @@ const mailSignalSchema = z.enum(MAIL_SIGNAL_VALUES);
 
 export type MailSignal = z.infer<typeof mailSignalSchema>;
 
-const URGENCY_SIGNALS = new Set<MailSignal>(["expired", "urgent", "soon", "later"]);
+const URGENCY_SIGNALS = new Set<MailSignal>(["high", "medium", "low", "none", "unknown"]);
 const STATUS_SIGNALS = new Set<MailSignal>(["ignore", "resolved"]);
 
 export type MailRefinable = TopicableItem & {
@@ -149,7 +152,7 @@ export function itemMatchesPriority(item: MailRefinable, priority: Importance): 
 export function itemMatchesSignal(item: MailRefinable, signal: MailSignal): boolean {
   const kind = signalKind(signal);
   if (kind === "urgency") {
-    return displayUrgencyForDeadline(item.deadline, item.urgency) === signal;
+    return urgencyLevel(displayUrgencyForDeadline(item.deadline, item.urgency)) === signal;
   }
   if (kind === "status") {
     return normalizeTagValue(item.status ?? "") === signal;
